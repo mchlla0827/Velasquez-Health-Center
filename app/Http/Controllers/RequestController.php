@@ -1,0 +1,190 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\MedicineRequest;
+use App\Models\Medicine; 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class RequestController extends Controller
+{
+    public function __construct()
+    {
+        // ✅ TAMA NA: DITO PA LANG, SINASABI NA NATIN KUNG SINO ANG PWEDE
+        // Admin, Nurse, at Doctor na PIC lang ang papasok
+        $this->middleware('auth');
+        $this->middleware(function ($request, $next) {
+            $user = Auth::user();
+            
+            // ✅ TSEKE AGAD: KUNG DOCTOR SIYA, SIGURADUHIN NA SIYA ANG PIC
+            if ($user->role === 'Doctor' && trim((string)$user->is_physician_in_charge) !== '1') {
+                abort(403, 'ACCESS DENIED: YOU ARE NOT THE PHYSICIAN IN CHARGE.');
+            }
+            
+            // ✅ TSEKE: BAWAL ANG IBANG ROLE
+            if (!in_array($user->role, ['admin', 'Nurse', 'Doctor'])) {
+                abort(403, 'Access Denied');
+            }
+
+            return $next($request);
+        });
+    }
+
+    public function index()
+{
+    $user = Auth::user();
+
+    $role = strtolower(trim($user->role));
+    $isPIC = (string)$user->is_physician_in_charge === '1';
+
+    // ==========================
+    // ADMIN or PIC DOCTOR
+    // ==========================
+    if ($role === 'admin' || ($role === 'doctor' && $isPIC)) {
+
+        $requests = MedicineRequest::latest()->get();
+
+        $pending = MedicineRequest::where('status', 'Pending Physician')->count();
+        $approved = MedicineRequest::where('status', 'Approved')->count();
+        $rejected = MedicineRequest::where('status', 'Rejected')->count();
+        $completed = MedicineRequest::where('status', 'Completed')->count();
+
+        return view('admin.request', compact(
+            'requests',
+            'pending',
+            'approved',
+            'rejected',
+            'completed'
+        ));
+    }
+
+    // ==========================
+    // NURSE
+    // ==========================
+    if ($role === 'nurse') {
+
+        $medicines = Medicine::orderBy('name')->get();
+
+        $userName = $user->first_name . ' ' . $user->last_name;
+
+        return view('nurse.request', compact(
+            'medicines',
+            'userName',
+            'role'
+        ));
+    }
+
+    abort(403, 'Unauthorized');
+}
+    // ==================================================
+    // ✅ STORE: PARA SA NURSE LANG
+    // ==================================================
+    public function store(Request $request)
+    {
+        $user = Auth::user();
+        if ($user->role === 'Doctor' || $user->role === 'Admin') {
+            abort(403, 'Doctors/Admin cannot create requests.'); 
+        }
+
+        $validated = $request->validate([
+            'responsibility_center_code' => 'nullable|string',
+            'ris_number' => 'nullable|string',
+            'date_prepared' => 'required|date',
+            'medicine_id' => 'required|array',
+            'medicine_id.*' => 'required|integer',
+            'unit' => 'nullable|array',
+            'batch' => 'nullable|array',
+            'expiry' => 'nullable|array',
+            'qty_requested' => 'required|array',
+            'qty_requested.*' => 'required|integer|min:1',
+            'purpose' => 'required|string',
+        ]);
+
+        foreach ($validated['medicine_id'] as $key => $medId) {
+            MedicineRequest::create([
+                'medicine_id' => $medId,
+                'quantity_requested' => $validated['qty_requested'][$key],
+                'requested_by' => $user->id,
+                'status' => 'Pending Physician',
+                'reason' => $validated['purpose'],
+            ]);
+        }
+
+        return redirect()->route('doctor.request')->with('success', 'Request submitted successfully.');
+    }
+
+    // ==================================================
+    // ✅ UPDATE STATUS: ADMIN at DOCTOR (PIC) LANG
+    // ==================================================
+    public function updateStatus(Request $request, $id)
+    {
+        $user = Auth::user();
+        // ✅ NURSE BAWAL, ADMIN AT PIC LANG PWEDE
+        if ($user->role === 'Nurse' || ($user->role === 'Doctor' && trim((string)$user->is_physician_in_charge) !== '1')) {
+            abort(403, 'Access Denied: Not authorized to change status.');
+        }
+
+        $req = MedicineRequest::findOrFail($id);
+        $req->status = $request->status;
+        $req->approved_by = Auth::id();
+        $req->physician_notes = $request->physician_notes ?? null;
+        $req->save();
+
+        return redirect()->route('doctor.request')->with('success', 'Status updated successfully.');
+    }
+
+    // ==================================================
+    // ✅ EDIT & UPDATE (NURSE LANG)
+    // ==================================================
+    public function edit($id)
+    {
+        $req = MedicineRequest::findOrFail($id);
+        $user = Auth::user();
+
+        if ($user->role !== 'Nurse' || $req->requested_by != $user->id) {
+            abort(403, 'Access Denied');
+        }
+
+        $medicines = Medicine::orderBy('name', 'asc')->get();
+        $userName = $user->first_name . ' ' . $user->last_name;
+        $role = $user->role;
+        return view('nurse.request', compact('req', 'medicines', 'userName', 'role'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $req = MedicineRequest::findOrFail($id);
+        $user = Auth::user();
+
+        if ($user->role !== 'Nurse' || $req->requested_by != $user->id) {
+            abort(403, 'Access Denied');
+        }
+
+        $validated = $request->validate([
+            'medicine_id' => 'required|integer',
+            'quantity_requested' => 'required|integer|min:1',
+            'purpose' => 'required|string',
+            'status' => 'required|string',
+        ]);
+
+        $req->update($validated);
+        return redirect()->route('nurse.request')->with('success', 'Updated successfully.');
+    }
+
+    // ==================================================
+    // ✅ DELETE
+    // ==================================================
+    public function destroy($id)
+    {
+        $req = MedicineRequest::findOrFail($id);
+        $user = Auth::user();
+        
+        if ($user->role === 'Nurse' && $req->requested_by != $user->id) {
+            abort(403, 'Access Denied');
+        }
+        
+        $req->delete();
+        return redirect()->route('doctor.request')->with('success', 'Deleted successfully.');
+    }
+}

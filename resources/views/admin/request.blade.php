@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/bhclogo.jpg">
+<meta charset="UTF-8">
+<title>Request Form</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #F9FAFB;
+        overflow-x: hidden;
+    }
+
+    .container {
+        display: flex;
+    }
+
+    /* ================= SIDEBAR ================= */
+    .sidebar {
+        width: 260px;
+        height: 100vh;
+        background: white;
+        border-right: 1px solid #E5E7EB;
+        padding: 24px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        box-sizing: border-box;
+        overflow-y: auto;
+    }
+
+    .sidebar-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid #E5E7EB;
+        margin-bottom: 10px;
+    }
+
+    .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+
+    .brand-wrapper {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+
+    .brand {
+        font-weight: bold;
+        color: #1E3A8A;
+        font-size: 13.3px;
+    }
+
+    .sub {
+        font-size: 11px;
+        color: #6B7280;
+    }
+
+    .group {
+        margin-top: 22px;
+        font-size: 11px;
+        font-weight: bold;
+        color: #9CA3AF;
+        text-transform: uppercase;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px;
+        margin-top: 6px;
+        text-decoration: none;
+        color: #5f6570;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .nav-icon {
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+    }
+
+    .nav-item.active {
+        background: #EFF6FF;
+        color: #1A73E8;
+        border-left: 4px solid #1A73E8;
+        font-weight: bold;
+    }
+
+   .nav-item:hover { 
+    background: #F3F4F6; 
+}
+
+/* New modifier class for form buttons inside the sidebar */
+.nav-btn {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent; /* Changed from 'none' so hover states can override it */
+    cursor: pointer;
+    font-family: inherit; /* Ensures the font matches your links */
+}
+
+    /* ================= MAIN ================= */
+    .main {
+        margin-left: 250px;
+        width: calc(100% - 250px);
+        padding: 24px;
+        box-sizing: border-box;
+    }
+
+    /* ================= HEADER ================= */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .welcome-text {
+        font-size: 14px;
+        color: #374151;
+        margin-bottom: 5px;
+    }
+
+    .welcome-name {
+        font-weight: bold;
+        color: #1F2937;
+        font-size: 18px;
+    }
+
+    .role {
+        background: #9333EA;
+        color: white;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        margin-left: 6px;
+        text-transform: uppercase;
+    }
+
+    .right {
+        text-align: right;
+        font-size: 12px;
+        color: #374151;
+    }
+
+    .header-divider {
+        width: 100%;
+        height: 1px;
+        background: #E5E7EB;
+        margin: 16px 0;
+    }
+
+    /* ================= PAGE TOP ================= */
+    .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        letter-spacing: -0.02em;
+        margin: 0;
+    }
+
+    .page-subtitle {
+        font-size: 14px;
+        font-weight: 400;
+        color: #1e293b;
+        margin-top: 4px;
+        font-style: italic;
+    }
+
+    .create-btn {
+        background: #2563EB;
+        color: white;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        border: none;
+        cursor: pointer;
+    }
+
+    /* ================= TABLE CARD ================= */
+    .table-card {
+        background: white;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .table-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+    }
+
+    .table-sub {
+        font-size: 12px;
+        color: #6B7280;
+        margin-bottom: 12px;
+    }
+
+    /* ================= TABLE FIX (IMPORTANT PART) ================= */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    /* HEADER */
+    th {
+        text-align: left;
+        font-size: 11px;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 14px 24px;   /* 👈 spacing fix */
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    /* ROWS */
+    td {
+        padding: 16px 24px;   /* 👈 THIS fixes spacing between columns */
+        font-size: 13px;
+        color: #111827;
+        border-bottom: 1px solid #F1F5F9;
+        vertical-align: middle;
+    }
+
+    /* medicine name */
+    .medicine-name {
+        font-weight: 600;
+    }
+
+    /* role text */
+    .role-text {
+        font-size: 11px;
+        color: #6B7280;
+    }
+
+    /* status pills */
+    .pill {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+
+    .pill-pending { 
+        background: #FEF9C3; 
+        color: #A16207; 
+    }
+
+    .pill-approved { 
+        background: #DCFCE7; 
+        color: #166534; 
+    }
+
+    .pill-rejected { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+    }
+
+
+    /* ACTION COLUMN */
+    .action-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: rgb(67, 114, 245);
+    }
+
+    .action-box {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        cursor: pointer;
+    }
+
+    .action-box:hover {
+        background: #F3F4F6;
+    }
+
+    .action-box img {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* row hover */
+    tbody tr:hover {
+        background: #F9FAFB;
+    }
+    th:last-child {
+        padding-left: 60px;
+    }
+    /* ================= MODAL ================= */
+    /* Ensure modals are hidden by default and act as full screen overlays */
+.modal {
+    display: none; 
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Dim backdrop */
+    overflow: auto;
+}
+
+/* Ensure the second confirmation layer displays layered over the first */
+#confirmModal {
+    z-index: 1010; 
+}
+
+    .modal-content {
+        background: white;
+        width: 900px;
+        margin: 40px auto;
+        border-radius: 12px;
+        padding: 24px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    /* header */
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .modal-sub {
+        font-size: 12px;
+        color: #6B7280;
+    }
+
+    .close-btn {
+        font-size: 18px;
+        cursor: pointer;
+        color: #6B7280;
+    }
+
+    /* section spacing */
+    .section {
+        margin-top: 20px;
+    }
+
+    /* grid info */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(3,1fr);
+        gap: 12px;
+    }
+
+    .info-box {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    /* requisition table */
+    .req-table th {
+        background: #F3F4F6;
+    }
+
+    /* signatures */
+    .sign-grid {
+        display: grid;
+        grid-template-columns: repeat(2,1fr);
+        gap: 20px;
+        margin-top: 15px;
+    }
+
+    .sign-box {
+        border-top: 1px solid #111;
+        padding-top: 6px;
+        font-size: 12px;
+    }
+    /* ================= ACTION BUTTONS ================= */
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 25px;
+    }
+
+    .btn-approve {
+        background: #10B981;
+        color: white;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .btn-reject {
+        background: #EF4444;
+        color: white;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .btn-close {
+        background: white;
+        border: 1px solid #E5E7EB;
+        padding: 10px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    /* ================= CONFIRMATION MODAL ================= */
+    .confirm-box {
+        text-align: center;
+    }
+
+    .confirm-text {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .confirm-actions {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+</style>
+</head>
+<script>
+function openModal(){
+    document.getElementById("requestModal").style.display = "block";
+}
+
+function closeModal(){
+    document.getElementById("requestModal").style.display = "none";
+}
+</script>
+<script>
+let actionType = "";
+
+// open confirmation
+function openConfirm(type){
+    actionType = type;
+
+    document.getElementById("confirmModal").style.display = "block";
+
+    if(type === "approve"){
+        document.getElementById("confirmTitle").innerText = "Approve Request";
+        document.getElementById("confirmMessage").innerText =
+            "Are you sure you want to APPROVE this request?";
+    } else {
+        document.getElementById("confirmTitle").innerText = "Reject Request";
+        document.getElementById("confirmMessage").innerText =
+            "Are you sure you want to REJECT this request?";
+    }
+}
+
+// close confirmation
+function closeConfirm(){
+    document.getElementById("confirmModal").style.display = "none";
+}
+
+// final action
+function confirmAction(){
+    closeConfirm();
+    closeModal();
+
+    if(actionType === "approve"){
+        alert("Request Approved ✅");
+    } else {
+        alert("Request Rejected ❌");
+    }
+}
+</script>
+<body>
+
+<div class="container">
+
+<x-sidebar />
+
+    <div class="main">
+        {{-- ✅ HEADER - ADMIN STYLE --}}
+<div class="header">
+    <div>
+        <div class="welcome-text">Welcome back,</div>
+
+        <div class="welcome-name">
+            {{ $userName ?? Auth::user()->name ?? 'Administrator' }}
+
+            @php
+                $user = Auth::user();
+
+                $role = strtolower($user->role);
+
+                // ✅ If Doctor and PIC, display as PIC
+                $displayRole = ($role === 'doctor' && $user->is_physician_in_charge == 1)
+                    ? 'PIC'
+                    : strtoupper($role);
+
+                $roleColor = match($role) {
+                    'admin'  => '#9333EA', // Purple
+                    'nurse'  => '#10B981', // Green
+                    'doctor' => '#3B82F6', // Red
+                    'bhw'    => '#6366F1', // Indigo
+                    default  => '#6B7280'
+                };
+            @endphp
+
+            <span class="role"
+                  style="background-color: {{ $roleColor }}; color:white; padding:4px 12px; border-radius:12px; font-size:12px;">
+                {{ $displayRole }}
+            </span>
+        </div>
+    </div>
+
+    <div class="right">
+        <b>Velasquez Health Center</b><br>
+        @php date_default_timezone_set('Asia/Manila'); @endphp
+        {{ date('F d, Y | h:i A') }}
+    </div>
+</div>
+
+        <div class="header-divider"></div>
+
+{{-- ✅ MAIN CONTENT --}}
+<div class="module-container" style="padding: 10px 20px 20px 20px;">
+
+    {{-- PAGE TITLE & BUTTON --}}
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; width: 100%;">
+        <div>
+            <h2 style="font-size: 24px; font-weight: 700; color: #1e293b; letter-spacing: -0.02em; margin: 0 0 4px 0; padding: 0; line-height: 1.2;">Medicine Request Management</h2>
+            <p style="color: #6B7280; font-size: 14px; margin: 0;">View, create, and approve all medicine supply requests from staff</p>
+        </div>
+        <button class="btn-primary" style="background: #1A73E8; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 14px; cursor: pointer; white-space: nowrap; transition: background 0.2s;" 
+                onclick="openRequestModal()"
+                onmouseover="this.style.background='#1557B0'"
+                onmouseout="this.style.background='#1A73E8'">
+            + New Request
+        </button>
+    </div>
+
+
+            {{-- STATUS CARDS --}}
+            <div class="kpi-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 20px; margin-bottom: 24px; width: 100%;">
+    
+    {{-- PENDING — GREY THEME --}}
+    <div class="kpi" 
+         style="background: rgba(243, 244, 246, 0.4); border: 1px solid rgba(209, 213, 219, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+         onmouseover="this.style.transform='translateY(-4px)';"
+         onmouseout="this.style.transform='translateY(0px)';"
+         onmousedown="this.style.transform='translateY(-2px)';">
+        <h4 style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280;">PENDING</h4>
+        <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #111827;">{{ $requests->where('status','Pending')->count() }}</span>
+    </div>
+
+    {{-- APPROVED — AMBER/YELLOW THEME --}}
+    <div class="kpi" 
+         style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+         onmouseover="this.style.transform='translateY(-4px)';"
+         onmouseout="this.style.transform='translateY(0px)';"
+         onmousedown="this.style.transform='translateY(-2px)';">
+        <h4 style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #B45309;">APPROVED</h4>
+        <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #78350F;">{{ $requests->where('status','Approved')->count() }}</span>
+    </div>
+
+    {{-- REJECTED — RED THEME --}}
+    <div class="kpi" 
+         style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+         onmouseover="this.style.transform='translateY(-4px)';"
+         onmouseout="this.style.transform='translateY(0px)';"
+         onmousedown="this.style.transform='translateY(-2px)';">
+        <h4 style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #DC2626;">REJECTED</h4>
+        <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #991B1B;">{{ $requests->where('status','Rejected')->count() }}</span>
+    </div>
+
+    {{-- COMPLETED — BLUE THEME --}}
+    <div class="kpi" 
+         style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+         onmouseover="this.style.transform='translateY(-4px)';"
+         onmouseout="this.style.transform='translateY(0px)';"
+         onmousedown="this.style.transform='translateY(-2px)';">
+        <h4 style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #2563EB;">COMPLETED</h4>
+        <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #1E40AF;">{{ $requests->where('status','Completed')->count() }}</span>
+    </div>
+
+</div>
+
+
+            {{-- TABLE --}}
+            <div class="table-card" style="background:white; border:1px solid #E5E7EB; border-radius:8px; overflow:hidden;">
+                
+                <div class="toolbar-section" style="padding:16px; border-bottom:1px solid #E5E7EB; display:flex; justify-content:space-between; align-items:center;">
+                    <div class="toolbar-title" style="font-weight:600; font-size:15px;">All Request Records</div>
+                    <input type="text" class="search-input" placeholder="Search..." style="border:1px solid #D1D5DB; border-radius:6px; padding:6px 12px; font-size:14px;">
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left border-b" style="background:#F9FAFB;">
+                                <th class="p-3" style="font-weight:600; color:#4B5563;">DATE</th>
+                                <th class="p-3" style="font-weight:600; color:#4B5563;">REQUESTED BY</th>
+                                <th class="p-3" style="font-weight:600; color:#4B5563;">MEDICINE</th>
+                                <th class="p-3" style="font-weight:600; color:#4B5563;">QUANTITY</th>
+                                <th class="p-3" style="font-weight:600; color:#4B5563;">NOTES</th>
+                                <th class="p-3" style="font-weight:600; color:#4B5563;">STATUS</th>
+                                <th class="p-3 text-right" style="font-weight:600; color:#4B5563;">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($requests as $req)
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3">{{ $req->created_at->format('M d, Y') }}</td>
+                                <td class="p-3 font-semibold">
+                                    {{ $req->requester->first_name ?? '' }} {{ $req->requester->last_name ?? 'Unknown' }}
+                                    <br><small style="color:#6B7280;">({{ strtoupper($req->requester->role ?? 'N/A') }})</small>
+                                </td>
+                                <td class="p-3">{{ $req->medicine->name ?? 'Deleted Item' }}</td>
+                                <td class="p-3">{{ number_format($req->quantity_requested) }} units</td>
+                                <td class="p-3 text-gray-600">{{ $req->reason ?? '—' }}</td>
+                                <td class="p-3">
+                                    @php
+                                        $statusColor = match($req->status ?? 'Pending') {
+                                            'Approved' => 'text-green-700 bg-green-100',
+                                            'Rejected' => 'text-red-700 bg-red-100',
+                                            'Completed' => 'text-blue-700 bg-blue-100',
+                                            default => 'text-yellow-700 bg-yellow-100'
+                                        };
+                                    @endphp
+                                    <span class="px-2 py-1 rounded text-xs font-medium {{ $statusColor }}">
+                                        {{ strtoupper($req->status ?? 'PENDING') }}
+                                    </span>
+                                </td>
+                                <td class="p-3 text-right">
+                                    {{-- ✅ ADMIN: FULL CONTROL --}}
+                                    <button class="btn-sm" style="background:#EFF6FF; color:#1A73E8; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="editReq({{ $req->id }})">Edit</button>
+                                    
+                                    @if($req->status == 'Pending')
+                                        <button class="btn-sm" style="background:#DCFCE7; color:#166534; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="updateStatus({{ $req->id }}, 'Approved')">Approve</button>
+                                        <button class="btn-sm" style="background:#FEE2E2; color:#991B1B; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="updateStatus({{ $req->id }}, 'Rejected')">Reject</button>
+                                    @endif
+
+                                    <button class="btn-sm" style="background:#F3F4F6; color:#374151; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="deleteReq({{ $req->id }})">Delete</button>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="7" class="p-5 text-center text-gray-500">No request records found</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+{{-- ✅ SCRIPTS & ALERTS --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Success / Error Messages
+    @if(session('success'))
+        Swal.fire({ icon: 'success', title: 'Success!', text: "{{ session('success') }}", confirmButtonColor: '#1A73E8' });
+    @endif
+    @if(session('error'))
+        Swal.fire({ icon: 'error', title: 'Error!', text: "{{ session('error') }}", confirmButtonColor: '#EF4444' });
+    @endif
+
+
+    // Example Functions
+    function openRequestModal() {
+        Swal.fire({ title: 'New Medicine Request', html: '<p>Form will load here...</p>', icon: 'info' });
+    }
+
+    function editReq(id) {
+        Swal.fire({ title: 'Edit Request #'+id, icon: 'info' });
+    }
+
+    function updateStatus(id, status) {
+        Swal.fire({
+            title: 'Update Request Status?',
+            text: `Mark this request as ${status}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: status === 'Approved' ? '#10B981' : '#EF4444',
+            confirmButtonText: `Yes, ${status}!`
+        }).then((res) => {
+            if(res.isConfirmed) {
+                // This will link to your route: /admin/request/{id}/update-status/{status}
+                window.location.href = `/admin/request/${id}/status/${status}`;
+            }
+        });
+    }
+
+    function deleteReq(id) {
+        Swal.fire({
+            title: 'Delete Record?',
+            text: "This action cannot be undone!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            confirmButtonText: 'Yes, delete it!'
+        });
+    }
+</script>
+</body>
+</html>
