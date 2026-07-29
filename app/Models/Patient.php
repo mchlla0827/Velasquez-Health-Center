@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Patient extends Model
 {
@@ -30,5 +31,17 @@ class Patient extends Model
     public function triageRecords()
     {
         return $this->hasMany(TriageRecord::class, 'patient_id', 'id');
+    }
+
+    // Append 'age' dynamically when model is serialized
+    protected $appends = ['age'];
+
+    public function getAgeAttribute()
+    {
+        if (!$this->dob) {
+            return 'N/A';
+        }
+
+        return Carbon::parse($this->dob)->age;
     }
 }

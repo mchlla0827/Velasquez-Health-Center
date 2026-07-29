@@ -1,22 +1,38 @@
 <?php
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Patient;
+use App\Models\Medicine;
 
 class DispensingRecord extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-    'patient_ptn', // ✅ NEW — very important
-    'family_no','barangay','dispense_date','patient_name','age','sex',
-    'address','philhealth_no','diagnosis','medicine_id','quantity_dispensed',
-    'unit','dispensed_by'
-];
+        'patient_id',
+        'patient_ptn',
+        'family_no',
+        'barangay',
+        'dispense_date',
+        'patient_name',
+        'age',
+        'sex',
+        'address',
+        'philhealth_no',
+        'diagnosis',
+        'medicine_id',
+        'quantity_dispensed',
+        'unit',
+        'dispensed_by'
+    ];
+
+    public function patient()
+    {
+        return $this->belongsTo(Patient::class, 'patient_id');
+    }
 
     public function medicine()
     {
-        return $this->belongsTo(Medicine::class);
+        return $this->belongsTo(Medicine::class, 'medicine_id');
     }
 }

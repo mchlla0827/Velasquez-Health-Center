@@ -345,7 +345,6 @@
     </div>
 
 </div>
-</div>
 
 <!-- ================= NEW DISPENSE MODAL ================= -->
 <div id="dispenseModal" class="modal-overlay">
@@ -366,14 +365,14 @@
                             @foreach($patients as $p)
                                 <option 
                                     value="{{ $p->id }}"
-                                    data-ptn="{{ $p->patient_id ?? $p->ptn ?? '' }}"
-                                    data-family="{{ $p->family_number ?? $p->family_no ?? '' }}"
-                                    data-brgy="{{ $p->barangay ?? '' }}"
+                                    data-ptn="{{ $p->patient_id ?? 'N/A' }}"
+                                    data-family="{{ $p->family_number ?? 'N/A' }}"
+                                    data-brgy="{{ $p->barangay ?? 'N/A' }}"
                                     data-name="{{ trim(($p->first_name ?? '') . ' ' . ($p->last_name ?? '')) }}"
-                                    data-age="{{ $p->age ?? '' }}"
-                                    data-sex="{{ $p->sex ?? $p->gender ?? '' }}"
-                                    data-address="{{ $p->address ?? '' }}"
-                                    data-philhealth="{{ $p->philhealth_no ?? $p->philhealth ?? '' }}"
+                                    data-age="{{ isset($p->age) ? $p->age : '0' }}"
+                                    data-sex="{{ $p->gender ?? $p->sex ?? 'N/A' }}"
+                                    data-address="{{ $p->address ?? 'N/A' }}"
+                                    data-philhealth="{{ $p->philhealth_no ?? 'None' }}"
                                 >
                                     {{ $p->patient_id ?? 'NO ID' }} - {{ $p->first_name ?? '' }} {{ $p->last_name ?? '' }}
                                 </option>
@@ -388,15 +387,15 @@
                     <div class="grid-2">
                         <div>
                             <label>Patient PTN / ID</label>
-                            <input type="text" name="patient_ptn" id="patient_ptn" readonly required>
+                            <input type="text" name="patient_ptn" id="patient_ptn" readonly>
                         </div>
                         <div>
                             <label>Family No.</label>
-                            <input type="text" name="family_no" id="family_no" readonly required>
+                            <input type="text" name="family_no" id="family_no" readonly>
                         </div>
                         <div>
                             <label>Barangay</label>
-                            <input type="text" name="barangay" id="barangay" readonly required>
+                            <input type="text" name="barangay" id="barangay" readonly>
                         </div>
                         <div>
                             <label>Date</label>
@@ -404,19 +403,19 @@
                         </div>
                         <div class="field full">
                             <label>Patient Name</label>
-                            <input type="text" name="patient_name" id="patient_name" readonly required>
+                            <input type="text" name="patient_name" id="patient_name" readonly>
                         </div>
                         <div>
                             <label>Age</label>
-                            <input type="number" name="age" id="age" readonly required>
+                            <input type="text" name="age" id="age" readonly>
                         </div>
                         <div>
                             <label>Sex</label>
-                            <input type="text" name="sex" id="sex" readonly required>
+                            <input type="text" name="sex" id="sex" readonly>
                         </div>
                         <div class="field full">
                             <label>Address</label>
-                            <input type="text" name="address" id="address" readonly required>
+                            <input type="text" name="address" id="address" readonly>
                         </div>
                         <div>
                             <label>PhilHealth No.</label>
@@ -534,9 +533,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const viewModal = document.getElementById('viewModal');
     const closeViewModal = document.getElementById('closeViewModal');
 
-    openDispenseModal.addEventListener('click', () => dispenseModal.classList.add('show'));
-    closeDispenseModal.addEventListener('click', () => dispenseModal.classList.remove('show'));
-    closeViewModal.addEventListener('click', () => viewModal.classList.remove('show'));
+    if (openDispenseModal) {
+        openDispenseModal.addEventListener('click', () => dispenseModal.classList.add('show'));
+    }
+    if (closeDispenseModal) {
+        closeDispenseModal.addEventListener('click', () => dispenseModal.classList.remove('show'));
+    }
+    if (closeViewModal) {
+        closeViewModal.addEventListener('click', () => viewModal.classList.remove('show'));
+    }
 
     // FORM ELEMENTS
     const form = document.getElementById('dispenseForm');
@@ -545,12 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const qtyInput = document.getElementById('quantity');
     const recordBtn = document.getElementById('recordBtn');
     const clearBtn = document.getElementById('clearBtn');
-
-    const requiredIds = [
-        'patient_ptn', 'family_no', 'barangay', 'date', 
-        'patient_name', 'age', 'sex', 'address', 
-        'diagnosis', 'medicine_id', 'quantity', 'unit', 'dispensed_by'
-    ];
+    const diagnosisInput = document.getElementById('diagnosis');
 
     function clearPatientFields() {
         ['patient_ptn', 'family_no', 'barangay', 'patient_name', 'age', 'sex', 'address', 'philhealth_no'].forEach(id => {
@@ -574,14 +574,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        document.getElementById('patient_ptn').value  = opt.dataset.ptn || '';
-        document.getElementById('family_no').value    = opt.dataset.family || '';
-        document.getElementById('barangay').value     = opt.dataset.brgy || '';
-        document.getElementById('patient_name').value = opt.dataset.name || '';
-        document.getElementById('age').value          = opt.dataset.age || '';
-        document.getElementById('sex').value          = opt.dataset.sex || '';
-        document.getElementById('address').value      = opt.dataset.address || '';
-        document.getElementById('philhealth_no').value = opt.dataset.philhealth || '';
+        document.getElementById('patient_ptn').value  = opt.dataset.ptn || 'N/A';
+        document.getElementById('family_no').value    = opt.dataset.family || 'N/A';
+        document.getElementById('barangay').value     = opt.dataset.brgy || 'N/A';
+        document.getElementById('patient_name').value = opt.dataset.name || 'N/A';
+        document.getElementById('age').value          = opt.dataset.age || '0';
+        document.getElementById('sex').value          = opt.dataset.sex || 'N/A';
+        document.getElementById('address').value      = opt.dataset.address || 'N/A';
+        document.getElementById('philhealth_no').value = opt.dataset.philhealth || 'None';
 
         checkReady();
     });
@@ -605,16 +605,29 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkReady() {
         let isReady = true;
 
-        requiredIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (!el || el.value === null || el.value.toString().trim() === '') {
-                isReady = false;
-            }
-        });
+        // 1. Must select a patient
+        if (!patientSelect.value) {
+            isReady = false;
+        }
 
-        const val = parseInt(qtyInput.value);
-        const max = parseInt(qtyInput.max);
-        if (isNaN(val) || val <= 0 || (max && val > max)) {
+        // 2. Must enter diagnosis
+        if (!diagnosisInput.value.trim()) {
+            isReady = false;
+        }
+
+        // 3. Must select a medicine
+        if (!medicineSelect.value) {
+            isReady = false;
+        }
+
+        // 4. Quantity must be a valid number between 1 and available stock
+        const val = parseInt(qtyInput.value, 10);
+        const max = parseInt(qtyInput.max, 10);
+
+        if (isNaN(val) || val <= 0) {
+            isReady = false;
+        }
+        if (!isNaN(max) && val > max) {
             isReady = false;
         }
 
@@ -631,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
         medicineSelect.value = '';
         clearPatientFields();
         clearMedicineFields();
-        document.getElementById('diagnosis').value = '';
+        diagnosisInput.value = '';
         checkReady();
     });
 
