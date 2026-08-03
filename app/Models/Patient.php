@@ -44,4 +44,9 @@ class Patient extends Model
 
         return Carbon::parse($this->dob)->age;
     }
+
+    public function dispensingRecords()
+    {
+        return $this->hasMany(dispensingRecords::Record::class, 'patient_id');
+    }
 }

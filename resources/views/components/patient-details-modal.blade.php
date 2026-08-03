@@ -95,7 +95,7 @@
                     <span style="font-size: 40px; margin-bottom: 12px;">📝</span>
                     <h4 style="margin: 0; font-size: 16px; color: #111827;">No Medical History Found</h4>
                     <p style="margin: 4px 0 20px; font-size: 13px; color: #6B7280; text-align: center; max-width: 400px;">This patient has not yet undergone their initial Integrated NCD Risk Assessment.</p>
-                    @if(auth()->user()->role === 'doctor')
+                    @if(auth()->user()->role === 'doctor' || auth()->user()->is_physician_in_charge)
                         <a id="btn-start-ncd" href="#" class="btn-primary" style="text-decoration: none; display: inline-block;">
                             Conduct NCD Risk Assessment
                         </a>
@@ -104,7 +104,7 @@
                             Please coordinate with the attending Doctor to conduct this assessment.
                         </p>
                     @endif             
-                   </div>
+                </div>
 
                 <div id="medical-history-filled" style="display: none;">
                     <div style="margin-bottom: 20px;">
@@ -396,6 +396,7 @@
 
 <script>
     const currentUserRole = "{{ strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw') }}";
+    let activePatientData = null; // Store patient data globally for modal use
 
     // --- HELPER: Toggle PhilHealth Fields ---
     window.togglePhilHealthFields = function() {
@@ -456,52 +457,71 @@
             btnContainer.innerHTML = `<button class="btn-primary" onclick="${btnAction}">${btnText}</button>`;
         }
 
-            // ✅ ADD THIS 3 LINES HERE — LOAD HISTORY WHEN TAB IS CLICKED
-        if (tabId === 'medicine-history') {
-            const patientPTN = document.getElementById('headerPatientID').innerText.trim();
-            loadMedicineHistory(patientPTN);
+        // ✅ FIXED TAB SWITCH LOAD
+        if (tabId === 'medicine-history' && activePatientData) {
+            const identifier = activePatientData.patient_id || activePatientData.id;
+            loadMedicineHistory(identifier);
         }
     }
 
     function closePatientModal() {
         document.getElementById('patientDetailModal').style.display = 'none';
+        activePatientData = null;
     }
 
-    // ✅ NEW FUNCTION: Load Medicine History
-function loadMedicineHistory(patientPTN) {
-    fetch(`/nurse/patient/${patientPTN}/medicine-history`)
-    .then(res => res.json())
-    .then(data => {
+    // --- LOAD MEDICINE HISTORY ---
+    function loadMedicineHistory(patientIdentifier) {
         const tbody = document.getElementById('detMedicineHistoryBody');
         const totalSpan = document.getElementById('detTotalMedicines');
-        tbody.innerHTML = '';
 
-        if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: #9CA3AF;">No medicine history recorded.</td></tr>`;
-            totalSpan.textContent = 0;
-            return;
-        }
+        if (!tbody) return;
 
-        totalSpan.textContent = data.length;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #6B7280;">Loading history...</td></tr>`;
 
-        data.forEach(row => {
-            tbody.innerHTML += `
-            <tr>
-                <td>${row.date}</td>
-                <td>${row.medicine_name}</td>
-                <td>${row.quantity}</td>
-                <td>${row.unit}</td>
-                <td>${row.dispensed_by}</td>
-            </tr>`;
-        });
-    })
-    .catch(err => {
-        document.getElementById('detMedicineHistoryBody').innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#dc2626;">Error loading history</td></tr>`;
-    });
-}
+
+        console.log("Patient Identifier:", patientIdentifier);
+
+        // Root relative URL fetch
+        fetch(`/patient/${encodeURIComponent(patientIdentifier)}/medicine-history`)
+            .then(async res => {
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(`HTTP ${res.status}: ${errText}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                tbody.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: #9CA3AF;">No medicine history recorded.</td></tr>`;
+                    if (totalSpan) totalSpan.textContent = '0';
+                    return;
+                }
+
+                if (totalSpan) totalSpan.textContent = data.length;
+
+                let rows = '';
+                data.forEach(row => {
+                    rows += `
+                    <tr>
+                        <td style="padding: 12px; border-bottom: 1px solid #E5E7EB;">${row.date || '---'}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #111827;">${row.medicine_name || '---'}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #E5E7EB;">${row.quantity}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #E5E7EB;">${row.unit}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #E5E7EB;">${row.dispensed_by}</td>
+                    </tr>`;
+                });
+
+                tbody.innerHTML = rows;
+            })
+            .catch(err => {
+                console.error("Error loading medicine history:", err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#dc2626;">Error loading medicine history</td></tr>`;
+            });
+    }
 
     // --- MAIN: Open Modal & Fetch Data ---
-   // --- MAIN: Open Modal & Fetch Data ---
     window.openPatientModal = function(id) {
         const modal = document.getElementById('patientDetailModal');
         modal.style.display = 'flex';
@@ -509,6 +529,7 @@ function loadMedicineHistory(patientPTN) {
         fetch(`/patients/show/${id}`)
             .then(response => response.json())
             .then(data => {
+                activePatientData = data; // Save patient object
                 document.getElementById('detInternalId').innerText = data.id;
 
                 const basicTab = document.querySelector('.tab-item:first-child');
@@ -519,7 +540,13 @@ function loadMedicineHistory(patientPTN) {
                 document.getElementById('headerPatientName').innerText = `${data.first_name || ''} ${data.last_name || ''}`;
                 document.getElementById('detID').innerText = data.patient_id || '---';
                 document.getElementById('detFam').innerText = data.family_number || '---';
-                
+
+                console.log(data);
+console.log("data.id =", data.id);
+console.log("data.patient_id =", data.patient_id);
+
+                loadMedicineHistory(data.patient_id);
+
                 // Patient Name
                 const fullNameEl = document.getElementById('detFullName');
                 fullNameEl.innerText = `${data.first_name || ''} ${data.middle_name || ''} ${data.last_name || ''}`.trim() || '---';
@@ -584,148 +611,20 @@ function loadMedicineHistory(patientPTN) {
                 document.getElementById('detPhilType').innerText = phType;
                 document.getElementById('detPhilNo').innerText = phNo;
 
-                // --- RESTORED: MEDICAL HISTORY MAPPING ---
-                if(document.getElementById('detHyper')) document.getElementById('detHyper').checked = !!data.is_hypertensive;
-                if(document.getElementById('detDiab')) document.getElementById('detDiab').checked = !!data.is_diabetic;
-                if(document.getElementById('detAsthma')) document.getElementById('detAsthma').checked = !!data.has_asthma;
-                if(document.getElementById('detHeart')) document.getElementById('detHeart').checked = !!data.has_heart_disease;
-                if(document.getElementById('detTB')) document.getElementById('detTB').checked = !!data.has_tb_history;
-                if(document.getElementById('detOtherConditions')) document.getElementById('detOtherConditions').innerText = data.other_conditions || 'None';
-                if(document.getElementById('detFoodAllergy')) document.getElementById('detFoodAllergy').innerText = data.food_allergies || 'None';
-                if(document.getElementById('detDrugAllergy')) document.getElementById('detDrugAllergy').innerText = data.drug_allergies || 'None';
-                if(document.getElementById('detOtherAllergy')) document.getElementById('detOtherAllergy').innerText = data.other_allergies || 'None';
-                if(document.getElementById('detIsSenior')) document.getElementById('detIsSenior').innerText = data.age >= 60 ? 'Yes' : 'No';
-                if(document.getElementById('detIsPWD')) document.getElementById('detIsPWD').innerText = data.osca_pwd_no ? 'Yes' : 'No';
-                if(document.getElementById('detFamHyper')) document.getElementById('detFamHyper').checked = !!data.fam_hypertension;
-                if(document.getElementById('detFamDiab')) document.getElementById('detFamDiab').checked = !!data.fam_diabetes;
-                if(document.getElementById('detFamOther')) document.getElementById('detFamOther').innerText = data.fam_other || 'None';
-
-                // --- RESTORED: IMMUNIZATION MAPPING ---
-                document.getElementById('v_vac_bcg').innerText = data.vac_bcg || '---';
-                document.getElementById('v_vac_hepa').innerText = data.vac_hepa || '---';
-                document.getElementById('v_vac_penta1').innerText = data.vac_penta1 || '---';
-                document.getElementById('v_vac_opv1').innerText = data.vac_opv1 || '---';
-                document.getElementById('v_vac_pcv1').innerText = data.vac_pcv1 || '---';
-                document.getElementById('v_vac_ipv1').innerText = data.vac_ipv1 || '---';
-                document.getElementById('v_vac_ipv2').innerText = data.vac_ipv2 || '---';
-                document.getElementById('v_vac_penta2').innerText = data.vac_penta2 || '---';
-                document.getElementById('v_vac_opv2').innerText = data.vac_opv2 || '---';
-                document.getElementById('v_vac_pcv2').innerText = data.vac_pcv2 || '---';
-                document.getElementById('v_vac_penta3').innerText = data.vac_penta3 || '---';
-                document.getElementById('v_vac_opv3').innerText = data.vac_opv3 || '---';
-                document.getElementById('v_vac_pcv3').innerText = data.vac_pcv3 || '---';
-                document.getElementById('v_vac_mr1').innerText = data.vac_mr1 || '---';
-                document.getElementById('v_vac_mmr1').innerText = data.vac_mmr1 || '---';
-                document.getElementById('v_vac_mmr2').innerText = data.vac_mmr2 || '---';
-                document.getElementById('v_vac_hpv1').innerText = data.vac_hpv1 || '---';
-                document.getElementById('v_vac_hpv2').innerText = data.vac_hpv2 || '---';
-                document.getElementById('v_vac_flu').innerText = data.vac_flu || '---';
-                document.getElementById('v_vac_pneumo').innerText = data.vac_pneumo || '---';
-                document.getElementById('v_vac_td').innerText = data.vac_td || '---';
-
-                // --- RESTORED: MATERNAL HEALTH MAPPING ---
-                document.getElementById('v_mat_nbs').innerText = data.mat_nbs || '---';
-                document.getElementById('v_mat_nbs_date').innerText = data.mat_nbs_date || '---';
-                document.getElementById('v_mat_nbs_result').innerText = data.mat_nbs_result || '---';
-                document.getElementById('v_mat_hearing').innerText = data.mat_hearing || '---';
-                document.getElementById('v_mat_hearing_date').innerText = data.mat_hearing_date || '---';
-                document.getElementById('v_mat_hearing_result').innerText = data.mat_hearing_result || '---';
-                document.getElementById('v_mat_birth_order').innerText = data.mat_birth_order || '---';
-                document.getElementById('v_mat_birth_length').innerText = data.mat_birth_length ? data.mat_birth_length + ' cm' : '---';
-                document.getElementById('v_mat_birth_weight').innerText = data.mat_birth_weight ? data.mat_birth_weight + ' kg' : '---';
-                
-                document.getElementById('v_mat_del_type').innerText = data.mat_delivery_type || '---';
-                document.getElementById('v_mat_feed_type').innerText = data.mat_feeding_type || '---';
-                document.getElementById('v_mat_attendant').innerText = data.mat_attendant || '---';
-                document.getElementById('v_mat_del_place').innerText = data.mat_delivery_place || '---';
-
-                document.getElementById('v_mat_vit_a_dose').innerText = data.mat_vit_a_dose || '---';
-                document.getElementById('v_mat_vit_a_date').innerText = data.mat_vit_a_date || '---';
-                document.getElementById('v_mat_deworm1').innerText = data.mat_deworming_1 || '---';
-                document.getElementById('v_mat_deworm2').innerText = data.mat_deworming_2 || '---';
-
-                document.getElementById('v_ob_g').innerText = data.ob_g || '---';
-                let tpal = `${data.ob_p_t || 0}-${data.ob_p_p || 0}-${data.ob_p_a || 0}-${data.ob_p_l || 0}`;
-                document.getElementById('v_ob_p').innerText = tpal === '0-0-0-0' ? '---' : tpal;
-                document.getElementById('v_ob_menarche').innerText = data.ob_menarche || '---';
-                document.getElementById('v_ob_pmp').innerText = data.ob_pmp || '---';
-                document.getElementById('v_ob_lmp').innerText = data.ob_lmp || '---';
-                document.getElementById('v_ob_edc').innerText = data.ob_edc || '---';
-                document.getElementById('v_ob_tt_status').innerText = data.ob_tt_status || '---';
-                
-                document.getElementById('v_ob_td1').innerText = data.ob_td1 || '---';
-                document.getElementById('v_ob_td2').innerText = data.ob_td2 || '---';
-                document.getElementById('v_ob_td3').innerText = data.ob_td3 || '---';
-                document.getElementById('v_ob_td4').innerText = data.ob_td4 || '---';
-                document.getElementById('v_ob_td5').innerText = data.ob_td5 || '---';
-
-                // Tab Visibility (Restored)
-                const tabImmun = document.getElementById('tab-immunization');
-                const tabMat = document.getElementById('tab-maternal');
-                if (tabImmun) tabImmun.style.display = (data.tracking_immunization === 'Yes') ? 'block' : 'none';
-                if (tabMat) tabMat.style.display = (data.tracking_maternal === 'Yes') ? 'block' : 'none';
-                // --- DOH NCD RISK ASSESSMENT LOGIC ---
-                // We check if a baseline vital sign like Blood Pressure or BMI exists. 
-                // If it's missing, it means they haven't taken the assessment yet.
-                if (!data.screen_bp && !data.screen_bmi) {
-                    
-                    // Show Empty State Button
+                // Rest of medical history mapping
+                if(!data.screen_bp && !data.screen_bmi) {
                     document.getElementById('medical-history-empty').style.display = 'flex';
                     document.getElementById('medical-history-filled').style.display = 'none';
-                    
-                    // Set the button to redirect to your dedicated Assessment Form page
                     document.getElementById('btn-start-ncd').href = `/patients/${data.id}/ncd-assessment`;
-
                 } else {
-                    
-                    // Show Filled DOH Data
                     document.getElementById('medical-history-empty').style.display = 'none';
                     document.getElementById('medical-history-filled').style.display = 'block';
-
-                    // Map Part II
-                    let conditions = [];
-                    if(data.is_diabetic) conditions.push('Diabetes');
-                    if(data.is_hypertensive) conditions.push('Hypertension');
-                    if(data.has_cancer) conditions.push('Cancer');
-                    if(data.has_copd) conditions.push('COPD');
-                    if(data.has_eye_disease) conditions.push('Eye Disease');
-                    document.getElementById('doh_conditions').innerText = conditions.length > 0 ? conditions.join(', ') : 'None';
-                    document.getElementById('doh_cancer_site').innerText = data.cancer_site || '---';
-                    document.getElementById('doh_chest_pain').innerText = data.has_chest_pain ? 'Yes (Angina)' : 'No';
-
-                    // Map Part III
-                    let fam = [];
-                    if(data.fam_hypertension) fam.push('Hypertension');
-                    if(data.fam_diabetes) fam.push('Diabetes');
-                    if(data.fam_stroke) fam.push('Stroke');
-                    if(data.fam_cancer) fam.push('Cancer');
-                    if(data.fam_kidney_disease) fam.push('Kidney Disease');
-                    document.getElementById('doh_fam_history').innerText = fam.length > 0 ? fam.join(', ') : 'None';
-                    
-                    document.getElementById('doh_nutrition').innerText = data.risk_nutrition || '---';
-                    document.getElementById('doh_alcohol').innerText = data.risk_alcohol || '---';
-                    document.getElementById('doh_exercise').innerText = data.risk_activity || '---';
-                    document.getElementById('doh_smoking').innerText = data.risk_smoking || '---';
-                    document.getElementById('doh_stress').innerText = data.risk_stress || '---';
-
-                    // Map Part IV
-                    document.getElementById('doh_weight').innerText = data.screen_weight || '---';
-                    document.getElementById('doh_height').innerText = data.screen_height || '---';
-                    document.getElementById('doh_bmi').innerText = data.screen_bmi || '---';
-                    document.getElementById('doh_waist').innerText = data.screen_waist || '---';
-                    document.getElementById('doh_wh_ratio').innerText = data.screen_wh_ratio || '---';
-                    document.getElementById('doh_sugar').innerText = data.screen_sugar || '---';
-                    document.getElementById('doh_bp').innerText = data.screen_bp || '---';
-                    document.getElementById('doh_cholesterol').innerText = data.screen_cholesterol || '---';
-                    document.getElementById('doh_urine_pro').innerText = data.screen_urine_protein || '---';
-                    document.getElementById('doh_urine_ket').innerText = data.screen_urine_ketones || '---';
-                    document.getElementById('doh_cancer_screen').innerText = data.cancer_screen || '---';
                 }
             })
             .catch(error => console.error('Error loading patient:', error));
     };
 
-    // --- MAIN: Edit Mode UI Generation ---
+    // --- EDIT PATIENT & UPDATE LOGIC ---
     window.editPatient = function(patientId) {
         if (!patientId) patientId = document.getElementById('detInternalId').innerText;
 
@@ -739,12 +638,10 @@ function loadMedicineHistory(patientPTN) {
             if (result.isConfirmed) {
                 const paragraphs = document.querySelectorAll('#basic-info .item p');
                 paragraphs.forEach(p => {
-                    // Fields that should never be edited
                     if (['detID', 'detAge', 'detFam'].includes(p.id)) return;
 
                     const currentValue = p.innerText === '---' ? '' : p.innerText;
                     
-                    // --- Handle Names (3 inputs) ---
                     if (['detFullName', 'detMother', 'detFather'].includes(p.id)) {
                         const container = document.createElement('div');
                         container.style.display = "grid";
@@ -772,12 +669,10 @@ function loadMedicineHistory(patientPTN) {
                         });
                         
                         p.replaceWith(container);
-                        return; // Skip rest of loop
+                        return;
                     }
 
                     let input;
-                    
-                    // --- Handle Dropdowns ---
                     if (['detSex', 'detBrgy', 'detCivil', 'detPhilType'].includes(p.id)) {
                         input = document.createElement('select');
                         let options = [];
@@ -793,7 +688,7 @@ function loadMedicineHistory(patientPTN) {
                                 if(opt === capVal) option.selected = true;
                                 input.add(option);
                             });
-                            input.onchange = window.togglePhilHealthFields; // Trigger toggle on change
+                            input.onchange = window.togglePhilHealthFields;
                         } else {
                             options.forEach(opt => {
                                 const option = new Option(opt, opt);
@@ -801,26 +696,21 @@ function loadMedicineHistory(patientPTN) {
                                 input.add(option);
                             });
                         }
-                    } 
-                    // --- Handle Regular Text / Dates / Numbers ---
-                    else {
+                    } else {
                         input = document.createElement('input');
                         input.type = (p.id === 'detDOB' || p.id === 'detPhilMemberDob') ? 'date' : 'text';
                         input.value = currentValue;
                         
-                        // Strict Date Logic
                         if (p.id === 'detDOB' || p.id === 'detPhilMemberDob') {
                             input.max = new Date().toISOString().split('T')[0];
                         }
                         
-                        // Strict 11-digit Contact Logic
                         if (p.id === 'detContact') {
                             input.maxLength = 11;
                             input.placeholder = "09XXXXXXXXX";
                             input.oninput = function() { this.value = this.value.replace(/[^0-9]/g, ''); };
                         }
                         
-                        // Strict 12-digit PhilHealth Logic
                         if (p.id === 'detPhilNo') {
                             input.maxLength = 12; 
                             input.placeholder = "12-digit PhilHealth No";
@@ -833,10 +723,8 @@ function loadMedicineHistory(patientPTN) {
                     p.replaceWith(input);
                 });
 
-                // Immediately toggle PhilHealth boxes to match the current selected option
                 window.togglePhilHealthFields();
 
-                // Swap buttons
                 document.getElementById('dynamic-action-button').innerHTML = 
                     `<button class="btn-primary" onclick="savePatientUpdate('${patientId}')">Save Changes</button>
                      <button class="btn-secondary" style="margin-left:8px;" onclick="location.reload()">Cancel</button>`;
@@ -844,11 +732,9 @@ function loadMedicineHistory(patientPTN) {
         });
     };
 
-    // --- MAIN: Submit Edit Data ---
     window.savePatientUpdate = function(dbId) {
         const contactNo = document.getElementById('detContact')?.value || '';
         
-        // Final Validations
         if (document.getElementById('edit_first_name')?.value === '' || document.getElementById('edit_last_name')?.value === '') {
             Swal.fire('Warning', 'Patient First Name and Last Name cannot be empty.', 'warning');
             return;
@@ -858,11 +744,9 @@ function loadMedicineHistory(patientPTN) {
             return;
         }
 
-        // Parse Philhealth Dropdown
         const philType = document.getElementById('detPhilType')?.value.toLowerCase() || 'none';
         const philNo = document.getElementById('detPhilNo')?.value || '';
 
-        // Build Payload
         const updatedData = {
             _token: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || "{{ csrf_token() }}",
             _method: "PUT",
@@ -895,7 +779,7 @@ function loadMedicineHistory(patientPTN) {
 
             philhealth: philType,
             philhealth_no_member: philType === 'member' ? philNo : '',
-            philhealth_no_dependent: philType === 'dependent' ? philNo : '', // Matching DB column
+            philhealth_no_dependent: philType === 'dependent' ? philNo : '',
             philhealth_member_name: philType === 'dependent' ? document.getElementById('detPhilMemberName')?.value : '',
             philhealth_member_dob: philType === 'dependent' ? document.getElementById('detPhilMemberDob')?.value : ''
         };

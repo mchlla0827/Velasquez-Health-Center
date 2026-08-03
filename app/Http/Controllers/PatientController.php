@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Models\DispensingRecord;
 
 class PatientController extends Controller
 {
@@ -336,4 +337,47 @@ public function store(Request $request)
             'call_id'      => $callingPatient ? $callingPatient->id : 0
         ]);
     }
+
+public function getPatientMedicineHistory($ptn)
+{
+    $history = DispensingRecord::with('medicine')
+        ->where('patient_ptn', trim($ptn))
+        ->orderByDesc('dispense_date')
+        ->get();
+
+
+    $result = $history->map(function ($record) {
+        return [
+            'date' => optional($record->dispense_date)
+                ? \Carbon\Carbon::parse($record->dispense_date)->format('M d, Y')
+                : '---',
+
+            'medicine_name' => optional($record->medicine)->name ?? 'Unknown',
+
+            'quantity' => $record->quantity_dispensed,
+
+            'unit' => $record->unit,
+
+            'dispensed_by' => $record->dispensed_by,
+        ];
+    });
+
+    return response()->json($result);
+}
+
+// In PatientController.php (or wherever your modal history endpoint is)
+public function getMedicalHistory($patientId)
+{
+    $patient = Patient::findOrFail($patientId);
+    
+    // Fetch the latest NCD assessment for this patient
+    $ncdAssessment = NcdAssessment::where('patient_id', $patient->id)
+        ->latest()
+        ->first();
+
+    return response()->json([
+        'has_ncd' => !is_null($ncdAssessment),
+        'ncd_data' => $ncdAssessment,
+    ]);
+}
 }

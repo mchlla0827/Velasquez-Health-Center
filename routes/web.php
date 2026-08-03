@@ -8,7 +8,7 @@ use App\Models\ActivityLog;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PatientController;
-use App\Http\Controllers\TriageController; // ✅ FIXED: Inimport para hindi mag-error ang status updates
+use App\Http\Controllers\TriageController; 
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForecastController;
@@ -31,20 +31,24 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middlew
 
 /*
 |--------------------------------------------------------------------------
-| PATIENT SHARED LOGIC (AJAX & POST)
-|--------------------------------------------------------------------------
-*/
-Route::post('/patients/store', [PatientController::class, 'store'])->name('patients.store');
-Route::get('/patients/show/{id}', [PatientController::class, 'show']);
-Route::get('/patients/search', [PatientController::class, 'search'])->middleware('auth');
-Route::get('/nurse/patient/{id}/medicine-history', [PatientController::class, 'getMedicineHistory'])->name('patient.medicine.history');
-
-/*
-|--------------------------------------------------------------------------
 | PROTECTED ROUTES (Requires Login)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['web', 'auth'])->group(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | PATIENT SHARED ENDPOINTS (Accessible by Admin, Nurse, Doctor, BHW)
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/patients/store', [PatientController::class, 'store'])->name('patients.store');
+    Route::get('/patients/show/{id}', [PatientController::class, 'show']);
+    Route::get('/patients/search', [PatientController::class, 'search']);
+    
+    // ✅ FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
+    Route::get('/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('patient.medicine.history');
+Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('nurse.patient.medicine.history');
+
 
     // ==================================================
     // ✅ ADMIN ROUTES - FULL ACCESS
@@ -57,27 +61,19 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/manage-user', [DashboardController::class, 'manageUsers'])->name('manage-user');
         Route::put('/users/update/{id}', [RegisteredUserController::class, 'update'])->name('users.update');
 
-       Route::get('/inventory', [MedicineController::class, 'index'])->name('inventory');
-Route::get('/dispense', [MedicineController::class, 'dispenseForm'])->name('dispense');
-Route::post('/dispense', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
-// Deleted the duplicate DispenseController line here
-Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
-Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
-        // ✅ REQUEST FORM MODULE - FULL ROLE BASED
+        Route::get('/inventory', [MedicineController::class, 'index'])->name('inventory');
+        Route::get('/dispense', [MedicineController::class, 'dispenseForm'])->name('dispense');
+        Route::post('/dispense', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
+        Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
+        Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
+
+        // REQUEST FORM MODULE
         Route::get('/request', [RequestController::class, 'index'])->name('request');
         Route::post('/request', [RequestController::class, 'store'])->name('request.store');
         Route::get('/request/{id}/status/{status}', [RequestController::class, 'updateStatus'])->name('request.status');
         Route::get('/request/{id}/edit', [RequestController::class, 'edit'])->name('request.edit');
         Route::put('/request/{id}', [RequestController::class, 'update'])->name('request.update');
         Route::delete('/request/{id}', [RequestController::class, 'destroy'])->name('request.destroy');
-
-        // ✅ ROLE-SPECIFIC ROUTES (for sidebar links)
-// ✅ TAMA NA: Admin, PIC, o Nurse lang ang makakapasok dito
-// ✅ ROLE-SPECIFIC ROUTES
-// ✅ TANGGALIN ANG 'role:admin,nurse,doctor' dahil nasa Controller na ang proteksyon
-Route::get('/admin/request', [RequestController::class, 'index'])->name('admin.request')->middleware('auth');
-Route::get('/nurse/request', [RequestController::class, 'index'])->name('nurse.request')->middleware('auth');
-Route::get('/doctor/request', [RequestController::class, 'index'])->name('doctor.request')->middleware('auth');
 
         Route::get('/reports', fn() => view('admin.reports'))->name('reports');
         Route::get('/triage', [PatientController::class, 'triage'])->name('triage');
@@ -126,8 +122,9 @@ Route::get('/doctor/request', [RequestController::class, 'index'])->name('doctor
         Route::delete('/medicine/delete/{id}', [MedicineController::class, 'destroy'])->name('medicine.delete');
     });
 
+
     // ==================================================
-    // ✅ NURSE ROUTES - SEPARATE & WORKING
+    // ✅ NURSE ROUTES
     // ==================================================
     Route::middleware(['role:nurse'])->prefix('nurse')->name('nurse.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -152,8 +149,9 @@ Route::get('/doctor/request', [RequestController::class, 'index'])->name('doctor
         Route::post('/request/update-status', [RequestController::class, 'updateStatus'])->name('request.updateStatus');
     });
 
+
     // ==================================================
-    // ✅ DOCTOR ROUTES - WITH PIC CHECK
+    // ✅ DOCTOR ROUTES
     // ==================================================
     Route::middleware(['role:doctor'])->prefix('doctor')->name('doctor.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -172,7 +170,7 @@ Route::get('/doctor/request', [RequestController::class, 'index'])->name('doctor
     });
 
     // ==================================================
-    // ✅ BHW ROUTES - SEPARATE & WORKING
+    // ✅ BHW ROUTES
     // ==================================================
     Route::middleware(['role:bhw'])->prefix('bhw')->name('bhw.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -202,7 +200,7 @@ Route::get('/doctor/request', [RequestController::class, 'index'])->name('doctor
     Route::get('/ai-forecast', [ForecastController::class, 'index'])->name('ai.forecast');
     Route::post('/patients/queue/store', [PatientController::class, 'storeQueue'])->name('triage.storeQueue');
 
-    // 📢 TRIAGE QUEUE & STATUS AUTO-SYNC LOGIC (Ginamit na ang PatientController)
     Route::post('/triage/{id}/update-status', [PatientController::class, 'updateStatus'])->name('triage.updateStatus');
     Route::get('/triage/live-queue-data', [PatientController::class, 'getLiveQueueData'])->name('triage.liveData');
+
 });
