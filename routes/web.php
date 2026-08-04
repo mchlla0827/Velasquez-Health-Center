@@ -66,6 +66,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::post('/dispense', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
         Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
         Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
+        Route::post('/stockout/store', [StockController::class, 'storeStockOut'])->name('stockout.store');
 
         // REQUEST FORM MODULE
         Route::get('/request', [RequestController::class, 'index'])->name('request');

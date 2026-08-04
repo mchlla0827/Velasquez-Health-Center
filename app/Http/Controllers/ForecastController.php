@@ -12,11 +12,9 @@ class ForecastController extends Controller
 {
     public function index()
     {
-
         // ==================================================
         // ROLE & USER CHECK
         // ==================================================
-
         $role = strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw');
 
         $userName = Auth::user()->name 
@@ -24,535 +22,163 @@ class ForecastController extends Controller
             ?? session('user_name') 
             ?? ucfirst($role);
 
-
-
         // ==================================================
-        // FORECAST ACCESS
-        // ADMIN, NURSE, DOCTOR ONLY
+        // FORECAST ACCESS: ADMIN & NURSE ONLY
         // ==================================================
-
-        $canViewForecast = (
-            $role === 'admin' ||
-            $role === 'nurse' ||
-            $role === 'doctor'
-        );
-
+        $canViewForecast = in_array($role, ['admin', 'nurse']);
 
         if (!$canViewForecast) {
-
             return redirect()
                 ->route('bhw.inventory')
-                ->with(
-                    'error',
-                    'Access Denied: You are not allowed to view Forecast.'
-                );
-
+                ->with('error', 'Access Denied: You are not allowed to view Forecast.');
         }
 
+        // Action permissions indicator
+        $canManageForecast = true;
 
-
-        // ADMIN + NURSE CAN MANAGE
-        // DOCTOR VIEW ONLY
-
-        $canManageForecast = (
-            $role === 'admin' ||
-            $role === 'nurse'
-        );
-
-
+        // Dynamic badge accent color based on active role
+        $roleColor = match($role) {
+            'admin' => '#9333EA', // Purple
+            'nurse' => '#10B981', // Emerald Green
+            default => '#6B7280'  // Gray
+        };
 
         // ==================================================
-        // FORECAST VARIABLES
+        // PREPARE DATE BOUNDARIES
         // ==================================================
+        $now = Carbon::now();
+        $oneMonthAgo = $now->copy()->subMonth();
+        $twoMonthsAgo = $now->copy()->subMonths(2);
+        $threeMonthsAgo = $now->copy()->subMonths(3);
 
-        $medicines = Medicine::all();
-
+        // Fetch medicines along with 3-month dispensing records (Eager Loading)
+        $medicines = Medicine::with(['dispensingRecords' => function ($query) use ($threeMonthsAgo) {
+            $query->where('dispense_date', '>=', $threeMonthsAgo);
+        }])->get();
 
         $shortageCount = 0;
-
         $highDemandCount = 0;
-
         $restockCount = 0;
 
-
         $forecastData = [];
-
         $forecastChart = [];
-
-
         $criticalItemGlobal = null;
 
-
-
         // ==================================================
-        // MOVING AVERAGE FORECAST
+        // MOVING AVERAGE FORECAST CALCULATION
         // ==================================================
-
         foreach ($medicines as $med) {
+            $records = $med->dispensingRecords;
 
-
-            $startDate = Carbon::now()->subMonths(3);
-
-            $oneMonthAgo = Carbon::now()->subMonth();
-
-            $twoMonthsAgo = Carbon::now()->subMonths(2);
-
-
-
-            // LAST 3 MONTH DISPENSING RECORDS
-
-            $records = $med->dispensingRecords()
-
-                ->where(
-                    'dispense_date',
-                    '>=',
-                    $startDate
-                )
-
-                ->get();
-
-
-
-            // MONTHLY CONSUMPTION
-
-            $period1 = $records
-
-                ->where(
-                    'dispense_date',
-                    '>=',
-                    $oneMonthAgo
-                )
-
+            // Period 1: Last 30 days
+            $period1 = $records->where('dispense_date', '>=', $oneMonthAgo)
                 ->sum('quantity_dispensed');
 
-
-
-            $period2 = $records
-
-                ->where(
-                    'dispense_date',
-                    '>=',
-                    $twoMonthsAgo
-                )
-
-                ->where(
-                    'dispense_date',
-                    '<',
-                    $oneMonthAgo
-                )
-
+            // Period 2: 30–60 days ago
+            $period2 = $records->where('dispense_date', '>=', $twoMonthsAgo)
+                ->where('dispense_date', '<', $oneMonthAgo)
                 ->sum('quantity_dispensed');
 
-
-
-            $period3 = $records
-
-                ->where(
-                    'dispense_date',
-                    '>=',
-                    $startDate
-                )
-
-                ->where(
-                    'dispense_date',
-                    '<',
-                    $twoMonthsAgo
-                )
-
+            // Period 3: 60–90 days ago
+            $period3 = $records->where('dispense_date', '>=', $threeMonthsAgo)
+                ->where('dispense_date', '<', $twoMonthsAgo)
                 ->sum('quantity_dispensed');
 
-
-
-
-
-            // ==================================================
-            // MOVING AVERAGE FORMULA
-            // ==================================================
-
-            $totalConsumption =
-                $period1 +
-                $period2 +
-                $period3;
-
-
-
-            $numberOfPeriods = count(
-                array_filter([
-                    $period1,
-                    $period2,
-                    $period3
-                ])
-            );
-
-
+            // Calculate active periods for accurate average
+            $activePeriods = array_filter([$period1, $period2, $period3]);
+            $numberOfPeriods = count($activePeriods);
 
             if ($numberOfPeriods > 0) {
-
-
-                $estDemand = (int) round(
-                    $totalConsumption /
-                    $numberOfPeriods
-                );
-
-
+                $estDemand = (int) round(($period1 + $period2 + $period3) / $numberOfPeriods);
             } else {
-
-
-                $estDemand =
-                    ($med->total_stock < 50)
-                    ? 50
-                    : 0;
-
+                $estDemand = ($med->total_stock < 50) ? 50 : 0;
             }
 
-
-
-
-
-            // ==================================================
-            // CHART DATA
-            // ==================================================
-
+            // Chart Payload
             $forecastChart[] = [
-
                 'medicine' => $med->name,
-
-
-                'historical' => [
-
-                    $period3,
-
-                    $period2,
-
-                    $period1
-
-                ],
-
-
+                'medicine_id' => $med->id,
+                'historical' => [$period3, $period2, $period1],
                 'forecast' => $estDemand
-
             ];
 
-
-
-
-
-            // ==================================================
-            // INVENTORY STATUS
-            // ==================================================
-
-            $currentStock = (int)$med->total_stock;
-
-
-
+            // Inventory Evaluation
+            $currentStock = (int) $med->total_stock;
             $status = 'Stable Inventory';
-
             $statusClass = 'text-green-600';
-
             $recommendation = 'Maintain Current Stock';
-
-
             $criticalItem = null;
 
-
-
-
-
-            // SHORTAGE CHECK
-
-            if(
-                $estDemand > 0 &&
-                $currentStock < $estDemand
-            ){
-
-
-                $status =
-                    'Possible Shortage';
-
-
-
-                $statusClass =
-                    'text-red-600 font-bold';
-
-
-
-                $suggestedQty =
-                    (($estDemand * 2)
-                    - $currentStock);
-
-
-
-                $recommendation =
-                    'Restock Immediately | Suggested: '
-                    .$suggestedQty;
-
-
+            if ($estDemand > 0 && $currentStock < $estDemand) {
+                $status = 'Possible Shortage';
+                $statusClass = 'text-red-600 font-bold';
+                $suggestedQty = ($estDemand * 2) - $currentStock;
+                $recommendation = 'Restock Immediately | Suggested: ' . max(0, $suggestedQty);
 
                 $shortageCount++;
-
-
                 $restockCount++;
-
-
                 $criticalItem = $med;
-
-
                 $criticalItemGlobal = $med;
 
-
-            }
-
-
-            elseif(
-                $currentStock < 50
-            ){
-
-
-                $status =
-                    'Low Stock Alert';
-
-
-                $statusClass =
-                    'text-yellow-600';
-
-
-                $recommendation =
-                    'Monitor Inventory';
-
-
+            } elseif ($currentStock < 50) {
+                $status = 'Low Stock Alert';
+                $statusClass = 'text-yellow-600';
+                $recommendation = 'Monitor Inventory';
 
                 $highDemandCount++;
-
-
                 $restockCount++;
-
-
             }
 
-
-
-
-
-
-
-            // ==================================================
-            // TABLE DATA
-            // ==================================================
-
             $forecastData[] = [
-
                 'medicine' => $med,
-
-
                 'current_stock' => $currentStock,
-
-
                 'est_demand' => $estDemand,
-
-
                 'status' => $status,
-
-
                 'status_class' => $statusClass,
-
-
                 'recommendation' => $recommendation,
-
-
                 'critical_item' => $criticalItem
-
             ];
-
-
         }
-
-
-
-
 
         // ==================================================
-        // AI RECOMMENDATION
+        // AI RECOMMENDATION BAR LOGIC
         // ==================================================
+        if ($shortageCount > 0) {
+            $medicineName = $criticalItemGlobal ? $criticalItemGlobal->name : 'one or more medicines';
+            $aiTitle = 'Potential Stock Shortage Detected';
+            $aiMessage = "The Moving Average Forecast predicts that {$medicineName} may fall below the required stock level within the next 30 days.";
+            $aiAction = "Review recommended restock quantities and prioritize replenishment.";
+            $aiStatus = 'warning';
 
-        $aiTitle = '';
+        } elseif ($highDemandCount > 0) {
+            $aiTitle = 'Low Stock Alert';
+            $aiMessage = "Some medicines are approaching the minimum inventory threshold based on current stock levels.";
+            $aiAction = "Continue monitoring inventory and prepare replenishment if demand increases.";
+            $aiStatus = 'warning';
 
-        $aiMessage = '';
-
-        $aiAction = '';
-
-        $aiStatus = 'success';
-
-
-
-        if($shortageCount > 0){
-
-
-            $medicineName =
-                $criticalItemGlobal
-                ? $criticalItemGlobal->name
-                : 'one or more medicines';
-
-
-
-            $aiTitle =
-                'Potential Stock Shortage Detected';
-
-
-
-            $aiMessage =
-                "The Moving Average Forecast predicts that {$medicineName} may fall below the required stock level within the next 30 days.";
-
-
-
-            $aiAction =
-                "Review recommended restock quantities and prioritize replenishment.";
-
-
-
-            $aiStatus =
-                'warning';
-
-
-
+        } else {
+            $aiTitle = 'Inventory Status is Healthy';
+            $aiMessage = "Based on the Moving Average Forecast, no medicine is expected to experience stock shortage within the next 30 days.";
+            $aiAction = "Maintain current inventory levels and continue routine monitoring.";
+            $aiStatus = 'success';
         }
 
-
-        elseif($highDemandCount > 0){
-
-
-            $aiTitle =
-                'Low Stock Alert';
-
-
-
-            $aiMessage =
-                "Some medicines are approaching the minimum inventory threshold based on current stock levels.";
-
-
-
-            $aiAction =
-                "Continue monitoring inventory and prepare replenishment if demand increases.";
-
-
-
-            $aiStatus =
-                'warning';
-
-
-
-        }
-
-
-        else{
-
-
-            $aiTitle =
-                'Inventory Status is Healthy';
-
-
-
-            $aiMessage =
-                "Based on the Moving Average Forecast, no medicine is expected to experience stock shortage within the next 30 days.";
-
-
-
-            $aiAction =
-                "Maintain current inventory levels and continue routine monitoring.";
-
-
-
-            $aiStatus =
-                'success';
-
-
-        }
-
-
-
-
-
-        // ==================================================
-        // RETURN VIEWS
-        // ==================================================
-
-
-        if($role === 'admin'){
-
-
-            return view(
-                'admin.forecast',
-                compact(
-                    'role',
-                    'userName',
-                    'canManageForecast',
-                    'forecastData',
-                    'forecastChart',
-                    'shortageCount',
-                    'highDemandCount',
-                    'restockCount',
-                    'criticalItemGlobal',
-                    'aiTitle',
-                    'aiMessage',
-                    'aiAction',
-                    'aiStatus'
-                )
-            );
-
-        }
-
-
-
-
-        elseif($role === 'nurse'){
-
-
-            return view(
-                'nurse.forecast',
-                compact(
-                    'role',
-                    'userName',
-                    'canManageForecast',
-                    'forecastData',
-                    'forecastChart',
-                    'shortageCount',
-                    'highDemandCount',
-                    'restockCount',
-                    'criticalItemGlobal',
-                    'aiTitle',
-                    'aiMessage',
-                    'aiAction',
-                    'aiStatus'
-                )
-            );
-
-        }
-
-
-
-
-        elseif($role === 'doctor'){
-
-
-            return view(
-                'admin.forecast',
-                compact(
-                    'role',
-                    'userName',
-                    'canManageForecast',
-                    'forecastData',
-                    'forecastChart',
-                    'shortageCount',
-                    'highDemandCount',
-                    'restockCount',
-                    'criticalItemGlobal',
-                    'aiTitle',
-                    'aiMessage',
-                    'aiAction',
-                    'aiStatus'
-                )
-            );
-
-        }
-
+        // Return single shared view template for Admin & Nurse
+        return view('admin.forecast', compact(
+            'role',
+            'roleColor',
+            'userName',
+            'canManageForecast',
+            'forecastData',
+            'forecastChart',
+            'shortageCount',
+            'highDemandCount',
+            'restockCount',
+            'criticalItemGlobal',
+            'aiTitle',
+            'aiMessage',
+            'aiAction',
+            'aiStatus'
+        ));
     }
 }
