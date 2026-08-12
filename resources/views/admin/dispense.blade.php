@@ -399,45 +399,60 @@
     </div>
 
     <!-- ADMIN FILTERS CARD -->
-    <div class="filter-card">
-        <div class="filter-grid">
-            <div>
-                <label>Search</label>
-                <input type="text" id="searchInput" placeholder="Search record...">
-            </div>
-            <div>
-                <label>Date Filter</label>
-                <input type="date" id="dateFilter">
-            </div>
-            <div>
-                <label>Patient Filter</label>
-                <select id="patientFilter">
-                    <option value="">All Patients</option>
-                    @foreach($patients as $p)
-                        <option value="{{ $p->id }}">{{ $p->first_name }} {{ $p->last_name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label>Medicine Filter</label>
-                <select id="medicineFilter">
-                    <option value="">All Medicines</option>
-                    @foreach($medicines as $med)
-                        <option value="{{ $med->id }}">{{ $med->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label>Staff Filter</label>
-                <select id="staffFilter">
-                    <option value="">All Staff</option>
-                    @foreach($staffMembers ?? [] as $staff)
-                        <option value="{{ $staff->name }}">{{ $staff->name }}</option>
-                    @endforeach
-                </select>
-            </div>
+<div class="filter-card">
+    <div class="filter-grid">
+
+        <div>
+            <label>Search</label>
+            <input type="text" id="searchInput" placeholder="Search record...">
         </div>
+
+        <div>
+            <label>Date Filter</label>
+            <input type="date" id="dateFilter">
+        </div>
+
+        <div>
+            <label>Patient Filter</label>
+            <select id="patientFilter">
+                <option value="">All Patients</option>
+
+                @foreach($patients as $p)
+                    <option value="{{ $p->patient_id ?? $p->ptn ?? '' }}">
+                        {{ $p->first_name }} {{ $p->last_name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label>Medicine Filter</label>
+            <select id="medicineFilter">
+                <option value="">All Medicines</option>
+
+                @foreach($medicines as $med)
+                    <option value="{{ $med->id }}">
+                        {{ $med->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label>Staff Filter</label>
+            <select id="staffFilter">
+                <option value="">All Staff</option>
+
+                @foreach($staffMembers ?? [] as $staff)
+                    <option value="{{ $staff->name }}">
+                        {{ $staff->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
     </div>
+</div>
 
     <!-- DISPENSING HISTORY TABLE -->
     <div class="table-card">
@@ -454,35 +469,67 @@
                 </tr>
             </thead>
             <tbody id="dispensingTableBody">
-                @foreach($dispensingHistory as $record)
-                <tr>
-                    <td>{{ $record->dispense_date }}</td>
-                    <td>{{ $record->patient->first_name ?? '' }} {{ $record->patient->last_name ?? '' }}</td>
-                    <td>{{ $record->medicine->name ?? '' }}</td>
-                    <td>{{ $record->quantity_dispensed }}</td>
-                    <td>{{ $record->dispensed_by }}</td>
-                    <td>
-                        <div class="action-group">
-                            <button type="button" class="action-btn view-btn view-record-btn" 
-                                data-date="{{ $record->dispense_date }}"
-                                data-patient="{{ $record->patient->first_name ?? '' }} {{ $record->patient->last_name ?? '' }}"
-                                data-medicine="{{ $record->medicine->name ?? '' }}"
-                                data-quantity="{{ $record->quantity_dispensed }}"
-                                data-dispensedby="{{ $record->dispensed_by }}"
-                                data-diagnosis="{{ $record->diagnosis ?? 'N/A' }}">
-                                View
-                            </button>
-                            <button type="button" class="action-btn edit-btn" onclick="editRecord({{ $record->id }})">
-                                Edit
-                            </button>
-                            <button type="button" class="action-btn void-btn" onclick="confirmVoid({{ $record->id }})">
-                                Void
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
+
+    @foreach($dispensingHistory as $record)
+
+        <tr class="dispensing-row"
+            data-date="{{ $record->dispense_date }}"
+            data-patient-ptn="{{ $record->patient_ptn }}"
+            data-patient-name="{{ $record->patient_name }}"
+            data-medicine-id="{{ $record->medicine_id }}"
+            data-medicine-name="{{ $record->medicine->name ?? '' }}"
+            data-staff="{{ $record->dispensed_by }}">
+
+            <td>
+                {{ $record->dispense_date }}
+            </td>
+
+            <td>
+                {{ $record->patient_name }}
+            </td>
+
+            <td>
+                {{ $record->medicine->name ?? '' }}
+            </td>
+
+            <td>
+                {{ $record->quantity_dispensed }}
+            </td>
+
+            <td>
+                {{ $record->dispensed_by }}
+            </td>
+
+            <td>
+                <div class="action-group">
+
+                    <button type="button"
+                            class="action-btn view-btn view-record-btn"
+                            data-date="{{ $record->dispense_date }}"
+                            data-patient="{{ $record->patient_name }}"
+                            data-medicine="{{ $record->medicine->name ?? '' }}"
+                            data-quantity="{{ $record->quantity_dispensed }}"
+                            data-dispensedby="{{ $record->dispensed_by }}"
+                            data-diagnosis="{{ $record->diagnosis ?? 'N/A' }}">
+                        View
+                    </button>
+
+                    <button type="button"
+                            class="action-btn edit-btn"
+                            onclick="editRecord({{ $record->id }})">
+                        Edit
+                    </button>
+
+                    <button type="button"
+                            class="action-btn void-btn"
+                            onclick="confirmVoid({{ $record->id }})">
+                        Void
+                    </button>
+                </div>
+            </td>
+        </tr>
+    @endforeach
+</tbody>
         </table>
     </div>
 
@@ -795,6 +842,64 @@ document.addEventListener('DOMContentLoaded', function() {
             viewModal.classList.add('show');
         });
     });
+
+// ================= FILTER LOGIC =================
+
+const searchInput = document.getElementById('searchInput');
+const dateFilter = document.getElementById('dateFilter');
+const patientFilter = document.getElementById('patientFilter');
+const medicineFilter = document.getElementById('medicineFilter');
+const staffFilter = document.getElementById('staffFilter');
+
+const dispensingRows = document.querySelectorAll('.dispensing-row');
+
+function filterRecords() {
+    const searchValue = searchInput.value.toLowerCase().trim();
+    const dateValue = dateFilter.value;
+    const patientValue = patientFilter.value.trim();
+    const medicineValue = medicineFilter.value.trim();
+    const staffValue = staffFilter.value.toLowerCase().trim();
+
+    dispensingRows.forEach(row => {
+        // Get row values safely
+        const rowDate = (row.dataset.date || '').trim();
+        const patientPtn = (row.dataset.patientPtn || '').trim().toLowerCase();
+        const patientName = (row.dataset.patientName || '').trim().toLowerCase();
+        const medicineId = (row.dataset.medicineId || '').trim();
+        const medicineName = (row.dataset.medicineName || '').trim().toLowerCase();
+        const staffName = (row.dataset.staff || '').trim().toLowerCase();
+
+        // SEARCH — matches patient name, PTN, medicine name, or staff
+        const matchesSearch = !searchValue ||
+            patientName.includes(searchValue) ||
+            patientPtn.includes(searchValue) ||
+            medicineName.includes(searchValue) ||
+            staffName.includes(searchValue);
+
+        // DATE — exact match
+        const matchesDate = !dateValue || rowDate === dateValue;
+
+        // PATIENT — match by PTN/ID exactly
+        const matchesPatient = !patientValue || patientPtn === patientValue.toLowerCase();
+
+        // MEDICINE — match by ID exactly
+        const matchesMedicine = !medicineValue || medicineId === medicineValue;
+
+        // STAFF — match by name (contains)
+        const matchesStaff = !staffValue || staffName.includes(staffValue);
+
+        // SHOW row only if ALL conditions match
+        const isVisible = matchesSearch && matchesDate && matchesPatient && matchesMedicine && matchesStaff;
+        row.style.display = isVisible ? '' : 'none';
+    });
+}
+
+// Attach events
+searchInput.addEventListener('input', filterRecords);
+dateFilter.addEventListener('change', filterRecords);
+patientFilter.addEventListener('change', filterRecords);
+medicineFilter.addEventListener('change', filterRecords);
+staffFilter.addEventListener('change', filterRecords);
 
     checkReady();
 

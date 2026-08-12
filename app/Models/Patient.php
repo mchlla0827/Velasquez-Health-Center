@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\DispensingRecord;
 use Carbon\Carbon;
 
 class Patient extends Model
@@ -46,7 +47,11 @@ class Patient extends Model
     }
 
     public function dispensingRecords()
-    {
-        return $this->hasMany(dispensingRecords::Record::class, 'patient_id');
-    }
+{
+    return $this->hasMany(
+        DispensingRecord::class,
+        'patient_ptn',
+        'patient_id'
+    );
+}
 }

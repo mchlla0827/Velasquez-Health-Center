@@ -123,23 +123,22 @@ public function dispenseSave(Request $request)
         }
 
         // SAVE DISPENSING RECORD
-        $dispenseRecord = DispensingRecord::create([
-            'patient_id'         => $validated['patient_id'],
-            'patient_ptn'        => trim($validated['patient_ptn']),
-            'family_no'          => $validated['family_no'],
-            'barangay'           => $validated['barangay'],
-            'dispense_date'      => $validated['date'],
-            'patient_name'       => $validated['patient_name'],
-            'age'                => $validated['age'],
-            'sex'                => $validated['sex'],
-            'address'            => $validated['address'],
-            'philhealth_no'      => $validated['philhealth_no'],
-            'diagnosis'          => $validated['diagnosis'],
-            'medicine_id'        => $validated['medicine_id'],
-            'quantity_dispensed' => $validated['quantity'],
-            'unit'               => $validated['unit'],
-            'dispensed_by'       => $validated['dispensed_by']
-        ]);
+$dispenseRecord = DispensingRecord::create([
+    'patient_ptn'        => trim($validated['patient_ptn']),
+    'family_no'          => $validated['family_no'],
+    'barangay'           => $validated['barangay'],
+    'dispense_date'      => $validated['date'],
+    'patient_name'       => $validated['patient_name'],
+    'age'                => $validated['age'],
+    'sex'                => $validated['sex'],
+    'address'            => $validated['address'],
+    'philhealth_no'      => $validated['philhealth_no'],
+    'diagnosis'          => $validated['diagnosis'],
+    'medicine_id'        => $validated['medicine_id'],
+    'quantity_dispensed' => $validated['quantity'],
+    'unit'               => $validated['unit'],
+    'dispensed_by'       => $validated['dispensed_by']
+]);
 
         // DEDUCT FIFO BATCHES
         $remaining = $validated['quantity'];
