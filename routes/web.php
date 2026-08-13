@@ -204,4 +204,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     Route::post('/triage/{id}/update-status', [PatientController::class, 'updateStatus'])->name('triage.updateStatus');
     Route::get('/triage/live-queue-data', [PatientController::class, 'getLiveQueueData'])->name('triage.liveData');
 
+    Route::get('/patients/{id}/service-history', [PatientController::class, 'serviceHistory'])
+    ->name('patients.service-history');
+
 });

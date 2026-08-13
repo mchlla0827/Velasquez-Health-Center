@@ -152,23 +152,52 @@ public function store(Request $request)
         return view('admin.patient-edit', compact('patient')); 
     }
 
-    public function update(Request $request, $id) 
-    { 
-        $validated = $request->validate([
-            'first_name'     => 'required|string',
-            'last_name'      => 'required|string',
-            'age'            => 'required|integer',
-            'gender'         => 'required|string',
-            'address'        => 'required|string',
-            'barangay'       => 'required|string',
-            'contact_number' => 'nullable|string'
-        ]); 
+    public function update(Request $request, $id)
+{
+    $validated = $request->validate([
+        'first_name'               => 'required|string|max:255',
+        'middle_name'              => 'nullable|string|max:255',
+        'last_name'                => 'required|string|max:255',
 
-        $patient = Patient::findOrFail($id); 
-        $patient->update($validated); 
+        'mother_first'             => 'nullable|string|max:255',
+        'mother_middle'            => 'nullable|string|max:255',
+        'mother_last'              => 'nullable|string|max:255',
 
-        return redirect()->route('patient-records')->with('success','Updated.'); 
-    }
+        'father_first'             => 'nullable|string|max:255',
+        'father_middle'            => 'nullable|string|max:255',
+        'father_last'              => 'nullable|string|max:255',
+
+        'dob'                      => 'required|date',
+        'pob'                      => 'nullable|string|max:255',
+        'gender'                   => 'required|string',
+        'civil_status'             => 'nullable|string',
+        'address'                  => 'required|string',
+        'barangay'                 => 'required|string',
+        'contact_number'           => 'nullable|string|max:11',
+        'email'                    => 'nullable|email|max:255',
+
+        'osca_pwd_no'              => 'nullable|string|max:255',
+        'four_ps_no'               => 'nullable|string|max:255',
+        'religion'                 => 'nullable|string|max:255',
+        'educational_attainment'   => 'nullable|string|max:255',
+
+        'philhealth'               => 'nullable|string',
+        'philhealth_no_member'     => 'nullable|string|max:255',
+        'philhealth_no_dependent'  => 'nullable|string|max:255',
+        'philhealth_member_name'   => 'nullable|string|max:255',
+        'philhealth_member_dob'    => 'nullable|date',
+    ]);
+
+    $patient = Patient::findOrFail($id);
+
+    $patient->update($validated);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Patient record updated successfully.',
+        'patient' => $patient->fresh()
+    ]);
+}
 
     public function destroy($id) 
     { 
@@ -379,5 +408,57 @@ public function getMedicalHistory($patientId)
         'has_ncd' => !is_null($ncdAssessment),
         'ncd_data' => $ncdAssessment,
     ]);
+}
+
+public function serviceHistory($id)
+{
+    $patient = Patient::findOrFail($id);
+
+    $records = $patient->triageRecords()
+        ->with('registeredBy')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json($records->map(function ($record) {
+        return [
+            'id' => $record->id,
+
+            'date' => $record->created_at
+                ? $record->created_at->format('M d, Y')
+                : '---',
+
+            'time' => $record->created_at
+                ? $record->created_at->format('h:i A')
+                : '---',
+
+            'service_type' => $record->service_type ?: '---',
+
+            'risk_level' => $record->risk_level ?: '---',
+
+            'triage_level' => $record->triage_level ?: '---',
+
+            'status' => $record->status ?: '---',
+
+            'bp' => $record->bp ?: '---',
+
+            'temp' => $record->temp !== null
+                ? $record->temp . ' °C'
+                : '---',
+
+            'weight' => $record->weight !== null
+                ? $record->weight . ' kg'
+                : '---',
+
+            'height' => $record->height !== null
+                ? $record->height . ' cm'
+                : '---',
+
+            'symptoms' => $record->symptoms ?: '---',
+
+            'registered_by' => $record->registeredBy
+                ? ($record->registeredBy->name ?? $record->registeredBy->email)
+                : '---',
+        ];
+    }));
 }
 }

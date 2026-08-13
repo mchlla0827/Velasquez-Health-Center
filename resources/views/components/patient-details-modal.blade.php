@@ -169,35 +169,55 @@
                 
 
             <div id="service-history" class="tab-pane" style="display: none;">
-                <div style="margin-bottom: 20px;">
-                    <h4 style="margin: 0; font-size: 16px; color: #111827;">Service History</h4>
-                    <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">Complete record of all visits and vital signs</p>
-                </div>
-                <div class="table-card" style="background: white; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden;">
-                    <div style="overflow-x: auto;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>DATE OF VISIT</th>
-                                    <th>BLOOD PRESSURE</th>
-                                    <th>WEIGHT</th>
-                                    <th>HEIGHT</th>
-                                    <th>TEMPERATURE</th>
-                                    <th>SERVICE TYPE</th>
-                                    <th>REASON FOR VISIT</th>
-                                    <th>DIAGNOSIS</th>
-                                    <th>ACTION TAKEN</th>
-                                    <th>ATTENDING STAFF</th>
-                                    <th>NOTES</th>
-                                </tr>
-                            </thead>
-                            <tbody id="detServiceHistoryBody">
-                                <tr><td colspan="11" style="text-align: center; padding: 40px; color: #9CA3AF;">No service history recorded for this patient.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+
+    <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0; font-size: 16px; color: #111827;">
+            Service History
+        </h4>
+
+        <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">
+            Previous visits, assessments, and services received
+        </p>
+    </div>
+
+    <div id="detServiceHistoryBody">
+
+        <div id="serviceHistoryLoading"
+             style="background: white;
+                    border: 1px solid #E5E7EB;
+                    border-radius: 10px;
+                    padding: 40px;
+                    text-align: center;
+                    color: #9CA3AF;">
+            Loading service history...
+        </div>
+
+        <div id="serviceHistoryEmpty"
+             style="display: none;
+                    background: white;
+                    border: 1px dashed #D1D5DB;
+                    border-radius: 10px;
+                    padding: 50px 20px;
+                    text-align: center;">
+
+            <div style="font-size: 36px; margin-bottom: 10px;">
+                🩺
             </div>
+
+            <h4 style="margin: 0 0 5px; font-size: 15px; color: #111827;">
+                No Service History
+            </h4>
+
+            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">
+                This patient has no recorded visits or services yet.
+            </p>
+
+        </div>
+
+        <div id="serviceHistoryList"></div>
+
+    </div>
+</div>
 
             <div id="medicine-history" class="tab-pane" style="display: none;">
                 <div style="margin-bottom: 20px;">
@@ -392,6 +412,135 @@
     .status-pill-blue { display: inline-block; background: #DBEAFE; color: #1E40AF; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
     .btn-secondary { background: white; border: 1px solid #D1D5DB; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
     .btn-primary { background: #1A73E8; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+
+    #serviceHistoryList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.service-history-card {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.service-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 18px;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.service-history-date {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.service-history-time {
+    font-size: 11px;
+    color: #9CA3AF;
+    margin-top: 3px;
+}
+
+.service-history-type {
+    margin-top: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A73E8;
+}
+
+.service-history-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 20px;
+    background: #F3F4F6;
+    color: #374151;
+}
+
+.service-history-body {
+    padding: 16px 18px;
+}
+
+.service-history-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.service-history-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.service-history-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-transform: uppercase;
+}
+
+.service-history-value {
+    font-size: 13px;
+    color: #374151;
+}
+
+.service-history-vitals {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+    padding: 12px;
+    background: #F9FAFB;
+    border-radius: 8px;
+}
+
+.service-history-vital {
+    text-align: center;
+}
+
+.service-history-vital-label {
+    display: block;
+    font-size: 9px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.service-history-vital-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.service-history-symptoms {
+    margin-top: 15px;
+    padding-top: 14px;
+    border-top: 1px solid #F3F4F6;
+}
+
+.service-history-symptoms p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #4B5563;
+}
+
+@media (max-width: 700px) {
+    .service-history-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .service-history-vitals {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 </style>
 
 <script>
@@ -458,6 +607,11 @@
         }
 
         // ✅ FIXED TAB SWITCH LOAD
+
+        if (tabId === 'service-history' && activePatientData) {
+    loadServiceHistory(activePatientData.id);
+}
+
         if (tabId === 'medicine-history' && activePatientData) {
             const identifier = activePatientData.patient_id || activePatientData.id;
             loadMedicineHistory(identifier);
@@ -732,84 +886,403 @@ console.log("data.patient_id =", data.patient_id);
         });
     };
 
-    window.savePatientUpdate = function(dbId) {
-        const contactNo = document.getElementById('detContact')?.value || '';
-        
-        if (document.getElementById('edit_first_name')?.value === '' || document.getElementById('edit_last_name')?.value === '') {
-            Swal.fire('Warning', 'Patient First Name and Last Name cannot be empty.', 'warning');
-            return;
+window.savePatientUpdate = function(dbId) {
+
+    const contactNo = document.getElementById('detContact')?.value || '';
+
+    // Required name validation
+    const firstName = document.getElementById('edit_first_name')?.value.trim() || '';
+    const lastName = document.getElementById('edit_last_name')?.value.trim() || '';
+
+    if (firstName === '' || lastName === '') {
+        Swal.fire(
+            'Warning',
+            'Patient First Name and Last Name cannot be empty.',
+            'warning'
+        );
+        return;
+    }
+
+    // Contact number validation
+    if (contactNo.length > 0 && contactNo.length !== 11) {
+        Swal.fire(
+            'Warning',
+            'Contact Number must be exactly 11 digits.',
+            'warning'
+        );
+        return;
+    }
+
+    const philType =
+        document.getElementById('detPhilType')?.value.toLowerCase() || 'none';
+
+    const philNo =
+        document.getElementById('detPhilNo')?.value || '';
+
+    const csrfToken =
+        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    const updatedData = {
+
+        _token: csrfToken,
+
+        first_name: firstName,
+        middle_name:
+            document.getElementById('edit_middle_name')?.value.trim() || '',
+        last_name: lastName,
+
+        mother_first:
+            document.getElementById('mother_first_name')?.value.trim() || '',
+        mother_middle:
+            document.getElementById('mother_middle_name')?.value.trim() || '',
+        mother_last:
+            document.getElementById('mother_last_name')?.value.trim() || '',
+
+        father_first:
+            document.getElementById('father_first_name')?.value.trim() || '',
+        father_middle:
+            document.getElementById('father_middle_name')?.value.trim() || '',
+        father_last:
+            document.getElementById('father_last_name')?.value.trim() || '',
+
+        dob:
+            document.getElementById('detDOB')?.value || '',
+
+        pob:
+            document.getElementById('detPOB')?.value.trim() || '',
+
+        gender:
+            document.getElementById('detSex')?.value || '',
+
+        civil_status:
+            document.getElementById('detCivil')?.value || '',
+
+        address:
+            document.getElementById('detAddress')?.value.trim() || '',
+
+        barangay:
+            document.getElementById('detBrgy')?.value || '',
+
+        // This matches your Patient model
+        contact_number: contactNo,
+
+        email:
+            document.getElementById('detEmail')?.value.trim() || '',
+
+        osca_pwd_no:
+            document.getElementById('detOscaPwd')?.value.trim() || '',
+
+        four_ps_no:
+            document.getElementById('det4ps')?.value.trim() || '',
+
+        religion:
+            document.getElementById('detReligion')?.value.trim() || '',
+
+        educational_attainment:
+            document.getElementById('detEducation')?.value.trim() || '',
+
+        philhealth: philType,
+
+        philhealth_no_member:
+            philType === 'member' ? philNo : '',
+
+        philhealth_no_dependent:
+            philType === 'dependent' ? philNo : '',
+
+        philhealth_member_name:
+            philType === 'dependent'
+                ? document.getElementById('detPhilMemberName')?.value.trim() || ''
+                : '',
+
+        philhealth_member_dob:
+            philType === 'dependent'
+                ? document.getElementById('detPhilMemberDob')?.value || ''
+                : ''
+    };
+
+    console.log('Updating patient:', dbId);
+    console.log('Data being sent:', updatedData);
+
+    Swal.fire({
+        title: 'Saving...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
         }
-        if (contactNo.length > 0 && contactNo.length !== 11) {
-            Swal.fire('Warning', 'Contact Number must be exactly 11 digits.', 'warning');
-            return;
-        }
+    });
 
-        const philType = document.getElementById('detPhilType')?.value.toLowerCase() || 'none';
-        const philNo = document.getElementById('detPhilNo')?.value || '';
+    // ONLY ONE REQUEST
+    fetch(`${window.location.origin}/patients/${dbId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(updatedData)
+    })
+    .then(async response => {
 
-        const updatedData = {
-            _token: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || "{{ csrf_token() }}",
-            _method: "PUT",
-            
-            first_name: document.getElementById('edit_first_name')?.value || '',
-            middle_name: document.getElementById('edit_middle_name')?.value || '',
-            last_name: document.getElementById('edit_last_name')?.value || '',
-            
-            mother_first: document.getElementById('mother_first_name')?.value || '',
-            mother_middle: document.getElementById('mother_middle_name')?.value || '',
-            mother_last: document.getElementById('mother_last_name')?.value || '',
-            
-            father_first: document.getElementById('father_first_name')?.value || '',
-            father_middle: document.getElementById('father_middle_name')?.value || '',
-            father_last: document.getElementById('father_last_name')?.value || '',
+        const contentType = response.headers.get('content-type') || '';
 
-            dob: document.getElementById('detDOB')?.value || '',
-            pob: document.getElementById('detPOB')?.value || '',
-            gender: document.getElementById('detSex')?.value || '',
-            civil_status: document.getElementById('detCivil')?.value || '',
-            address: document.getElementById('detAddress')?.value || '',
-            barangay: document.getElementById('detBrgy')?.value || '',
-            contact_no: contactNo,
-            email: document.getElementById('detEmail')?.value || '',
+        // Read server response even when there is an error
+        const responseText = await response.text();
 
-            osca_pwd_no: document.getElementById('detOscaPwd')?.value || '',
-            four_ps_no: document.getElementById('det4ps')?.value || '',
-            religion: document.getElementById('detReligion')?.value || '',
-            educational_attainment: document.getElementById('detEducation')?.value || '',
+        console.log('Server status:', response.status);
+        console.log('Server response:', responseText);
 
-            philhealth: philType,
-            philhealth_no_member: philType === 'member' ? philNo : '',
-            philhealth_no_dependent: philType === 'dependent' ? philNo : '',
-            philhealth_member_name: philType === 'dependent' ? document.getElementById('detPhilMemberName')?.value : '',
-            philhealth_member_dob: philType === 'dependent' ? document.getElementById('detPhilMemberDob')?.value : ''
-        };
+        if (!response.ok) {
+            let message = 'Patient update failed.';
 
-        Swal.fire({ title: 'Saving...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+            try {
+                const errorData = JSON.parse(responseText);
 
-        fetch(`${window.location.origin}/patients/${dbId}`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': updatedData._token,
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(updatedData)
-        })
-        .then(async response => {
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.indexOf("text/html") !== -1) {
-                throw new Error("Server returned HTML.");
+                if (errorData.message) {
+                    message = errorData.message;
+                }
+
+                if (errorData.errors) {
+                    console.error('Validation errors:', errorData.errors);
+
+                    message = Object.values(errorData.errors)
+                        .flat()
+                        .join('<br>');
+                }
+
+            } catch (e) {
+                // Response was not JSON
+                if (responseText) {
+                    console.error('Server returned:', responseText);
+                }
             }
-            if (!response.ok) throw new Error("Server error - check required fields");
+
+            throw new Error(message);
+        }
+
+        // Parse JSON only if server actually returned JSON
+        if (contentType.includes('application/json')) {
+            return JSON.parse(responseText);
+        }
+
+        return {};
+    })
+    .then(result => {
+
+        console.log('Update successful:', result);
+
+        Swal.fire(
+            'Updated!',
+            'Patient record saved successfully.',
+            'success'
+        ).then(() => {
+
+            // Refresh the page after successful save
+            location.reload();
+
+        });
+    })
+    .catch(error => {
+
+        console.error('Patient update error:', error);
+
+        Swal.fire(
+            'Error',
+            error.message || 'Unable to update patient record.',
+            'error'
+        );
+    });
+};
+
+function loadServiceHistory(patientId) {
+
+    const loading = document.getElementById('serviceHistoryLoading');
+    const empty = document.getElementById('serviceHistoryEmpty');
+    const list = document.getElementById('serviceHistoryList');
+
+    if (!loading || !empty || !list) return;
+
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+    list.innerHTML = '';
+
+    fetch(`/patients/${patientId}/service-history`)
+        .then(async response => {
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(
+                    `HTTP ${response.status}: ${errorText}`
+                );
+            }
+
             return response.json();
         })
-        .then(result => {
-            Swal.fire('Updated!', 'Patient record saved successfully.', 'success').then(() => location.reload());
+        .then(records => {
+
+            loading.style.display = 'none';
+
+            if (!records || records.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            list.innerHTML = '';
+
+            records.forEach(record => {
+
+                const riskClass =
+                    record.risk_level?.toLowerCase() === 'high'
+                        ? 'background:#FEF2F2;color:#B91C1C;'
+                        : record.risk_level?.toLowerCase() === 'moderate'
+                        ? 'background:#FFFBEB;color:#B45309;'
+                        : 'background:#ECFDF5;color:#047857;';
+
+                const card = document.createElement('div');
+
+                card.className = 'service-history-card';
+
+                card.innerHTML = `
+                    <div class="service-history-header">
+
+                        <div>
+                            <div class="service-history-date">
+                                ${record.date}
+                            </div>
+
+                            <div class="service-history-time">
+                                ${record.time}
+                            </div>
+
+                            <div class="service-history-type">
+                                ${record.service_type}
+                            </div>
+                        </div>
+
+                        <span
+                            class="service-history-status"
+                            style="${riskClass}">
+                            ${record.risk_level}
+                        </span>
+
+                    </div>
+
+                    <div class="service-history-body">
+
+                        <div class="service-history-grid">
+
+                            <div class="service-history-field">
+                                <span class="service-history-label">
+                                    Triage Level
+                                </span>
+
+                                <span class="service-history-value">
+                                    ${record.triage_level}
+                                </span>
+                            </div>
+
+                            <div class="service-history-field">
+                                <span class="service-history-label">
+                                    Status
+                                </span>
+
+                                <span class="service-history-value">
+                                    ${record.status}
+                                </span>
+                            </div>
+
+                            <div class="service-history-field">
+                                <span class="service-history-label">
+                                    Registered By
+                                </span>
+
+                                <span class="service-history-value">
+                                    ${record.registered_by}
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <div class="service-history-vitals">
+
+                            <div class="service-history-vital">
+                                <span class="service-history-vital-label">
+                                    Blood Pressure
+                                </span>
+
+                                <span class="service-history-vital-value">
+                                    ${record.bp}
+                                </span>
+                            </div>
+
+                            <div class="service-history-vital">
+                                <span class="service-history-vital-label">
+                                    Temperature
+                                </span>
+
+                                <span class="service-history-vital-value">
+                                    ${record.temp}
+                                </span>
+                            </div>
+
+                            <div class="service-history-vital">
+                                <span class="service-history-vital-label">
+                                    Weight
+                                </span>
+
+                                <span class="service-history-vital-value">
+                                    ${record.weight}
+                                </span>
+                            </div>
+
+                            <div class="service-history-vital">
+                                <span class="service-history-vital-label">
+                                    Height
+                                </span>
+
+                                <span class="service-history-vital-value">
+                                    ${record.height}
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <div class="service-history-symptoms">
+
+                            <span class="service-history-label">
+                                Symptoms / Reason
+                            </span>
+
+                            <p>
+                                ${record.symptoms}
+                            </p>
+
+                        </div>
+
+                    </div>
+                `;
+
+                list.appendChild(card);
+            });
         })
-        .catch(err => {
-            console.error(err);
-            Swal.fire('Error', 'Update failed. Check your network or required fields.', 'error');
+        .catch(error => {
+
+            console.error('Error loading service history:', error);
+
+            loading.style.display = 'none';
+
+            list.innerHTML = `
+                <div style="
+                    background: #FEF2F2;
+                    border: 1px solid #FECACA;
+                    border-radius: 10px;
+                    padding: 20px;
+                    color: #B91C1C;
+                    font-size: 13px;
+                ">
+                    Unable to load this patient's service history.
+                </div>
+            `;
         });
-    };
+}
 </script>

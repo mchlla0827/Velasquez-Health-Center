@@ -1096,26 +1096,28 @@ option.group-header {
 
     // ✅ FORM CHECKER - THE MOST IMPORTANT PART
     function checkFormCompletion() {
+    const patientId = document.getElementById('selectedPatientId').value.trim();
     const service = document.getElementById('serviceType').value.trim();
-    const temp = document.getElementById('temp').value.trim();
-    const bp = document.getElementById('bp').value.trim();
-    const weight = document.getElementById('weight').value.trim();
-    const height = document.getElementById('height').value.trim();
 
     const submitBtn = document.getElementById('submitBtn');
 
-    if (service && temp && bp && weight && height) {
-        // ✅ TANGGALIN ANG DISABLED, PALITAN ANG STYLE
-        submitBtn.removeAttribute('disabled');
+    // Patient and service type are required to add to queue
+    if (patientId && service) {
+
+        submitBtn.disabled = false;
         submitBtn.style.opacity = "1";
         submitBtn.style.cursor = "pointer";
-        submitBtn.classList.add('active'); // Kung may kulay sa CSS mo para sa active
+        submitBtn.style.pointerEvents = "auto";
+        submitBtn.classList.add('active');
+
     } else {
-        // ✅ I-LOCK ULIT KUNG KULANG
-        submitBtn.setAttribute('disabled', 'disabled');
+
+        submitBtn.disabled = true;
         submitBtn.style.opacity = "0.5";
         submitBtn.style.cursor = "not-allowed";
+        submitBtn.style.pointerEvents = "none";
         submitBtn.classList.remove('active');
+
     }
 }
 
