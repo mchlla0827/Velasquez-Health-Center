@@ -450,49 +450,44 @@
 </style>
 </head>
 <script>
-function openModal(){
+// ✅ Opens the RIS slip modal and fills it with the clicked row's data
+function viewReq(btn){
+    const d = btn.dataset;
+
+    document.getElementById("modalRequestNo").innerText = "Request #" + d.id;
+    document.getElementById("modalDate").innerText = d.date;
+    document.getElementById("modalRis").innerText = d.ris;
+    document.getElementById("modalCenter").innerText = d.center;
+    document.getElementById("modalPrepared").innerText = d.prepared;
+    document.getElementById("modalRequester").innerText = d.requester + " (" + d.role + ")";
+    document.getElementById("modalStatus").innerText = (d.status || "").toUpperCase();
+    document.getElementById("modalMedicine").innerText = d.medicine;
+    document.getElementById("modalUnit").innerText = d.unit;
+    document.getElementById("modalBatch").innerText = d.batch;
+    document.getElementById("modalExpiry").innerText = d.expiry;
+    document.getElementById("modalQty").innerText = d.qty;
+    document.getElementById("modalPurpose").innerText = d.purpose;
+
+    const actions = document.getElementById("modalActions");
+    const approveBtn = document.getElementById("modalApproveBtn");
+    const rejectBtn = document.getElementById("modalRejectBtn");
+
+    // Only allow Approve/Reject from the modal while the request is still pending
+    if (d.status === "Pending Physician") {
+        approveBtn.style.display = "inline-block";
+        rejectBtn.style.display = "inline-block";
+        approveBtn.onclick = () => updateStatus(d.id, "Approved");
+        rejectBtn.onclick = () => updateStatus(d.id, "Rejected");
+    } else {
+        approveBtn.style.display = "none";
+        rejectBtn.style.display = "none";
+    }
+
     document.getElementById("requestModal").style.display = "block";
 }
 
-function closeModal(){
+function closeRequestModal(){
     document.getElementById("requestModal").style.display = "none";
-}
-</script>
-<script>
-let actionType = "";
-
-// open confirmation
-function openConfirm(type){
-    actionType = type;
-
-    document.getElementById("confirmModal").style.display = "block";
-
-    if(type === "approve"){
-        document.getElementById("confirmTitle").innerText = "Approve Request";
-        document.getElementById("confirmMessage").innerText =
-            "Are you sure you want to APPROVE this request?";
-    } else {
-        document.getElementById("confirmTitle").innerText = "Reject Request";
-        document.getElementById("confirmMessage").innerText =
-            "Are you sure you want to REJECT this request?";
-    }
-}
-
-// close confirmation
-function closeConfirm(){
-    document.getElementById("confirmModal").style.display = "none";
-}
-
-// final action
-function confirmAction(){
-    closeConfirm();
-    closeModal();
-
-    if(actionType === "approve"){
-        alert("Request Approved ✅");
-    } else {
-        alert("Request Rejected ❌");
-    }
 }
 </script>
 <body>
@@ -573,7 +568,7 @@ function confirmAction(){
          onmouseout="this.style.transform='translateY(0px)';"
          onmousedown="this.style.transform='translateY(-2px)';">
         <h4 style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280;">PENDING</h4>
-        <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #111827;">{{ $requests->where('status','Pending')->count() }}</span>
+        <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #111827;">{{ $requests->where('status','Pending Physician')->count() }}</span>
     </div>
 
     {{-- APPROVED — AMBER/YELLOW THEME --}}
@@ -655,13 +650,26 @@ function confirmAction(){
                                     </span>
                                 </td>
                                 <td class="p-3 text-right">
-                                    {{-- ✅ ADMIN: FULL CONTROL --}}
-                                    <button class="btn-sm" style="background:#EFF6FF; color:#1A73E8; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="editReq({{ $req->id }})">Edit</button>
-                                    
-                                    @if($req->status == 'Pending')
-                                        <button class="btn-sm" style="background:#DCFCE7; color:#166534; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="updateStatus({{ $req->id }}, 'Approved')">Approve</button>
-                                        <button class="btn-sm" style="background:#FEE2E2; color:#991B1B; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="updateStatus({{ $req->id }}, 'Rejected')">Reject</button>
-                                    @endif
+                                    {{-- ✅ VIEW: OPENS FULL RIS SLIP MODAL --}}
+                                    <button class="btn-sm view-req-btn"
+                                        style="background:#F3E8FF; color:#6D28D9; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;"
+                                        data-id="{{ $req->id }}"
+                                        data-date="{{ $req->created_at->format('M d, Y') }}"
+                                        data-ris="{{ $req->ris_number ?: '—' }}"
+                                        data-center="{{ $req->responsibility_center_code ?: '—' }}"
+                                        data-prepared="{{ $req->date_prepared ? \Carbon\Carbon::parse($req->date_prepared)->format('M d, Y') : '—' }}"
+                                        data-requester="{{ trim(($req->requester->first_name ?? '').' '.($req->requester->last_name ?? '')) ?: 'Unknown' }}"
+                                        data-role="{{ strtoupper($req->requester->role ?? 'N/A') }}"
+                                        data-medicine="{{ $req->medicine->name ?? 'Deleted Item' }}"
+                                        data-unit="{{ $req->unit ?: '—' }}"
+                                        data-batch="{{ $req->batch ?: '—' }}"
+                                        data-expiry="{{ $req->expiry ? \Carbon\Carbon::parse($req->expiry)->format('M d, Y') : '—' }}"
+                                        data-qty="{{ number_format($req->quantity_requested) }}"
+                                        data-purpose="{{ $req->reason ?: '—' }}"
+                                        data-status="{{ $req->status ?? 'Pending Physician' }}"
+                                        onclick="viewReq(this)">View</button>
+
+                                  
 
                                     <button class="btn-sm" style="background:#F3F4F6; color:#374151; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="deleteReq({{ $req->id }})">Delete</button>
                                 </td>
@@ -680,6 +688,60 @@ function confirmAction(){
     </div>
 </div>
 
+{{-- ✅ REQUEST SLIP VIEW MODAL (RIS-style, with Approve/Reject inside) --}}
+<div class="modal" id="requestModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title">Requisition and Issue Slip</div>
+                <div class="modal-sub" id="modalRequestNo">Request #—</div>
+            </div>
+            <span class="close-btn" onclick="closeRequestModal()">&times;</span>
+        </div>
+
+        <div class="section info-grid">
+            <div class="info-box"><b>Date Submitted:</b> <span id="modalDate">—</span></div>
+            <div class="info-box"><b>RIS Control No.:</b> <span id="modalRis">—</span></div>
+            <div class="info-box"><b>Responsibility Center Code:</b> <span id="modalCenter">—</span></div>
+            <div class="info-box"><b>Date Prepared:</b> <span id="modalPrepared">—</span></div>
+            <div class="info-box"><b>Requested By:</b> <span id="modalRequester">—</span></div>
+            <div class="info-box"><b>Status:</b> <span id="modalStatus">—</span></div>
+        </div>
+
+        <div class="section">
+            <table class="req-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding:8px; text-align:left; border:1px solid #E5E7EB;">Medicine</th>
+                        <th style="padding:8px; text-align:left; border:1px solid #E5E7EB;">Unit</th>
+                        <th style="padding:8px; text-align:left; border:1px solid #E5E7EB;">Batch / Lot No.</th>
+                        <th style="padding:8px; text-align:left; border:1px solid #E5E7EB;">Expiry Date</th>
+                        <th style="padding:8px; text-align:left; border:1px solid #E5E7EB;">Qty Requested</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:8px; border:1px solid #E5E7EB;" id="modalMedicine">—</td>
+                        <td style="padding:8px; border:1px solid #E5E7EB;" id="modalUnit">—</td>
+                        <td style="padding:8px; border:1px solid #E5E7EB;" id="modalBatch">—</td>
+                        <td style="padding:8px; border:1px solid #E5E7EB;" id="modalExpiry">—</td>
+                        <td style="padding:8px; border:1px solid #E5E7EB;" id="modalQty">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="info-box"><b>Purpose:</b> <span id="modalPurpose">—</span></div>
+        </div>
+
+        <div class="modal-actions" id="modalActions">
+            <button class="btn-close" onclick="closeRequestModal()">Close</button>
+            <button class="btn-reject" id="modalRejectBtn">Reject</button>
+            <button class="btn-approve" id="modalApproveBtn">Approve</button>
+        </div>
+    </div>
+</div>
 
 {{-- ✅ SCRIPTS & ALERTS --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -698,9 +760,6 @@ function confirmAction(){
         Swal.fire({ title: 'New Medicine Request', html: '<p>Form will load here...</p>', icon: 'info' });
     }
 
-    function editReq(id) {
-        Swal.fire({ title: 'Edit Request #'+id, icon: 'info' });
-    }
 
     function updateStatus(id, status) {
         Swal.fire({

@@ -68,10 +68,16 @@ class RequestController extends Controller
 
         $userName = $user->first_name . ' ' . $user->last_name;
 
+        $myRequests = MedicineRequest::where('requested_by', $user->id)
+            ->latest()
+            ->take(20)
+            ->get();
+
         return view('nurse.request', compact(
             'medicines',
             'userName',
-            'role'
+            'role',
+            'myRequests'
         ));
     }
 
@@ -108,10 +114,16 @@ class RequestController extends Controller
                 'requested_by' => $user->id,
                 'status' => 'Pending Physician',
                 'reason' => $validated['purpose'],
+                'responsibility_center_code' => $validated['responsibility_center_code'] ?? null,
+                'ris_number' => $validated['ris_number'] ?? null,
+                'date_prepared' => $validated['date_prepared'],
+                'unit' => $validated['unit'][$key] ?? null,
+                'batch' => $validated['batch'][$key] ?? null,
+                'expiry' => !empty($validated['expiry'][$key]) ? $validated['expiry'][$key] : null,
             ]);
         }
 
-        return redirect()->route('doctor.request')->with('success', 'Request submitted successfully.');
+        return redirect()->route('nurse.request')->with('success', 'Request submitted successfully.');
     }
 
     // ==================================================
@@ -149,7 +161,8 @@ class RequestController extends Controller
         $medicines = Medicine::orderBy('name', 'asc')->get();
         $userName = $user->first_name . ' ' . $user->last_name;
         $role = $user->role;
-        return view('nurse.request', compact('req', 'medicines', 'userName', 'role'));
+        $myRequests = MedicineRequest::where('requested_by', $user->id)->latest()->take(20)->get();
+        return view('nurse.request', compact('req', 'medicines', 'userName', 'role', 'myRequests'));
     }
 
     public function update(Request $request, $id)

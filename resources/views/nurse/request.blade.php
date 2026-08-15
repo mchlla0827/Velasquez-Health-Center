@@ -244,6 +244,7 @@ table td input, table td select {
     </style>
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
 <body>
@@ -461,6 +462,53 @@ table td input, table td select {
         </div>
     </form>
 
+    {{-- ✅ MY RECENT REQUESTS — so the nurse can see approval status without asking the doctor --}}
+    <div class="ris-form" style="margin-top: 24px;">
+        <div class="form-title" style="text-align:left; margin-bottom:14px;">
+            <h2 style="font-size:15px; text-transform:none;">My Recent Requests</h2>
+        </div>
+        <div class="table-wrap">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding:8px; text-align:left; border-bottom:1px solid #E5E7EB;">Date</th>
+                        <th style="padding:8px; text-align:left; border-bottom:1px solid #E5E7EB;">Medicine</th>
+                        <th style="padding:8px; text-align:left; border-bottom:1px solid #E5E7EB;">Qty</th>
+                        <th style="padding:8px; text-align:left; border-bottom:1px solid #E5E7EB;">Status</th>
+                        <th style="padding:8px; text-align:left; border-bottom:1px solid #E5E7EB;">Physician Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($myRequests as $mr)
+                    <tr>
+                        <td style="padding:8px; border-bottom:1px solid #F1F5F9;">{{ $mr->created_at->format('M d, Y') }}</td>
+                        <td style="padding:8px; border-bottom:1px solid #F1F5F9;">{{ $mr->medicine->name ?? 'Deleted Item' }}</td>
+                        <td style="padding:8px; border-bottom:1px solid #F1F5F9;">{{ number_format($mr->quantity_requested) }}</td>
+                        <td style="padding:8px; border-bottom:1px solid #F1F5F9;">
+                            @php
+                                $badgeColor = match($mr->status) {
+                                    'Approved' => 'background:#DCFCE7; color:#166534;',
+                                    'Rejected' => 'background:#FEE2E2; color:#991B1B;',
+                                    'Completed' => 'background:#DBEAFE; color:#1E40AF;',
+                                    default => 'background:#FEF9C3; color:#A16207;',
+                                };
+                            @endphp
+                            <span style="{{ $badgeColor }} padding:3px 10px; border-radius:20px; font-size:11px; font-weight:bold;">
+                                {{ strtoupper($mr->status ?? 'PENDING PHYSICIAN') }}
+                            </span>
+                        </td>
+                        <td style="padding:8px; border-bottom:1px solid #F1F5F9; color:#6B7280;">{{ $mr->physician_notes ?? '—' }}</td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" style="padding:16px; text-align:center; color:#6B7280;">No requests submitted yet.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     </div>
 </div>
 <script>
@@ -510,15 +558,33 @@ $(function(){
     $('#risMainForm').submit(function(e){
         e.preventDefault();
         let data = $(this).serialize();
-        
+        let $btn = $('#saveBtn');
+
+        $btn.prop('disabled', true).text('Saving...');
+
         $.post("{{ route('nurse.request.store') }}", data)
         .done(function(res){
-            alert('✅ Record Saved Successfully - Pending Approval');
-            $('#approveBtn').show();
-            $('#formStatus').removeClass('approved').addClass('pending').html('<i class="bi bi-hourglass-split"></i> STATUS: PENDING APPROVAL');
+            Swal.fire({
+                icon: 'success',
+                title: 'Request Submitted',
+                text: 'Your request was saved and sent to the physician for approval.',
+                confirmButtonColor: '#1A73E8'
+            }).then(function(){
+                // Reload so the form resets and "My Recent Requests" shows the new entry
+                window.location.reload();
+            });
         })
         .fail(function(xhr){
-            alert('❌ Error: ' + (xhr.responseJSON?.message || 'Failed'));
+            $btn.prop('disabled', false).text('Save Record');
+            const msg = xhr.responseJSON?.message
+                || (xhr.responseJSON?.errors ? Object.values(xhr.responseJSON.errors).flat().join('\n') : null)
+                || 'Something went wrong while saving your request.';
+            Swal.fire({
+                icon: 'error',
+                title: 'Failed to Submit',
+                text: msg,
+                confirmButtonColor: '#EF4444'
+            });
         });
     });
 
