@@ -551,7 +551,8 @@
         <div>
             <div class="welcome-text">Welcome back,</div>
             <div class="welcome-name">
-{{ session('user_name') ?? session('admin_name') ?? 'Sample Nurse' }}                @php
+{{ session('user_name') ?? session('admin_name') ?? 'Sample Nurse' }}                
+                @php
                     $roleColor = match($role) {
                         'admin' => '#9333EA', // <-- INAYOS: Tinanggal ang ;
                         'nurse' => '#10B981',

@@ -2,14 +2,23 @@
 use App\Models\Medicine;
 use Illuminate\Support\Facades\Auth;
 
-// 1. DATA FETCHING (From your old code)
+// 1. DATA FETCHING
 $medicines = Medicine::latest()->get();
+
 
 // 2. EXACT ROLE DEFINITION
 $role = strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw');
 $userName = Auth::user()->name ?? session('admin_name') ?? session('user_name') ?? ucfirst($role);
 
+
 // 3. ACTION PERMISSIONS
+$canViewInventory = (
+    $role === 'admin' ||
+    $role === 'nurse' ||
+    $role === 'bhw' ||
+    ($role === 'doctor' && $is_pic === 1)
+);
+
 $canAddMedicine = ($role === 'admin');
 $canEditOrStock = ($role === 'admin' || $role === 'nurse');
 $canDelete = ($role === 'admin');
@@ -1322,21 +1331,37 @@ function closeEditStockModal() {
 <div class="main">
 
     <div class="header">
-        <div>
-            <div class="welcome-text">Welcome back,</div>
-            <div class="welcome-name">
-                {{ $userName }}
-                @php
-                    $roleColor = match($role) {
-                        'admin' => '#9333EA', // <-- INAYOS: Tinanggal ang ;
-                        'nurse' => '#10B981',
-                        'bhw' => '#6366F1',
-                        default => '#6B7280'
-                    };
-                @endphp
-                <span class="role" style="background-color: {{ $roleColor }};">{{ strtoupper($role) }}</span>
-            </div>
-        </div>
+<div>
+    <div class="welcome-text">Welcome back,</div>
+
+    <div class="welcome-name">
+        {{ $userName }}
+
+        @php
+            $user = Auth::user();
+
+            $displayRole = (
+                strtolower($user->role) === 'doctor' &&
+                $user->is_physician_in_charge == 1
+            ) ? 'PIC' : strtoupper($role);
+
+            $roleColor = match (strtolower($user->role)) {
+                'admin'  => '#9333EA', // Purple
+                'nurse'  => '#10B981', // Green
+                'doctor' => '#3B82F6', // Blue
+                'bhw'    => '#6366F1', // Indigo
+                default  => '#6B7280', // Gray
+            };
+        @endphp
+
+        <span
+            class="role"
+            style="background-color: {{ $roleColor }};"
+        >
+            {{ $displayRole }}
+        </span>
+    </div>
+</div>
 
         <div class="right">
             <b>Velasquez Health Center</b><br>

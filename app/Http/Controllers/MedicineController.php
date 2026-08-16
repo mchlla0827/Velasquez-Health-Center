@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DispensingRecord;
 use App\Models\Medicine;
 use App\Models\Patient;
-use App\Models\DispensingRecord;
 use App\Models\StockTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,213 +13,299 @@ use Illuminate\Support\Facades\DB;
 class MedicineController extends Controller
 {
     public function index()
-    {
-        $role = strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw');
-        if (!in_array($role, ['admin', 'nurse', 'bhw'])) abort(403);
-        
-        // ✅ Calculate REAL stock from batches + sync column
-        $medicines = Medicine::with('batches')->get()->map(function ($med) {
-            $realStock = $med->batches->sum('quantity');
-            // Sync BOTH column names so everything works
-            $med->stock = $realStock;
-            $med->current_stock = $realStock;
-            $med->save();
-            return $med;
-        });
-    
-        return view('medicine.inventory', [
-            'medicines' => $medicines,
-            'userName' => Auth::user()->name,
-            'role' => Auth::user()->role,
-            'canAddMedicine' => (Auth::user()->role == 'admin' || Auth::user()->role == 'nurse'),
-        ]);
-    }
-
-public function dispenseForm()
 {
-    $role = strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw');
-    $userName = session('admin_name') ?? Auth::user()->name ?? 'Staff';
+    $user = Auth::user();
 
-    if (!in_array($role, ['admin', 'nurse'])) {
-        abort(403);
-    }
+    // Actual system role
+    $role = $this->role();
 
-    // 1. Fetch Medicines
-    $medicines = Medicine::with('batches')
+    // Physician-in-Charge status
+    $is_pic = (int) ($user?->is_physician_in_charge ?? 0);
+
+    // Inventory VIEW permission
+    abort_unless(
+        in_array($role, ['admin', 'nurse', 'bhw'], true)
+        || ($role === 'doctor' && $is_pic === 1),
+        403
+    );
+
+    $medicines = Medicine::with([
+        'batches' => function ($query) {
+            $query
+                ->orderBy('expiry_date')
+                ->orderBy('id');
+        }
+    ])
         ->orderBy('name')
         ->get();
 
-    // 2. Fetch Patients
-    $patients = Patient::orderBy('patient_id', 'DESC')
-        ->get();
-
-    // 3. Fetch Dispensing History
-    $dispensingHistory = DispensingRecord::with(['patient', 'medicine'])
-        ->orderBy('dispense_date', 'DESC')
-        ->orderBy('created_at', 'DESC')
-        ->paginate(10);
-
-    // DYNAMIC VIEW: Load admin.dispense for admin, nurse.dispense for nurse
-    $viewPath = ($role === 'admin') ? 'admin.dispense' : 'nurse.dispense';
-
-    return view($viewPath, compact(
-        'medicines',
-        'patients',
-        'dispensingHistory',
-        'role',
-        'userName'
-    ));
-}
-
-public function dispenseSave(Request $request)
-{
-    $role = strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw');
-
-    if (!in_array($role, ['admin', 'nurse'])) {
-        abort(403);
+    // Batches are the source of truth.
+    // Keep legacy stock columns synchronized.
+    foreach ($medicines as $medicine) {
+        $this->syncMedicineStock($medicine);
     }
 
-    $validated = $request->validate([
-        'patient_id'    => 'required|exists:patients,id',
-        'patient_ptn'   => 'required|string',
-        'family_no'     => 'required|string',
-        'barangay'      => 'required|string',
-        'date'          => 'required|date',
-        'patient_name'  => 'required|string',
-        'age'           => 'required|integer',
-        'sex'           => 'required|string',
-        'address'       => 'required|string',
-        'philhealth_no' => 'nullable|string',
-        'diagnosis'     => 'required|string',
-        'medicine_id'   => 'required|exists:medicines,id',
-        'quantity'      => 'required|integer|min:1',
-        'unit'          => 'required|string',
-        'dispensed_by'  => 'required|string'
+    // Doctor PIC can VIEW inventory but cannot add medicine.
+    $canAddMedicine = in_array(
+        $role,
+        ['admin', 'nurse'],
+        true
+    );
+
+    /*
+     * DISPLAY ROLE
+     *
+     * Doctor + Physician-in-Charge = PIC
+     * Otherwise use the normal role.
+     */
+    $displayRole = (
+        $role === 'doctor' &&
+        $is_pic === 1
+    )
+        ? 'PIC'
+        : strtoupper($role);
+
+    /*
+     * Role badge colors.
+     *
+     * PIC uses the Doctor color because PIC is
+     * still a Doctor in the system.
+     */
+    $roleColors = [
+        'admin'  => '#9333EA', // Purple
+        'nurse'  => '#10B981', // Green
+        'doctor' => '#3B82F6', // Blue
+        'bhw'    => '#6366F1', // Indigo
+        'default' => '#6B7280', // Gray
+    ];
+
+    $roleColor = $roleColors[$role] ?? $roleColors['default'];
+
+    return view('medicine.inventory', [
+        'medicines' => $medicines,
+        'userName' => $user?->name
+            ?? session('admin_name')
+            ?? session('user_name')
+            ?? 'Staff',
+
+        // Actual system role
+        'role' => $role,
+
+        // PIC status
+        'is_pic' => $is_pic,
+
+        // Displayed role: ADMIN, NURSE, BHW, DOCTOR, or PIC
+        'displayRole' => $displayRole,
+
+        // Badge color
+        'roleColor' => $roleColor,
+
+        // Inventory permissions
+        'canAddMedicine' => $canAddMedicine,
     ]);
-
-    DB::beginTransaction();
-
-    try {
-        $medicine = Medicine::findOrFail($validated['medicine_id']);
-
-
-
-        // FEFO Batch Retrieval (Ignores expired batches & picks earliest expiring stock first)
-        $batches = $medicine->batches()
-            ->where('quantity', '>', 0)
-            ->where('expiry_date', '>=', now()->toDateString()) // 👈 ADD THIS LINE HERE
-            ->orderBy('expiry_date')
-            ->get();
-
-        $totalStock = $batches->sum('quantity');
-
-        if ($totalStock < $validated['quantity']) {
-            DB::rollBack();
-
-            return back()->with(
-                'error',
-                '❌ Not enough stock! Available: '.$totalStock
-            );
-        }
-
-        // SAVE DISPENSING RECORD
-$dispenseRecord = DispensingRecord::create([
-    'patient_ptn'        => trim($validated['patient_ptn']),
-    'family_no'          => $validated['family_no'],
-    'barangay'           => $validated['barangay'],
-    'dispense_date'      => $validated['date'],
-    'patient_name'       => $validated['patient_name'],
-    'age'                => $validated['age'],
-    'sex'                => $validated['sex'],
-    'address'            => $validated['address'],
-    'philhealth_no'      => $validated['philhealth_no'],
-    'diagnosis'          => $validated['diagnosis'],
-    'medicine_id'        => $validated['medicine_id'],
-    'quantity_dispensed' => $validated['quantity'],
-    'unit'               => $validated['unit'],
-    'dispensed_by'       => $validated['dispensed_by']
-]);
-
-        // DEDUCT FIFO BATCHES
-        $remaining = $validated['quantity'];
-
-        foreach ($batches as $batch) {
-            if ($remaining <= 0) break;
-
-            $take = min($batch->quantity, $remaining);
-
-            $batch->quantity -= $take;
-            $batch->save();
-
-            StockTransaction::create([
-                'medicine_id'  => $medicine->id,
-                'batch_number' => $batch->batch_number,
-                'expiry'       => $batch->expiry_date,
-                'quantity'     => $take,
-                'type'         => 'OUT',
-                'remarks'      => 'Dispensed to patient: '.$validated['patient_name']
-            ]);
-
-            $remaining -= $take;
-        }
-
-        // UPDATE TOTAL STOCK
-        $realStock = $medicine->batches()->sum('quantity');
-
-        $medicine->stock = $realStock;
-        $medicine->current_stock = $realStock;
-        $medicine->save();
-
-        DB::commit();
-
-        // DYNAMIC REDIRECT: Send user back to their respective route
-        $redirectRoute = ($role === 'admin') ? 'admin.dispense' : 'nurse.dispense';
-
-        return redirect()
-            ->route($redirectRoute)
-            ->with('success', '✅ Medicine dispensed successfully.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-
-        return back()->with(
-            'error',
-            '❌ '.$e->getMessage()
-        );
-    }
 }
+    public function dispenseForm()
+    {
+        $role = $this->role();
+        abort_unless(in_array($role, ['admin', 'nurse'], true), 403);
+
+        $medicines = Medicine::with(['batches' => function ($query) {
+            $query->where('quantity', '>', 0)
+                ->orderBy('expiry_date')
+                ->orderBy('id');
+        }])->orderBy('name')->get();
+
+        $patients = Patient::orderByDesc('patient_id')->get();
+
+        $dispensingHistory = DispensingRecord::with(['patient', 'medicine'])
+            ->orderByDesc('dispense_date')
+            ->orderByDesc('created_at')
+            ->paginate(10);
+
+        $userName = Auth::user()?->name ?? session('admin_name') ?? 'Staff';
+        $viewPath = $role === 'admin' ? 'admin.dispense' : 'nurse.dispense';
+
+        return view($viewPath, compact(
+            'medicines',
+            'patients',
+            'dispensingHistory',
+            'role',
+            'userName'
+        ));
+    }
+
+    public function dispenseSave(Request $request)
+    {
+        $role = $this->role();
+        abort_unless(in_array($role, ['admin', 'nurse'], true), 403);
+
+        $validated = $request->validate([
+            'patient_id' => ['required', 'exists:patients,id'],
+            'patient_ptn' => ['required', 'string', 'max:255'],
+            'family_no' => ['required', 'string', 'max:255'],
+            'barangay' => ['required', 'string', 'max:255'],
+            'date' => ['required', 'date'],
+            'patient_name' => ['required', 'string', 'max:255'],
+            'age' => ['required', 'integer', 'min:0'],
+            'sex' => ['required', 'string', 'max:50'],
+            'address' => ['required', 'string', 'max:500'],
+            'philhealth_no' => ['nullable', 'string', 'max:255'],
+            'diagnosis' => ['required', 'string', 'max:1000'],
+            'medicine_id' => ['required', 'exists:medicines,id'],
+            'quantity' => ['required', 'integer', 'min:1'],
+            'unit' => ['required', 'string', 'max:100'],
+            'dispensed_by' => ['required', 'string', 'max:255'],
+        ]);
+
+        try {
+            DB::transaction(function () use ($validated) {
+                $medicine = Medicine::query()
+                    ->lockForUpdate()
+                    ->findOrFail($validated['medicine_id']);
+
+                /*
+                 * FEFO: earliest expiry first.
+                 * Expired batches are deliberately unavailable for dispensing.
+                 */
+                $batches = $medicine->batches()
+                    ->where('quantity', '>', 0)
+                    ->whereDate('expiry_date', '>=', today())
+                    ->orderBy('expiry_date')
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                $availableStock = (int) $batches->sum('quantity');
+
+                if ($availableStock < (int) $validated['quantity']) {
+                    throw new \RuntimeException(
+                        "Not enough usable stock. Available: {$availableStock}"
+                    );
+                }
+
+                $dispensingRecord = DispensingRecord::create([
+                    'patient_id' => $validated['patient_id'],
+                    'patient_ptn' => trim($validated['patient_ptn']),
+                    'family_no' => $validated['family_no'],
+                    'barangay' => $validated['barangay'],
+                    'dispense_date' => $validated['date'],
+                    'patient_name' => $validated['patient_name'],
+                    'age' => $validated['age'],
+                    'sex' => $validated['sex'],
+                    'address' => $validated['address'],
+                    'philhealth_no' => $validated['philhealth_no'],
+                    'diagnosis' => $validated['diagnosis'],
+                    'medicine_id' => $medicine->id,
+                    'quantity_dispensed' => $validated['quantity'],
+                    'unit' => $validated['unit'],
+                    'dispensed_by' => $validated['dispensed_by'],
+                ]);
+
+                $remaining = (int) $validated['quantity'];
+
+                foreach ($batches as $batch) {
+                    if ($remaining <= 0) {
+                        break;
+                    }
+
+                    $deducted = min((int) $batch->quantity, $remaining);
+
+                    $batch->decrement('quantity', $deducted);
+
+                    StockTransaction::create([
+                        'medicine_id' => $medicine->id,
+                        'batch_number' => $batch->batch_number,
+                        'expiry' => $batch->expiry_date,
+                        'quantity' => $deducted,
+                        'type' => 'OUT',
+                        'remarks' => 'Dispensed to patient: ' .
+                            $validated['patient_name'] .
+                            ' (Record #' . $dispensingRecord->id . ')',
+                    ]);
+
+                    $remaining -= $deducted;
+                }
+
+                $this->syncMedicineStock($medicine);
+            }, 3);
+
+            $redirectRoute = $role === 'admin'
+                ? 'admin.dispense'
+                : 'nurse.dispense';
+
+            return redirect()
+                ->route($redirectRoute)
+                ->with('success', 'Medicine dispensed successfully.');
+        } catch (\RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->with('error', 'Unable to dispense medicine. Please try again.');
+        }
+    }
 
     public function store(Request $request)
     {
+        $role = $this->role();
+        abort_unless(in_array($role, ['admin', 'nurse'], true), 403);
+
         $validated = $request->validate([
-            'name' => 'required|string',
-            'brand' => 'required|string',
-            'dosage_form' => 'required|string',
-            'dosage_strength' => 'required|string',
-            'unit' => 'required|string',
+            'name' => ['required', 'string', 'max:255'],
+            'brand' => ['required', 'string', 'max:255'],
+            'dosage_form' => ['required', 'string', 'max:255'],
+            'dosage_strength' => ['required', 'string', 'max:255'],
+            'unit' => ['required', 'string', 'max:100'],
+            'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
+            'description' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $exists = Medicine::where('name', $request->name)
-            ->where('brand', $request->brand)
-            ->where('dosage_strength', $request->dosage_strength)
+        $exists = Medicine::query()
+            ->whereRaw('LOWER(name) = ?', [strtolower($validated['name'])])
+            ->whereRaw('LOWER(brand) = ?', [strtolower($validated['brand'])])
+            ->whereRaw('LOWER(dosage_strength) = ?', [strtolower($validated['dosage_strength'])])
             ->exists();
 
         if ($exists) {
             return response()->json([
                 'success' => false,
                 'duplicate' => true,
-                'message' => 'Duplicate entry — this medicine already exists'
-            ]);
+                'message' => 'Duplicate entry — this medicine already exists.',
+            ], 422);
         }
 
-        // ✅ Initialize BOTH columns
         $validated['stock'] = 0;
         $validated['current_stock'] = 0;
+        $validated['low_stock_threshold'] = $validated['low_stock_threshold'] ?? 50;
+
         Medicine::create($validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Medicine saved successfully'
+            'message' => 'Medicine saved successfully.',
         ]);
+    }
+
+    private function syncMedicineStock(Medicine $medicine): int
+    {
+        $realStock = (int) $medicine->batches()->sum('quantity');
+
+        $medicine->forceFill([
+            'stock' => $realStock,
+            'current_stock' => $realStock,
+        ])->save();
+
+        return $realStock;
+    }
+
+    private function role(): string
+    {
+        return strtolower(
+            session('admin_role')
+            ?? Auth::user()?->role
+            ?? 'bhw'
+        );
     }
 }
