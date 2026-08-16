@@ -66,7 +66,7 @@ class RequestController extends Controller
 
         $medicines = Medicine::orderBy('name')->get();
 
-        $userName = $user->first_name . ' ' . $user->last_name;
+        $userName = $user->name;
 
         $myRequests = MedicineRequest::where('requested_by', $user->id)
             ->latest()
@@ -143,7 +143,8 @@ class RequestController extends Controller
         $req->physician_notes = $request->physician_notes ?? null;
         $req->save();
 
-        return redirect()->route('doctor.request')->with('success', 'Status updated successfully.');
+        $redirectRoute = strtolower($user->role) === 'admin' ? 'admin.request' : 'doctor.request';
+        return redirect()->route($redirectRoute)->with('success', 'Status updated successfully.');
     }
 
     // ==================================================
@@ -159,7 +160,7 @@ class RequestController extends Controller
         }
 
         $medicines = Medicine::orderBy('name', 'asc')->get();
-        $userName = $user->first_name . ' ' . $user->last_name;
+        $userName = $user->name;
         $role = $user->role;
         $myRequests = MedicineRequest::where('requested_by', $user->id)->latest()->take(20)->get();
         return view('nurse.request', compact('req', 'medicines', 'userName', 'role', 'myRequests'));
@@ -198,6 +199,12 @@ class RequestController extends Controller
         }
         
         $req->delete();
-        return redirect()->route('doctor.request')->with('success', 'Deleted successfully.');
+
+        $redirectRoute = match (strtolower($user->role)) {
+            'admin' => 'admin.request',
+            'nurse' => 'nurse.request',
+            default => 'doctor.request',
+        };
+        return redirect()->route($redirectRoute)->with('success', 'Deleted successfully.');
     }
 }

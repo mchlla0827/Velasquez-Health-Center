@@ -273,6 +273,16 @@
         color: #991B1B; 
     }
 
+    .pill-completed {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .pill.active-filter {
+        outline: 2px solid #1A73E8;
+        outline-offset: 2px;
+    }
+
 
     /* ACTION COLUMN */
     .action-wrapper {
@@ -467,6 +477,7 @@ function viewReq(btn){
     document.getElementById("modalExpiry").innerText = d.expiry;
     document.getElementById("modalQty").innerText = d.qty;
     document.getElementById("modalPurpose").innerText = d.purpose;
+    document.getElementById("modalNotes").innerText = d.notes;
 
     const actions = document.getElementById("modalActions");
     const approveBtn = document.getElementById("modalApproveBtn");
@@ -558,12 +569,13 @@ function closeRequestModal(){
     </div>
 
 
-            {{-- STATUS CARDS --}}
+            {{-- STATUS CARDS — click a card to filter the table below --}}
             <div class="kpi-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 20px; margin-bottom: 24px; width: 100%;">
     
     {{-- PENDING — GREY THEME --}}
-    <div class="kpi" 
+    <div class="kpi" id="kpi-Pending Physician"
          style="background: rgba(243, 244, 246, 0.4); border: 1px solid rgba(209, 213, 219, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+         onclick="filterRequests('Pending Physician')"
          onmouseover="this.style.transform='translateY(-4px)';"
          onmouseout="this.style.transform='translateY(0px)';"
          onmousedown="this.style.transform='translateY(-2px)';">
@@ -571,19 +583,21 @@ function closeRequestModal(){
         <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #111827;">{{ $requests->where('status','Pending Physician')->count() }}</span>
     </div>
 
-    {{-- APPROVED — AMBER/YELLOW THEME --}}
-    <div class="kpi" 
-         style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+    {{-- APPROVED — GREEN THEME --}}
+    <div class="kpi" id="kpi-Approved"
+         style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+         onclick="filterRequests('Approved')"
          onmouseover="this.style.transform='translateY(-4px)';"
          onmouseout="this.style.transform='translateY(0px)';"
          onmousedown="this.style.transform='translateY(-2px)';">
-        <h4 style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #B45309;">APPROVED</h4>
-        <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #78350F;">{{ $requests->where('status','Approved')->count() }}</span>
+        <h4 style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #059669;">APPROVED</h4>
+        <span style="font-size: 28px; font-weight: 700; line-height: 1; margin-top: 0; color: #065F46;">{{ $requests->where('status','Approved')->count() }}</span>
     </div>
 
     {{-- REJECTED — RED THEME --}}
-    <div class="kpi" 
+    <div class="kpi" id="kpi-Rejected"
          style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+         onclick="filterRequests('Rejected')"
          onmouseover="this.style.transform='translateY(-4px)';"
          onmouseout="this.style.transform='translateY(0px)';"
          onmousedown="this.style.transform='translateY(-2px)';">
@@ -592,8 +606,9 @@ function closeRequestModal(){
     </div>
 
     {{-- COMPLETED — BLUE THEME --}}
-    <div class="kpi" 
+    <div class="kpi" id="kpi-Completed"
          style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 22px 24px; border-radius: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; text-align: left;"
+         onclick="filterRequests('Completed')"
          onmouseover="this.style.transform='translateY(-4px)';"
          onmouseout="this.style.transform='translateY(0px)';"
          onmousedown="this.style.transform='translateY(-2px)';">
@@ -608,8 +623,11 @@ function closeRequestModal(){
             <div class="table-card" style="background:white; border:1px solid #E5E7EB; border-radius:8px; overflow:hidden;">
                 
                 <div class="toolbar-section" style="padding:16px; border-bottom:1px solid #E5E7EB; display:flex; justify-content:space-between; align-items:center;">
-                    <div class="toolbar-title" style="font-weight:600; font-size:15px;">All Request Records</div>
-                    <input type="text" class="search-input" placeholder="Search..." style="border:1px solid #D1D5DB; border-radius:6px; padding:6px 12px; font-size:14px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div class="toolbar-title" style="font-weight:600; font-size:15px;" id="tableTitle">All Request Records</div>
+                        <button type="button" onclick="filterRequests('all')" style="background:#EFF6FF; color:#1A73E8; border:none; padding:4px 10px; border-radius:20px; font-size:12px; cursor:pointer;">Show All</button>
+                    </div>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search by requester, medicine, purpose, or RIS #..." style="border:1px solid #D1D5DB; border-radius:6px; padding:6px 12px; font-size:14px; width:280px;">
                 </div>
 
                 <div class="overflow-x-auto">
@@ -627,10 +645,11 @@ function closeRequestModal(){
                         </thead>
                         <tbody>
                             @forelse($requests as $req)
-                            <tr class="border-b hover:bg-gray-50">
+                            <tr class="border-b hover:bg-gray-50 request-row" data-row-status="{{ $req->status ?? 'Pending Physician' }}"
+                                data-search="{{ strtolower(($req->requester->name ?? 'unknown').' '.($req->medicine->name ?? 'deleted item').' '.($req->reason ?? '').' '.($req->ris_number ?? '')) }}">
                                 <td class="p-3">{{ $req->created_at->format('M d, Y') }}</td>
                                 <td class="p-3 font-semibold">
-                                    {{ $req->requester->first_name ?? '' }} {{ $req->requester->last_name ?? 'Unknown' }}
+                                    {{ $req->requester->name ?? 'Unknown' }}
                                     <br><small style="color:#6B7280;">({{ strtoupper($req->requester->role ?? 'N/A') }})</small>
                                 </td>
                                 <td class="p-3">{{ $req->medicine->name ?? 'Deleted Item' }}</td>
@@ -638,15 +657,15 @@ function closeRequestModal(){
                                 <td class="p-3 text-gray-600">{{ $req->reason ?? '—' }}</td>
                                 <td class="p-3">
                                     @php
-                                        $statusColor = match($req->status ?? 'Pending') {
-                                            'Approved' => 'text-green-700 bg-green-100',
-                                            'Rejected' => 'text-red-700 bg-red-100',
-                                            'Completed' => 'text-blue-700 bg-blue-100',
-                                            default => 'text-yellow-700 bg-yellow-100'
+                                        $pillClass = match($req->status ?? 'Pending Physician') {
+                                            'Approved' => 'pill-approved',
+                                            'Rejected' => 'pill-rejected',
+                                            'Completed' => 'pill-completed',
+                                            default => 'pill-pending',
                                         };
                                     @endphp
-                                    <span class="px-2 py-1 rounded text-xs font-medium {{ $statusColor }}">
-                                        {{ strtoupper($req->status ?? 'PENDING') }}
+                                    <span class="pill {{ $pillClass }}">
+                                        {{ strtoupper($req->status ?? 'PENDING PHYSICIAN') }}
                                     </span>
                                 </td>
                                 <td class="p-3 text-right">
@@ -658,7 +677,7 @@ function closeRequestModal(){
                                         data-ris="{{ $req->ris_number ?: '—' }}"
                                         data-center="{{ $req->responsibility_center_code ?: '—' }}"
                                         data-prepared="{{ $req->date_prepared ? \Carbon\Carbon::parse($req->date_prepared)->format('M d, Y') : '—' }}"
-                                        data-requester="{{ trim(($req->requester->first_name ?? '').' '.($req->requester->last_name ?? '')) ?: 'Unknown' }}"
+                                        data-requester="{{ $req->requester->name ?? 'Unknown' }}"
                                         data-role="{{ strtoupper($req->requester->role ?? 'N/A') }}"
                                         data-medicine="{{ $req->medicine->name ?? 'Deleted Item' }}"
                                         data-unit="{{ $req->unit ?: '—' }}"
@@ -667,9 +686,9 @@ function closeRequestModal(){
                                         data-qty="{{ number_format($req->quantity_requested) }}"
                                         data-purpose="{{ $req->reason ?: '—' }}"
                                         data-status="{{ $req->status ?? 'Pending Physician' }}"
+                                        data-notes="{{ $req->physician_notes ?: '—' }}"
                                         onclick="viewReq(this)">View</button>
 
-                                  
 
                                     <button class="btn-sm" style="background:#F3F4F6; color:#374151; border:none; padding:4px 8px; border-radius:4px; font-size:12px; margin:0 2px;" onclick="deleteReq({{ $req->id }})">Delete</button>
                                 </td>
@@ -735,6 +754,10 @@ function closeRequestModal(){
             <div class="info-box"><b>Purpose:</b> <span id="modalPurpose">—</span></div>
         </div>
 
+        <div class="section">
+            <div class="info-box"><b>Physician Notes:</b> <span id="modalNotes">—</span></div>
+        </div>
+
         <div class="modal-actions" id="modalActions">
             <button class="btn-close" onclick="closeRequestModal()">Close</button>
             <button class="btn-reject" id="modalRejectBtn">Reject</button>
@@ -760,19 +783,29 @@ function closeRequestModal(){
         Swal.fire({ title: 'New Medicine Request', html: '<p>Form will load here...</p>', icon: 'info' });
     }
 
+    function editReq(id) {
+        Swal.fire({ title: 'Edit Request #'+id, icon: 'info' });
+    }
 
     function updateStatus(id, status) {
+        const actionLabel = status === 'Approved' ? 'Approve' : 'Reject';
         Swal.fire({
-            title: 'Update Request Status?',
-            text: `Mark this request as ${status}?`,
+            title: `${actionLabel} this request?`,
+            html: `
+                <p style="margin:0 0 8px; color:#6B7280; font-size:13px; text-align:left;">Physician notes (optional)</p>
+                <textarea id="physicianNotesInput" class="swal2-textarea" placeholder="e.g. Approved for immediate dispensing" style="margin-top:0;"></textarea>
+            `,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: status === 'Approved' ? '#10B981' : '#EF4444',
-            confirmButtonText: `Yes, ${status}!`
+            confirmButtonText: `Yes, ${status}!`,
+            preConfirm: () => {
+                return document.getElementById('physicianNotesInput').value;
+            }
         }).then((res) => {
-            if(res.isConfirmed) {
-                // This will link to your route: /admin/request/{id}/update-status/{status}
-                window.location.href = `/admin/request/${id}/status/${status}`;
+            if (res.isConfirmed) {
+                const notes = encodeURIComponent(res.value || '');
+                window.location.href = `/admin/request/${id}/status/${status}?physician_notes=${notes}`;
             }
         });
     }
@@ -785,8 +818,60 @@ function closeRequestModal(){
             showCancelButton: true,
             confirmButtonColor: '#EF4444',
             confirmButtonText: 'Yes, delete it!'
+        }).then((res) => {
+            if (res.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/admin/request/${id}`;
+                form.innerHTML = `
+                    @csrf
+                    @method('DELETE')
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
         });
     }
+
+    // Filter the "All Request Records" table by status and/or search text
+    const statusLabels = {
+        'Pending Physician': 'Pending Requests',
+        'Approved': 'Approved Requests',
+        'Rejected': 'Rejected Requests',
+        'Completed': 'Completed Requests',
+        'all': 'All Request Records'
+    };
+
+    let currentStatusFilter = 'all';
+
+    function applyFilters() {
+        const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+
+        document.querySelectorAll('.request-row').forEach(row => {
+            const matchesStatus = currentStatusFilter === 'all' || row.dataset.rowStatus === currentStatusFilter;
+            const matchesSearch = searchTerm === '' || row.dataset.search.includes(searchTerm);
+            row.style.display = (matchesStatus && matchesSearch) ? '' : 'none';
+        });
+    }
+
+    function filterRequests(status) {
+        currentStatusFilter = status;
+
+        document.getElementById('tableTitle').innerText = statusLabels[status] || 'All Request Records';
+
+        // Highlight the active KPI card
+        document.querySelectorAll('.kpi').forEach(card => card.style.outline = 'none');
+        const activeCard = document.getElementById('kpi-' + status);
+        if (activeCard) {
+            activeCard.style.outline = '2px solid #1A73E8';
+            activeCard.style.outlineOffset = '2px';
+        }
+
+        applyFilters();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+
 </script>
 </body>
 </html>
