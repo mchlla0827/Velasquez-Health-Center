@@ -20,6 +20,12 @@ class MedicineRequest extends Model
         'status',
         'reason',             // <-- Pangalan ng column mo (notes = reason)
         'physician_notes',
+        'responsibility_center_code',
+        'ris_number',
+        'date_prepared',
+        'unit',
+        'batch',
+        'expiry',
     ];
 
     // ✅ Koneksyon: Gamot
