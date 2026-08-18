@@ -207,4 +207,21 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     Route::get('/patients/{id}/service-history', [PatientController::class, 'serviceHistory'])
     ->name('patients.service-history');
 
+    // Reports Main Page
+Route::get('/reports', [ReportsController::class, 'index'])->name('admin.reports');
+
+// Report Pages
+Route::get('/reports/patient', [ReportsController::class, 'patient'])->name('admin.reports.patient');
+Route::get('/reports/risk', [ReportsController::class, 'risk'])->name('admin.reports.risk');
+Route::get('/reports/medicine', [ReportsController::class, 'medicine'])->name('admin.reports.medicine');
+Route::get('/reports/dispensing', [ReportsController::class, 'dispensing'])->name('admin.reports.dispensing');
+Route::get('/reports/operational', [ReportsController::class, 'operational'])->name('admin.reports.operational');
+
+// API Counters
+Route::get('/reports/api/patient', [ReportsController::class, 'apiPatient'])->name('admin.reports.api.patient');
+Route::get('/reports/api/risk', [ReportsController::class, 'apiRisk'])->name('admin.reports.api.risk');
+Route::get('/reports/api/medicine', [ReportsController::class, 'apiMedicine'])->name('admin.reports.api.medicine');
+Route::get('/reports/api/dispensing', [ReportsController::class, 'apiDispensing'])->name('admin.reports.api.dispensing');
+Route::get('/reports/api/operational', [ReportsController::class, 'apiOperational'])->name('admin.reports.api.operational');
+
 });

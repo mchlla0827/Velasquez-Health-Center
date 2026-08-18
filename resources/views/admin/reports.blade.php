@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <title>Reports</title>
 
-
 <style>
     body {
         margin: 0;
@@ -14,11 +13,9 @@
         overflow-x: hidden;
     }
 
-
     .container { display: flex; }
 
-
-    /* ================= SIDEBAR (EXACT COPY FROM DASHBOARD) ================= */
+    /* ================= SIDEBAR ================= */
     .sidebar {
         width: 260px;
         height: 100vh;
@@ -32,7 +29,6 @@
         overflow-y: auto;
     }
 
-
     .sidebar-header {
         display: flex;
         align-items: center;
@@ -42,18 +38,13 @@
         margin-bottom: 10px;
     }
 
-
-    .logo{ width: 40px; height: 40px; border-radius: 50%; }
-
+    .logo { width: 40px; height: 40px; border-radius: 50%; }
 
     .brand-wrapper { display: flex; flex-direction: column; line-height: 1.2; }
 
-
     .brand { font-weight: bold; color: #1E3A8A; font-size: 13.3px; }
 
-
     .sub { font-size: 11px; color: #6B7280; }
-
 
     .group {
         margin-top: 22px;
@@ -62,7 +53,6 @@
         color: #9CA3AF;
         text-transform: uppercase;
     }
-
 
     .nav-item {
         display: flex;
@@ -76,9 +66,7 @@
         font-size: 14px;
     }
 
-
     .nav-icon { width: 22px; height: 22px; object-fit: contain; }
-
 
     .nav-item.active {
         background: #EFF6FF;
@@ -87,32 +75,26 @@
         font-weight: bold;
     }
 
-
     .nav-item:hover { background: #F3F4F6; }
-
 
     /* ================= MAIN ================= */
     .main {
-        margin-left: 250px;
-        width: calc(100% - 250px);
+        margin-left: 260px;
+        width: calc(100% - 260px);
         padding: 24px;
         box-sizing: border-box;
     }
 
-
-    /* ================= HEADER (EXACT COPY FROM DASHBOARD) ================= */
+    /* ================= HEADER ================= */
     .header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
     }
 
-
-    .welcome-text{ font-size: 14px; color: #374151; margin-bottom: 5px; }
-
+    .welcome-text { font-size: 14px; color: #374151; margin-bottom: 5px; }
 
     .welcome-name { font-weight: bold; color: #1F2937; font-size: 18px; }
-
 
     .role {
         background: #9333EA;
@@ -120,13 +102,11 @@
         padding: 3px 10px;
         border-radius: 20px;
         font-size: 12px;
-        margin-left: 6px;
+        margin-left: 8px;
         text-transform: uppercase;
     }
 
-
     .right { text-align: right; font-size: 12px; color: #374151; }
-
 
     .header-divider {
         width: 100%;
@@ -135,7 +115,6 @@
         margin: 16px 0;
     }
 
-
     .page-title {
         font-size: 22px;
         font-weight: bold;
@@ -143,189 +122,150 @@
         margin-bottom: 16px;
     }
 
+    /* ================= REPORT CONTROLS ================= */
+    .report-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
 
-    /* ================= TABLE ================= */
+    .filters {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
 
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        font-size: 12px;
+        color: #374151;
+        gap: 4px;
+    }
 
-    /* ===== REPORT CONTROLS ===== */
-.report-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end; /* Keeps the right-side elements aligned to bottom */
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 24px;
-}
+    .filter-group label {
+        font-weight: 500;
+    }
 
+    .filter-group input,
+    .filter-group select {
+        padding: 0 10px;
+        height: 38px;
+        border: 1px solid #D1D5DB;
+        border-radius: 8px;
+        font-size: 13px;
+        background: #FFFFFF;
+        transition: 0.2s;
+        box-sizing: border-box;
+    }
 
-.filters {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    /* FIX: This aligns the button to the bottom of the input boxes */
-    align-items: flex-end;
-}
+    .filter-group input:focus,
+    .filter-group select:focus {
+        outline: none;
+        border-color: #1A73E8;
+        box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+    }
 
+    /* ===== BUTTONS ===== */
+    .btn-outline {
+        border: 1px solid #D1D5DB;
+        background: white;
+        padding: 9px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
 
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    font-size: 12px;
-    color: #374151;
-    gap: 4px;
-}
+    .btn-outline:hover {
+        background: #F9FAFB;
+    }
 
+    .content-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #E5E7EB;
+        padding: 25px;
+        box-sizing: border-box;
+    }
 
-.filter-group label {
-    font-weight: 500;
-}
+    .card-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 25px;
+    }
 
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
 
-.filter-group input,
-.filter-group select {
-    padding: 0 10px;       /* Adjusted for height control */
-    height: 38px;          /* Defined height for consistency */
-    border: 1px solid #D1D5DB;
-    border-radius: 8px;
-    font-size: 13px;
-    background: #FFFFFF;
-    transition: 0.2s;
-    box-sizing: border-box; /* Crucial: ensures height includes padding/border */
-}
+    .action-card {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 18px;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        text-decoration: none;
+        color: inherit;
+        min-height: 90px;
+        transition: all 0.2s ease;
+    }
 
+    .action-card img {
+        opacity: 0.85;
+    }
 
-.filter-group input:focus,
-.filter-group select:focus {
-    outline: none;
-    border-color: #1A73E8;
-    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
-}
+    .action-card span {
+        display: block;
+        font-size: 15px;
+        font-weight: 600;
+    }
 
+    .action-card small {
+        display: block;
+        font-size: 13px;
+        color: #6B7280;
+        margin-top: 2px;
+    }
 
-/* ===== BUTTONS ===== */
-
-
-
-
-.btn-outline {
-    border: 1px solid #D1D5DB;
-    background: white;
-    padding: 9px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-
-.btn-outline:hover {
-    background: #F9FAFB;
-}
-
-
-.content-card {
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #E5E7EB;
-    padding: 25px;
-    box-sizing: border-box;
-}
-
-
-/* Title */
-.card-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 25px;
-}
-
-
-/* GRID - BIGGER SPACING */
-.action-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-}
-
-
-/* BIGGER CARD */
-.action-card {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-
-
-    padding: 18px;              /* increased padding */
-    border: 1px solid #E5E7EB;
-    border-radius: 12px;
-
-
-    text-decoration: none;
-    color: inherit;
-
-
-    min-height: 90px;           /* makes box taller */
-}
-
-
-/* ICON BIGGER */
-.action-card img {
-    opacity: 0.85;
-}
-
-
-/* TEXT */
-.action-card span {
-    display: block;
-    font-size: 15px;
-    font-weight: 600;
-}
-
-
-.action-card small {
-    display: block;
-    font-size: 13px;
-    color: #6B7280;
-    margin-top: 2px;
-}
-
-
-/* optional hover (very subtle only) */
-.action-card:hover {
-    border-color: #D1D5DB;
-    background: #FAFAFA;
-}
-
-
+    .action-card:hover {
+        border-color: #2563eb;
+        background: #EFF6FF;
+        transform: translateY(-2px);
+    }
 </style>
 </head>
-
-
 <body>
-
 
 <div class="container">
 
-
-<!-- SIDEBAR (FULL EXACT COPY) -->
+<!-- SIDEBAR -->
 <x-sidebar />
 
-
-<!-- MAIN -->
+<!-- MAIN CONTENT -->
 <div class="main">
 
-
-    <!-- HEADER (UNCHANGED) -->
+    <!-- HEADER -->
     <div class="header">
         <div>
             <div class="welcome-text">Welcome back,</div>
             <div class="welcome-name">
-                {{ session('admin_name') }}
-<span class="role">{{ session('admin_role') }}</span>
+                @php
+                    $userName = session('admin_name') ?? Auth::user()->name ?? 'User';
+                    $role = strtolower(session('admin_role') ?? Auth::user()->role ?? 'admin');
+                    $displayRole = strtoupper($role);
+                @endphp
+                {{ $userName }}
+                <span class="role">{{ $displayRole }}</span>
             </div>
         </div>
-
-
         <div class="right">
             <b>Velasquez Health Center</b><br>
             @php
@@ -335,100 +275,104 @@
         </div>
     </div>
 
-
     <div class="header-divider"></div>
 
+    <div class="page-title">Reports</div>
 
-   <!-- KPI SUMMARY -->
-<div class="content-card">
+    <!-- REPORTS OVERVIEW -->
 
+        <div class="action-grid">
 
-    <div class="card-title">Reports Overview</div>
+            <a href="{{ route('admin.reports.patient') }}" class="action-card">
+                <img src="/icons/patient-records.png" width="30" alt="">
+                <div>
+                    <span>Patient Reports</span>
+                    <small id="patientReports">—</small>
+                </div>
+            </a>
 
+            <a href="{{ route('admin.reports.risk') }}" class="action-card">
+                <img src="/icons/AI-forecast.png" width="25" alt="">
+                <div>
+                    <span>Patient Risk Reports</span>
+                    <small id="riskReports">—</small>
+                </div>
+            </a>
 
-    <div class="action-grid">
+            <a href="{{ route('admin.reports.medicine') }}" class="action-card">
+                <img src="/icons/medicine-inventory.png" width="25" alt="">
+                <div>
+                    <span>Medicine Inventory Reports</span>
+                    <small id="inventoryReports">—</small>
+                </div>
+            </a>
 
-    <a href="{{ route('admin.reports.patient') }}" class="action-card">
-        <img src="/icons/patient-records.png" width="24">
-        <div>
-            <span>Patient Reports</span>
-            <small id="patientReports"></small>
+            <a href="{{ route('admin.reports.dispensing') }}" class="action-card">
+                <img src="/icons/reports.png" width="25" alt="">
+                <div>
+                    <span>Dispensing Reports</span>
+                    <small id="dispensingReports">—</small>
+                </div>
+            </a>
+
+            <a href="{{ route('admin.reports.operational') }}" class="action-card">
+                <img src="/icons/reports.png" width="25" alt="">
+                <div>
+                    <span>Operational Reports</span>
+                    <small id="operationReports">—</small>
+                </div>
+            </a>
+
         </div>
-    </a>
-
-    <a href="{{ route('admin.reports.risk') }}" class="action-card">
-        <img src="/icons/AI-forecast.png" width="24">
-        <div>
-            <span>Patient Risk Reports</span>
-            <small id="riskReports"></small>
-        </div>
-    </a>
-
-    <a href="{{ route('admin.reports.medicine') }}" class="action-card">
-        <img src="/icons/medicine-inventory.png" width="24">
-        <div>
-            <span>Medicine Inventory</span>
-            <small id="inventoryReports"></small>
-        </div>
-    </a>
-
-    <a href="{{ route('admin.reports.dispensing') }}" class="action-card">
-        <img src="/icons/reports.png" width="24">
-        <div>
-            <span>Dispensing Reports</span>
-            <small id="dispensingReports"></small>
-        </div>
-    </a>
-
-    <a href="{{ route('admin.reports.operational') }}" class="action-card">
-        <img src="/icons/reports.png" width="24">
-        <div>
-            <span>Operational Reports</span>
-            <small id="operationReports"></small>
-        </div>
-    </a>
 
 </div>
-
-
-    </div>
 </div>
+
+<!-- API Counters - Will be updated as we build each report -->
 <script>
-fetch('api/patient_reports.php')
-.then(res => res.json())
-.then(data => {
-    document.getElementById('patientReports').innerText = data.total;
-});
+// Replace these with Laravel API routes as we build each report
+document.addEventListener('DOMContentLoaded', function() {
+    // Patient Reports Count
+    fetch("{{ route('admin.reports.api.patient') }}")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('patientReports').innerText = data.total ?? 'Ready';
+        })
+        .catch(() => document.getElementById('patientReports').innerText = 'Ready');
 
+    // Risk Reports Count
+    fetch("{{ route('admin.reports.api.risk') }}")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('riskReports').innerText = data.total ?? 'Ready';
+        })
+        .catch(() => document.getElementById('riskReports').innerText = 'Ready');
 
-fetch('api/risk_reports.php')
-.then(res => res.json())
-.then(data => {
-    document.getElementById('riskReports').innerText = data.total;
-});
+    // Inventory Reports Count
+    fetch("{{ route('admin.reports.api.medicine') }}")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('inventoryReports').innerText = data.total ?? 'Ready';
+        })
+        .catch(() => document.getElementById('inventoryReports').innerText = 'Ready');
 
+    // Dispensing Reports Count
+    fetch("{{ route('admin.reports.api.dispensing') }}")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('dispensingReports').innerText = data.total ?? 'Ready';
+        })
+        .catch(() => document.getElementById('dispensingReports').innerText = 'Ready');
 
-fetch('api/inventory_reports.php')
-.then(res => res.json())
-.then(data => {
-    document.getElementById('inventoryReports').innerText = data.total;
-});
-
-
-fetch('api/dispensing_reports.php')
-.then(res => res.json())
-.then(data => {
-    document.getElementById('dispensingReports').innerText = data.total;
-});
-
-
-fetch('api/operation_reports.php')
-.then(res => res.json())
-.then(data => {
-    document.getElementById('operationReports').innerText = data.total;
+    // Operational Reports Count
+    fetch("{{ route('admin.reports.api.operational') }}")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('operationReports').innerText = data.total ?? 'Ready';
+        })
+        .catch(() => document.getElementById('operationReports').innerText = 'Ready');
 });
 </script>
-</div>
-</div>
+
 </body>
 </html>

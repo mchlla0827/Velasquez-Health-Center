@@ -24,6 +24,10 @@ public function index()
     $recentPatients = Patient::latest()->take(4)->get();
     $totalRegisteredPatients = Patient::count();
 
+    $consultedPatientIds = TriageRecord::whereDate('created_at', today())
+    ->pluck('patient_id')
+    ->toArray();
+
     // ✅ FIXED: Count & Sum from DispensingRecord (YOUR ACTUAL DATA)
     $medicinesDispensedToday = DispensingRecord::whereDate('dispense_date', today())->sum('quantity_dispensed');
     $dispensedRecordsToday = DispensingRecord::whereDate('dispense_date', today())
@@ -85,7 +89,8 @@ public function index()
         'mediumRiskCount', 
         'lowRiskCount', 
         'forecastData',
-        'dispensedRecordsToday'
+        'dispensedRecordsToday',
+        'consultedPatientIds'
     ));
 }
     public function manageUsers(Request $request)

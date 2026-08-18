@@ -171,7 +171,7 @@
     {{-- PATIENTS --}}
     <div class="group">PATIENTS</div>
 
-    @if(in_array($roleLower,['admin','nurse','doctor','bhw']))
+    @if(in_array($roleLower,['admin','nurse', 'bhw']))
 
         <a class="nav-item {{ Request::is("$roleLower/patient-registration*") ? 'active' : '' }}"
            href="/{{ $roleLower }}/patient-registration">

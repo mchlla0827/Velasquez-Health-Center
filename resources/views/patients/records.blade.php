@@ -388,8 +388,10 @@
 
                 @forelse($patients as $patient)
                 <tr data-age="{{ $patient->age }}" 
-                    data-created="{{ $patient->created_at }}" 
-                    data-active-month="{{ $patient->triageRecords->where('created_at', '>=', now()->startOfMonth())->count() > 0 ? 'true' : 'false' }}">
+                data-created="{{ $patient->created_at }}" 
+                data-active-month="{{ $patient->triageRecords->where('created_at', '>=', now()->startOfMonth())->count() > 0 ? 'true' : 'false' }}"
+                data-family-number="{{ $patient->family_number }}"  {{-- ✅ NEW: Family Number --}}
+                data-barangay="{{ $patient->barangay }}">             {{-- ✅ NEW: Barangay --}}
                     
                     <td class="id-cell">{{ $patient->patient_id }}</td>
                     <td><b>{{ $patient->last_name }}, {{ $patient->first_name }}</b></td>
@@ -423,58 +425,59 @@ function filterTable() {
     let table = document.getElementById("patientTable");
     let tr = table.getElementsByTagName("tr");
 
-    let isCompositeSearch = searchInput.indexOf('/') > -1;
-    let targetFamilyNum = '';
-    let targetBarangayNum = '';
+    let isCompositeSearch = searchInput.includes('/');
+    let targetFamily = '';
+    let targetBrgyNum = '';
 
     if (isCompositeSearch) {
         let parts = searchInput.split('/');
-        targetFamilyNum = parseInt(parts[0].trim(), 10).toString(); // Ginagawang purong numero (e.g., "01" -> "1")
-        targetBarangayNum = parts[1].trim();                        // Kinukuha ang Barangay text component
+        targetFamily = parts[0].trim().replace(/^0+/, '');
+        targetBrgyNum = parts[1].trim().replace(/[^0-9]/g, '');
+    } else {
+        // ✅ Treat plain number input AS family number search directly
+        if (/^\d+$/.test(searchInput)) {
+            targetFamily = searchInput.replace(/^0+/, '');
+        }
     }
 
     for (let i = 1; i < tr.length; i++) {
-        let idTd = tr[i].getElementsByTagName("td")[0];   // Column element holding "PAT-2026-0009"
-        let nameTd = tr[i].getElementsByTagName("td")[1]; // Column holding Patient Name
-        let brgyTd = tr[i].getElementsByTagName("td")[2]; // Column holding Barangay name text description
+        let row = tr[i];
+        let idTd = row.getElementsByTagName("td")[0];
+        let nameTd = row.getElementsByTagName("td")[1];
 
-        if (idTd && nameTd && brgyTd) {
-            let idText = (idTd.textContent || idTd.innerText).toUpperCase().trim();
-            let nameText = (nameTd.textContent || nameTd.innerText).toUpperCase();
-            let brgyText = (brgyTd.textContent || brgyTd.innerText).toUpperCase();
+        if (!idTd || !nameTd) continue;
 
-            let matchesSearch = false;
+        let rowFamilyNum = (row.getAttribute("data-family-number") || '').toString().trim();
+        let rowFamilyNumClean = rowFamilyNum.replace(/^0+/, ''); // strip leading zeros for comparison
+        let rowBrgyText = (row.getAttribute("data-barangay") || '').toString().toUpperCase().trim();
+        let rowBrgyNum = rowBrgyText.replace(/[^0-9]/g, '');
 
-            if (isCompositeSearch) {
-                // Kukunin lang natin ang mga numero mula sa custom ID text (e.g., "PAT-2026-0009" -> "20260009")
-                let onlyNumbers = idText.replace(/[^0-9]/g, '');
-                
-                // Kukunin ang huling 4 digits na siyang counter index increment (e.g., "20260009" -> "0009" -> "9")
-                let cleanIdNum = onlyNumbers.length >= 4 ? parseInt(onlyNumbers.substring(onlyNumbers.length - 4), 10).toString() : '';
+        let idText = (idTd.textContent || idTd.innerText).toUpperCase().trim();
+        let nameText = (nameTd.textContent || nameTd.innerText).toUpperCase().trim();
 
-                // I-verify kung ang nakuha nating increment sequence ay tugma sa tina-type bago ang slash
-                let matchesFamilyId = (cleanIdNum === targetFamilyNum);
-                let matchesBarangayCode = brgyText.indexOf(targetBarangayNum) > -1;
+        let matchesSearch = false;
 
-                if (targetFamilyNum !== '' && targetBarangayNum !== '') {
-                    matchesSearch = matchesFamilyId && matchesBarangayCode;
-                } else if (targetFamilyNum !== '') {
-                    matchesSearch = matchesFamilyId;
-                }
-            } else {
-                // Orihinal na search parameter validation para sa pangalan o buong string length lookup
-                matchesSearch = idText.indexOf(searchInput) > -1 || nameText.indexOf(searchInput) > -1;
-            }
+        if (isCompositeSearch || targetFamily !== '') {
+            // ✅ Family search — use partial/contains match instead of strict equals
+            let matchesFamily = targetFamily === '' || 
+                                rowFamilyNumClean === targetFamily || 
+                                rowFamilyNum.includes(targetFamily) ||
+                                rowFamilyNumClean.includes(targetFamily);
+
+            let matchesBrgy = targetBrgyNum === '' || rowBrgyNum === targetBrgyNum || rowBrgyNum.includes(targetBrgyNum);
             
-            // Cross-reference checking kasama ang iyong filter dropdown menu configuration
-            let matchesBarangay = barangayFilter === "" || brgyText.indexOf(barangayFilter) > -1;
-
-            if (matchesSearch && matchesBarangay) {
-                tr[i].style.display = "";
-            } else {
-                tr[i].style.display = "none";
-            }
+            matchesSearch = matchesFamily && matchesBrgy;
+        } else {
+            // Normal text search
+            matchesSearch = 
+                idText.includes(searchInput) || 
+                nameText.includes(searchInput) || 
+                rowFamilyNum.includes(searchInput) || 
+                rowBrgyNum.includes(searchInput);
         }
+
+        let matchesBrgyFilter = barangayFilter === "" || rowBrgyText.includes(barangayFilter);
+        row.style.display = (matchesSearch && matchesBrgyFilter) ? "" : "none";
     }
 }
 

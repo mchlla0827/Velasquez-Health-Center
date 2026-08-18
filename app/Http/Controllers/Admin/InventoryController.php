@@ -36,7 +36,7 @@ class InventoryController extends Controller
          * the designated Physician-in-Charge.
          */
         abort_unless(
-            in_array($role, ['admin', 'nurse', 'bhw'], true)
+            in_array($role, ['admin', 'nurse', 'bhw', 'doctor'], true)
             || ($role === 'doctor' && $isPic === 1),
             403
         );
