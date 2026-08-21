@@ -9,31 +9,10 @@ use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles authenticating users for the application and
-    | redirecting them to your home screen. The controller uses a trait
-    | to conveniently provide its functionality to your applications.
-    |
-    */
-
     use AuthenticatesUsers;
 
-    /**
-     * Where to redirect users after login.
-     *
-     * @var string
-     */
     protected $redirectTo = '/admin/dashboard';
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
@@ -41,21 +20,22 @@ class LoginController extends Controller
     }
 
     /**
-     * The user has been authenticated.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  mixed  $user
-     * @return mixed
+     * Handle post-authentication logic — THIS RUNS ON EVERY SUCCESSFUL LOGIN
      */
     protected function authenticated(Request $request, $user)
     {
-        // ✅ DITO NILALAGAY SA SESSION ANG DETALYE NG USER PARA MAGAMIT SA BUONG SISTEMA
+        // ✅ AUTOMATICALLY UPDATE LAST LOGIN TIME — THIS MAKES STATUS WORK
+        $user->last_login_at = now();
+        $user->save();
+
+        // ✅ YOUR EXISTING SESSION CODE — NOTHING CHANGED HERE
         session([
             'admin_id'     => $user->id,
             'admin_name'   => $user->name,
             'admin_role'   => $user->role,
-            // ✅ BAGONG DAGDAG: Ilalagay natin kung siya ba ay PIC o hindi
-            'is_pic'       => $user->is_pic ?? 0, // Kung walang value, automatic 0
+            'is_pic'       => $user->is_pic ?? 0,
         ]);
+
+        return redirect()->intended($this->redirectPath());
     }
 }

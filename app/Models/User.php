@@ -36,5 +36,7 @@ protected $fillable = [
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_physician_in_charge' => 'boolean', // ✅ ADD THIS LINE
+
     ];
 }

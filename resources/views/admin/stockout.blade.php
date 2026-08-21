@@ -495,7 +495,7 @@
             <h3>Log Stock-Out Incident</h3>
             <button class="close-btn" onclick="closeModal()">&times;</button>
         </div>
-        <form action="#" method="POST">
+        <form action="{{ route('admin.stockout.store') }}" method="POST">
             @csrf
             <div class="form-group">
                 <label>Medicine Name</label>

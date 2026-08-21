@@ -82,7 +82,32 @@
         border-left: 4px solid #1A73E8;
         font-weight: bold;
     }
+
+    /* ✅ Log Out — matches exactly */
+    .logout-nav {
+        width: 100%;
+        border: none;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .logout-nav:hover {
+        background: #F3F4F6;
+    }
+    .logout-nav:active {
+        background: #EFF6FF;
+        color: #1A73E8;
+        border-left: 4px solid #1A73E8;
+        font-weight: bold;
+    }
+    form:has(.logout-nav) {
+        margin: 0;
+        padding: 0;
+        margin-top: 22px;
+    }
 </style>
+
 
 @php
     $role = session('admin_role')
@@ -99,6 +124,7 @@
 
     $isPIC = (string) Auth::user()->is_physician_in_charge === '1';
 @endphp
+
 
 <div class="sidebar">
 
@@ -227,17 +253,12 @@
 
     @endif
 
-    {{-- LOGOUT --}}
+    {{-- ✅ FIXED LOGOUT --}}
     <form method="POST" action="/logout">
         @csrf
-
-        <button
-            class="nav-item"
-            style="width:100%;border:none;background:none;text-align:left;cursor:pointer;">
-
+        <button type="submit" class="nav-item logout-nav">
             <img src="/icons/logout.png" class="nav-icon">
             Log Out
-
         </button>
     </form>
 

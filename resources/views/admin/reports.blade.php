@@ -1,293 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="icon" type="image/png" href="/bhclogo.jpg">
-<meta charset="UTF-8">
-<title>Reports</title>
+    <link rel="icon" type="image/png" href="/bhclogo.jpg">
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Reports — Velasquez Health Center</title>
 
-<style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: #F9FAFB;
-        overflow-x: hidden;
-    }
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #F9FAFB;
+            overflow-x: hidden;
+        }
 
-    .container { display: flex; }
+        .container { display: flex; min-height: 100vh; }
 
-    /* ================= SIDEBAR ================= */
-    .sidebar {
-        width: 260px;
-        height: 100vh;
-        background: white;
-        border-right: 1px solid #E5E7EB;
-        padding: 24px;
-        position: fixed;
-        top: 0;
-        left: 0;
-        box-sizing: border-box;
-        overflow-y: auto;
-    }
+        /* ================= MAIN LAYOUT ================= */
+        .main {
+            margin-left: 250px;
+            width: calc(100% - 260px);
+            padding: 24px;
+            box-sizing: border-box;
+        }
 
-    .sidebar-header {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid #E5E7EB;
-        margin-bottom: 10px;
-    }
+        /* ================= HEADER — SAME AS ALL PAGES ================= */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
 
-    .logo { width: 40px; height: 40px; border-radius: 50%; }
+        .welcome-text {
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 5px;
+        }
 
-    .brand-wrapper { display: flex; flex-direction: column; line-height: 1.2; }
+        .welcome-name {
+            font-weight: bold;
+            color: #1F2937;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-    .brand { font-weight: bold; color: #1E3A8A; font-size: 13.3px; }
+        .role {
+            color: white;
+            padding: 3px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .role-admin  { background: #9333EA; }
+        .role-nurse  { background: #10B981; }
+        .role-bhw    { background: #6366F1; }
+        .role-doctor { background: #3B82F6; }
 
-    .sub { font-size: 11px; color: #6B7280; }
+        .header-right {
+            text-align: right;
+            font-size: 12px;
+            color: #374151;
+            line-height: 1.5;
+        }
 
-    .group {
-        margin-top: 22px;
-        font-size: 11px;
-        font-weight: bold;
-        color: #9CA3AF;
-        text-transform: uppercase;
-    }
+        .header-divider {
+            width: 100%;
+            height: 1px;
+            background: #E5E7EB;
+            margin: 16px 0;
+        }
 
-    .nav-item {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 10px;
-        margin-top: 6px;
-        text-decoration: none;
-        color: #5f6570;
-        border-radius: 6px;
-        font-size: 14px;
-    }
+        .page-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 24px;
+        }
 
-    .nav-icon { width: 22px; height: 22px; object-fit: contain; }
+        /* ================= REPORT CARDS ================= */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
 
-    .nav-item.active {
-        background: #EFF6FF;
-        color: #1A73E8;
-        border-left: 4px solid #1A73E8;
-        font-weight: bold;
-    }
+        .action-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 20px;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            text-decoration: none;
+            color: inherit;
+            min-height: 90px;
+            transition: all 0.2s ease;
+            background: white;
+        }
 
-    .nav-item:hover { background: #F3F4F6; }
+        .action-card img {
+            opacity: 0.85;
+            flex-shrink: 0;
+        }
 
-    /* ================= MAIN ================= */
-    .main {
-        margin-left: 260px;
-        width: calc(100% - 260px);
-        padding: 24px;
-        box-sizing: border-box;
-    }
+        .action-card > div {
+            display: flex;
+            flex-direction: column;
+        }
 
-    /* ================= HEADER ================= */
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
+        .action-card span {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1F2937;
+        }
 
-    .welcome-text { font-size: 14px; color: #374151; margin-bottom: 5px; }
+        .action-card small {
+            font-size: 13px;
+            color: #6B7280;
+            margin-top: 4px;
+        }
 
-    .welcome-name { font-weight: bold; color: #1F2937; font-size: 18px; }
+        .action-card:hover {
+            border-color: #2563EB;
+            background: #EFF6FF;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+        }
 
-    .role {
-        background: #9333EA;
-        color: white;
-        padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        margin-left: 8px;
-        text-transform: uppercase;
-    }
+        .loading {
+            color: #9CA3AF;
+            font-style: italic;
+        }
 
-    .right { text-align: right; font-size: 12px; color: #374151; }
-
-    .header-divider {
-        width: 100%;
-        height: 1px;
-        background: #E5E7EB;
-        margin: 16px 0;
-    }
-
-    .page-title {
-        font-size: 22px;
-        font-weight: bold;
-        color: #111827;
-        margin-bottom: 16px;
-    }
-
-    /* ================= REPORT CONTROLS ================= */
-    .report-controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        flex-wrap: wrap;
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-
-    .filters {
-        display: flex;
-        gap: 14px;
-        flex-wrap: wrap;
-        align-items: flex-end;
-    }
-
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        font-size: 12px;
-        color: #374151;
-        gap: 4px;
-    }
-
-    .filter-group label {
-        font-weight: 500;
-    }
-
-    .filter-group input,
-    .filter-group select {
-        padding: 0 10px;
-        height: 38px;
-        border: 1px solid #D1D5DB;
-        border-radius: 8px;
-        font-size: 13px;
-        background: #FFFFFF;
-        transition: 0.2s;
-        box-sizing: border-box;
-    }
-
-    .filter-group input:focus,
-    .filter-group select:focus {
-        outline: none;
-        border-color: #1A73E8;
-        box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
-    }
-
-    /* ===== BUTTONS ===== */
-    .btn-outline {
-        border: 1px solid #D1D5DB;
-        background: white;
-        padding: 9px 14px;
-        border-radius: 8px;
-        font-size: 13px;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-
-    .btn-outline:hover {
-        background: #F9FAFB;
-    }
-
-    .content-card {
-        background: white;
-        border-radius: 12px;
-        border: 1px solid #E5E7EB;
-        padding: 25px;
-        box-sizing: border-box;
-    }
-
-    .card-title {
-        font-size: 18px;
-        font-weight: 700;
-        margin-bottom: 25px;
-    }
-
-    .action-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 18px;
-    }
-
-    .action-card {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        padding: 18px;
-        border: 1px solid #E5E7EB;
-        border-radius: 12px;
-        text-decoration: none;
-        color: inherit;
-        min-height: 90px;
-        transition: all 0.2s ease;
-    }
-
-    .action-card img {
-        opacity: 0.85;
-    }
-
-    .action-card span {
-        display: block;
-        font-size: 15px;
-        font-weight: 600;
-    }
-
-    .action-card small {
-        display: block;
-        font-size: 13px;
-        color: #6B7280;
-        margin-top: 2px;
-    }
-
-    .action-card:hover {
-        border-color: #2563eb;
-        background: #EFF6FF;
-        transform: translateY(-2px);
-    }
-</style>
+        /* Responsive */
+        @media (max-width: 860px) {
+            .action-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
 
-<!-- SIDEBAR -->
-<x-sidebar />
+    <!-- ✅ USES YOUR SIDEBAR COMPONENT (NO DUPLICATE CODE) -->
+    <x-sidebar />
 
-<!-- MAIN CONTENT -->
-<div class="main">
+    <div class="main">
 
-    <!-- HEADER -->
-    <div class="header">
-        <div>
-            <div class="welcome-text">Welcome back,</div>
-            <div class="welcome-name">
-                @php
-                    $userName = session('admin_name') ?? Auth::user()->name ?? 'User';
-                    $role = strtolower(session('admin_role') ?? Auth::user()->role ?? 'admin');
-                    $displayRole = strtoupper($role);
-                @endphp
-                {{ $userName }}
-                <span class="role">{{ $displayRole }}</span>
+        <!-- ✅ HEADER — EXACTLY SAME AS TRIAGE & PATIENT RECORDS -->
+        <div class="header">
+            <div>
+                <div class="welcome-text">Welcome back,</div>
+                <div class="welcome-name">
+                    @php
+                        $userName = session('admin_name') ?? session('user_name') ?? Auth::user()->name ?? 'User';
+                        $role = strtolower(session('admin_role') ?? session('user_role') ?? Auth::user()->role ?? 'bhw');
+
+                        $displayRole = ($role === 'doctor' && (string)(Auth::user()->is_physician_in_charge ?? '') === '1')
+                            ? 'PIC'
+                            : strtoupper($role);
+
+                        $roleClass = match($role) {
+                            'admin' => 'role-admin',
+                            'nurse' => 'role-nurse',
+                            'doctor' => 'role-doctor',
+                            default => 'role-bhw',
+                        };
+                    @endphp
+                    {{ $userName }}
+                    <span class="role {{ $roleClass }}">{{ $displayRole }}</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <b>Velasquez Health Center</b><br>
+                @php date_default_timezone_set('Asia/Manila'); @endphp
+                {{ date('F d, Y | h:i A') }}
             </div>
         </div>
-        <div class="right">
-            <b>Velasquez Health Center</b><br>
-            @php
-                date_default_timezone_set('Asia/Manila');
-            @endphp
-            {{ date('F d, Y | h:i A') }}
-        </div>
-    </div>
 
-    <div class="header-divider"></div>
+        <div class="header-divider"></div>
 
-    <div class="page-title">Reports</div>
+        <div class="page-title">Reports</div>
 
-    <!-- REPORTS OVERVIEW -->
-
+        <!-- REPORT CARDS -->
         <div class="action-grid">
 
             <a href="{{ route('admin.reports.patient') }}" class="action-card">
                 <img src="/icons/patient-records.png" width="30" alt="">
                 <div>
                     <span>Patient Reports</span>
-                    <small id="patientReports">—</small>
+                    <small id="patientReports" class="loading">Loading...</small>
                 </div>
             </a>
 
@@ -295,7 +200,7 @@
                 <img src="/icons/AI-forecast.png" width="25" alt="">
                 <div>
                     <span>Patient Risk Reports</span>
-                    <small id="riskReports">—</small>
+                    <small id="riskReports" class="loading">Loading...</small>
                 </div>
             </a>
 
@@ -303,7 +208,7 @@
                 <img src="/icons/medicine-inventory.png" width="25" alt="">
                 <div>
                     <span>Medicine Inventory Reports</span>
-                    <small id="inventoryReports">—</small>
+                    <small id="inventoryReports" class="loading">Loading...</small>
                 </div>
             </a>
 
@@ -311,7 +216,7 @@
                 <img src="/icons/reports.png" width="25" alt="">
                 <div>
                     <span>Dispensing Reports</span>
-                    <small id="dispensingReports">—</small>
+                    <small id="dispensingReports" class="loading">Loading...</small>
                 </div>
             </a>
 
@@ -319,58 +224,51 @@
                 <img src="/icons/reports.png" width="25" alt="">
                 <div>
                     <span>Operational Reports</span>
-                    <small id="operationReports">—</small>
+                    <small id="operationReports" class="loading">Loading...</small>
                 </div>
             </a>
 
         </div>
 
-</div>
+    </div>
 </div>
 
-<!-- API Counters - Will be updated as we build each report -->
+<!-- ⚡ OPTIMIZED API CALLS -->
 <script>
-// Replace these with Laravel API routes as we build each report
-document.addEventListener('DOMContentLoaded', function() {
-    // Patient Reports Count
-    fetch("{{ route('admin.reports.api.patient') }}")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('patientReports').innerText = data.total ?? 'Ready';
-        })
-        .catch(() => document.getElementById('patientReports').innerText = 'Ready');
+document.addEventListener('DOMContentLoaded', function () {
+    const API_ENDPOINTS = [
+        { id: 'patientReports', url: "{{ route('admin.reports.api.patient') }}" },
+        { id: 'riskReports', url: "{{ route('admin.reports.api.risk') }}" },
+        { id: 'inventoryReports', url: "{{ route('admin.reports.api.medicine') }}" },
+        { id: 'dispensingReports', url: "{{ route('admin.reports.api.dispensing') }}" },
+        { id: 'operationReports', url: "{{ route('admin.reports.api.operational') }}" }
+    ];
 
-    // Risk Reports Count
-    fetch("{{ route('admin.reports.api.risk') }}")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('riskReports').innerText = data.total ?? 'Ready';
-        })
-        .catch(() => document.getElementById('riskReports').innerText = 'Ready');
+    // ⚡ Load one at a time instead of all at once + timeout protection
+    async function loadCounter(item) {
+        const el = document.getElementById(item.id);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-    // Inventory Reports Count
-    fetch("{{ route('admin.reports.api.medicine') }}")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('inventoryReports').innerText = data.total ?? 'Ready';
-        })
-        .catch(() => document.getElementById('inventoryReports').innerText = 'Ready');
+        try {
+            const res = await fetch(item.url, {
+                signal: controller.signal,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            clearTimeout(timeoutId);
 
-    // Dispensing Reports Count
-    fetch("{{ route('admin.reports.api.dispensing') }}")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('dispensingReports').innerText = data.total ?? 'Ready';
-        })
-        .catch(() => document.getElementById('dispensingReports').innerText = 'Ready');
+            if (!res.ok) throw new Error('Not OK');
+            const data = await res.json();
+            el.textContent = data.total ?? 'Ready';
+        } catch (err) {
+            clearTimeout(timeoutId);
+            el.textContent = 'Ready';
+            el.classList.remove('loading');
+        }
+    }
 
-    // Operational Reports Count
-    fetch("{{ route('admin.reports.api.operational') }}")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('operationReports').innerText = data.total ?? 'Ready';
-        })
-        .catch(() => document.getElementById('operationReports').innerText = 'Ready');
+    // Start loading sequentially — page shows instantly!
+    API_ENDPOINTS.forEach(loadCounter);
 });
 </script>
 

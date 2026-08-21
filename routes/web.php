@@ -194,15 +194,17 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     Route::post('/patients/queue', [PatientController::class, 'addToQueue'])->name('patients.queue.store');
     Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('patients.edit');
     Route::put('/patients/{id}', [PatientController::class, 'update'])->name('patients.update');
-    Route::get('/patients/{id}/ncd-assessment', [App\Http\Controllers\AssessmentController::class, 'create'])->name('ncd.create');
-    Route::post('/patients/{id}/ncd-assessment', [App\Http\Controllers\AssessmentController::class, 'store'])->name('ncd.store');
+   // NCD Assessment Routes
+    Route::get('/patients/{id}/ncd-assessment', [PatientController::class, 'createNcdAssessment'])->name('ncd.create');
+    Route::post('/patients/{id}/ncd-assessment', [PatientController::class, 'storeNcdAssessment'])->name('ncd.store');
     Route::post('/medicine/store', [MedicineController::class, 'store'])->name('medicine.store');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/ai-forecast', [ForecastController::class, 'index'])->name('ai.forecast');
     Route::post('/patients/queue/store', [PatientController::class, 'storeQueue'])->name('triage.storeQueue');
 
-    Route::post('/triage/{id}/update-status', [PatientController::class, 'updateStatus'])->name('triage.updateStatus');
-    Route::get('/triage/live-queue-data', [PatientController::class, 'getLiveQueueData'])->name('triage.liveData');
+    // ✅ STANDARD URL: /triage/update-status/{id}
+Route::post('/triage/update-status/{id}', [PatientController::class, 'updateStatus'])->name('triage.update-status');
+Route::get('/triage/live-queue-data', [PatientController::class, 'getLiveQueueData'])->name('triage.liveData');
 
     Route::get('/patients/{id}/service-history', [PatientController::class, 'serviceHistory'])
     ->name('patients.service-history');

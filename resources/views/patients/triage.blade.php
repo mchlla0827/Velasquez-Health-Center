@@ -2,6 +2,12 @@
     date_default_timezone_set('Asia/Manila');
     $role = strtolower($role ?? session('admin_role') ?? session('user_role') ?? 'bhw');
     $userName = session('admin_name') ?? session('user_name') ?? 'User';
+
+    // ✅ GET CURRENT USER SAFELY
+    $currentUser = auth()->user();
+    $isDoctor = strtolower(optional($currentUser)->role ?? '') === 'doctor';
+    $isPIC = in_array(optional($currentUser)->is_physician_in_charge, [1, "1", true], true);
+    $canCallPatient = $isDoctor || $isPIC;
 @endphp
 
 <!DOCTYPE html>
@@ -10,22 +16,31 @@
     <link rel="icon" type="image/png" href="/bhclogo.jpg">
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Patient Triage | Barangay Health System</title>
+    <title>Patient Triage - Velasquez Health Center</title>
     <style>
-        body { 
-            margin: 0; 
-            font-family: Arial, sans-serif; 
-            background: #F9FAFB; 
-            overflow-x: hidden; 
-        }
-        .container { 
-            display: flex; 
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #F9FAFB;
+            overflow-x: hidden;
         }
 
+        .container { display: flex; }
+
+        /* ================= SIDEBAR — FULLY RETAINED ================= */
         .sidebar {
-            width: 260px; height: 100vh; background: white; border-right: 1px solid #E5E7EB;
-            padding: 24px; position: fixed; top: 0; left: 0; box-sizing: border-box; overflow-y: auto;
+            width: 260px;
+            height: 100vh;
+            background: white;
+            border-right: 1px solid #E5E7EB;
+            padding: 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            box-sizing: border-box;
+            overflow-y: auto;
         }
+
         .sidebar-header {
             display: flex;
             align-items: center;
@@ -35,658 +50,531 @@
             margin-bottom: 10px;
         }
 
-.logo {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-}
+        .logo { width: 40px; height: 40px; border-radius: 50%; }
 
-.brand {
-    font-weight: bold;
-    color: #1E3A8A;
-    font-size: 13.3px;
-}
-
-.sub {
-    font-size: 11px;
-    color: #6B7280;
-}
-
-.group {
-    margin-top: 22px;
-    font-size: 11px;
-    font-weight: bold;
-    color: #9CA3AF;
-    text-transform: uppercase;
-}
-
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 10px;
-    margin-top: 6px;
-    text-decoration: none;
-    color: #5f6570;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.nav-icon {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-}
-
-.nav-item.active {
-    background: #EFF6FF;
-    color: #1A73E8;
-    border-left: 4px solid #1A73E8;
-    font-weight: bold;
-}
-
-.nav-item:hover {
-    background: #F3F4F6;
-}
-
-        .main { 
-            margin-left: 250px; 
-            width: calc(100% - 260px);
-            padding: 24px; 
-            box-sizing: border-box; 
+        .brand-wrapper {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
         }
 
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: flex-start; 
+        .brand {
+            font-weight: bold;
+            color: #1E3A8A;
+            font-size: 13.3px;
         }
 
-        .welcome-name { 
-            font-weight: bold; 
-            color: #1F2937; 
-            font-size: 18px; 
-            margin-top: 4pt
-        }
-        
-       .role-badge {
-            color: white;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-left: 6px;
+        .sub { font-size: 11px; color: #6B7280; }
+
+        .group {
+            margin-top: 22px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #9CA3AF;
             text-transform: uppercase;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px;
+            margin-top: 6px;
+            text-decoration: none;
+            color: #5f6570;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+        }
+
+        .nav-item.active {
+            background: #EFF6FF;
+            color: #1A73E8;
+            border-left: 4px solid #1A73E8;
             font-weight: bold;
         }
 
-.bg-admin {
-    background: #9333EA;
-}
+        .nav-item:hover { background: #F3F4F6; }
 
-.bg-doctor {
-    background: #3B82F6;
-}
+        /* ================= MAIN CONTENT WRAPPER ================= */
+        .main {
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            padding: 24px;
+            box-sizing: border-box;
+        }
 
-.bg-nurse {
-    background: #10B981;
-}
+        /* ================= HEADER — FULLY RETAINED ================= */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
 
-.bg-bhw {
-    background: #6366F1;
-}
+        .welcome-text {
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 5px;
+        }
 
-.header-divider {
-    width: 100%;
-    height: 1px;
-    background: #E5E7EB;
-    margin: 16px 0;
-}
+        .welcome-name {
+            font-weight: bold;
+            color: #1F2937;
+            font-size: 18px;
+        }
 
-.top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
+        .role-badge {
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
 
-.page-title {
-    font-size: 22px;
-    font-weight: bold;
-    color: #111827;
-    margin-bottom: 4px;
-}
+        .bg-admin { background: #9333EA; }
+        .bg-doctor { background: #3B82F6; }
+        .bg-nurse { background: #10B981; }
+        .bg-bhw { background: #6366F1; }
 
-.page-subtitle {
-    font-size: 13px;
-    color: #6B7280;
-}
+        .header-divider {
+            width: 100%;
+            height: 1px;
+            background: #E5E7EB;
+            margin: 16px 0 24px;
+        }
 
-.add-btn {
-    background: #2563EB;
-    color: white;
-    padding: 10px 16px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 13px;
-}
-/* KPI Grid Wrapper */
-.kpi-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-top: 20px;
-    margin-bottom: 24px;
-    width: 100%;
-}
+        /* PAGE TOP */
+        .page-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
 
-/* Base Card Styling — glass style */
-.kpi {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 22px 24px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
+        .page-title h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1F2937;
+        }
 
-.kpi::before {
-    display: none;
-}
+        .page-title p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: #6B7280;
+        }
 
-/* Typography Styling */
-.kpi-title {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
+        .btn-primary {
+            background: #2563EB;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
 
-.kpi-number {
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1;
-    margin-top: 0;
-}
+        .btn-primary:hover { background: #1D4ED8; }
 
-/* Interactive Feedback */
-.kpi:active {
-    transform: translateY(-2px);
-}
+        /* EMERGENCY ALERT BANNER */
+        .alert-banner {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            border-left: 4px solid #EF4444;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+        }
 
+        .alert-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
 
-/* --- Color Theme Assignments (Soft Glass Tints) --- */
+        .alert-content {
+            font-size: 13px;
+            color: #991B1B;
+            line-height: 1.4;
+        }
 
-/* Total Queue Theme (Grey Tint) */
-.kpi-grey { 
-    background: rgba(243, 244, 246, 0.4); 
-    border-color: rgba(209, 213, 219, 0.5);
-}
-.kpi-grey .kpi-title { color: #6B7280; }
-.kpi-grey .kpi-number { color: #111827; }
+        .alert-content b { color: #DC2626; }
 
-/* High Risk Theme (Red Tint) */
-.kpi-red { 
-    background: rgba(239, 68, 68, 0.06); 
-    border-color: rgba(239, 68, 68, 0.15);
-}
-.kpi-red .kpi-title { color: #DC2626; }
-.kpi-red .kpi-number { color: #991B1B; }
+        /* KPI CARDS */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
 
-/* Medium Risk Theme (Yellow/Amber Tint) */
-.kpi-yellow { 
-    background: rgba(245, 158, 11, 0.06); 
-    border-color: rgba(245, 158, 11, 0.15);
-}
-.kpi-yellow .kpi-title { color: #D97706; }
-.kpi-yellow .kpi-number { color: #92400E; }
+        .kpi-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 10px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
 
-/* Low Risk Theme (Green Tint) */
-.kpi-green { 
-    background: rgba(16, 185, 129, 0.06); 
-    border-color: rgba(16, 185, 129, 0.15);
-}
-.kpi-green .kpi-title { color: #059669; }
-.kpi-green .kpi-number { color: #065F46; }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-card.active { outline: 2px solid #2563EB; outline-offset: 2px; }
 
-/* Dynamic Emergency Alert Banner */
-.triage-alert-banner.emergency {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: rgba(239, 68, 68, 0.08); /* Transparent deep red tint */
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    border-left: 5px solid #DC2626; /* Crimson side-accent strip */
-    border-radius: 16px;
-    padding: 16px 20px;
-    margin-top: 20px;
-    margin-bottom: 24px;
-    width: 100%;
-    box-sizing: border-box;
-    animation: pulse-subtle 2s infinite ease-in-out;
-}
+        .kpi-card h4 {
+            margin: 0 0 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
-/* Icon Area Alignment */
-.alert-icon-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background: rgba(239, 68, 68, 0.12);
-    padding: 8px;
-    border-radius: 50%;
-}
+        .kpi-card .val {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1;
+        }
 
-/* Content Layout Grid */
-.alert-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13.5px;
-    line-height: 1.4;
-    flex-wrap: wrap;
-}
+        .card-total { border-left-color: #9CA3AF; }
+        .card-total h4 { color: #6B7280; }
+        .card-total .val { color: #111827; }
 
-/* Text Element Design */
-.alert-badge {
-    color: #B91C1C;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-}
+        .card-high { border-left-color: #EF4444; }
+        .card-high h4 { color: #DC2626; }
+        .card-high .val { color: #991B1B; }
 
-.alert-text {
-    color: #7F1D1D;
-    font-weight: 500;
-}
+        .card-medium { border-left-color: #F59E0B; }
+        .card-medium h4 { color: #D97706; }
+        .card-medium .val { color: #92400E; }
 
-.alert-text b {
-    background: #DC2626;
-    color: white;
-    padding: 2px 7px;
-    border-radius: 6px;
-    font-size: 13px;
-    margin: 0 2px;
-}
+        .card-low { border-left-color: #10B981; }
+        .card-low h4 { color: #059669; }
+        .card-low .val { color: #065F46; }
 
-/* Subtle pulse animation to request priority attention */
-@keyframes pulse-subtle {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.006); box-shadow: 0 10px 35px -8px rgba(239, 68, 68, 0.22); }
-    100% { transform: scale(1); }
-}
+        /* QUEUE TABLE CARD */
+        .table-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 10px;
+            overflow: hidden;
+        }
 
-.queue-card {
-    background: white;
-    border-radius: 12px;
-    margin-top: 20px;
-    border: 1px solid #E5E7EB;
-    overflow: hidden;
-}
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
 
-/* Container Frame */
-.table-container {
-    background: #ffffff;
-    border-radius: 8px;
-    border: 1px solid #E2E8F0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-    overflow: hidden;
-    margin-top: 16px;
-    width: 100%; /* Keeps container tightly locked to layout card bounds */
-}
+        th {
+            background: #F9FAFB;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6B7280;
+            border-bottom: 1px solid #E5E7EB;
+        }
 
-/* Base structural table property assignments */
-.triage-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    background: #ffffff;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #F3F4F6;
+            vertical-align: middle;
+            color: #374151;
+        }
 
-/* Explicit Alignment & Outer Edge Padding Adjustments */
-.text-left   { text-align: left; }
-.text-center { text-align: center; }
-.text-right  { text-align: right; }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #FAFAFA; }
 
-.pad-left    { padding-left: 16px !important; }
-.pad-right   { padding-right: 16px !important; }
+        .font-bold { font-weight: 700; color: #111827; }
+        .text-muted { color: #6B7280; font-size: 12px; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
 
-/* --- Table Headers Structure --- */
-.triage-table thead th {
-    background-color: #F8FAFC;
-    color: #64748B;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #E2E8F0;
-}
+        /* RISK PILLS */
+        .pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
 
-/* --- Content Rows Spacings — PINAKA IMPORTANTE --- */
-.triage-table tbody tr {
-    border-bottom: 1px solid #F1F5F9;
-    height: 42px !important; /* ✅ SAKTO LANG NA TAAS, HINDI MASYADONG HABA */
-}
+        .pill.high { background: #FEE2E2; color: #991B1B; }
+        .pill.medium { background: #FEF3C7; color: #92400E; }
+        .pill.low { background: #D1FAE5; color: #065F46; }
 
-.triage-table tbody tr:last-child {
-    border-bottom: none;
-}
+        /* ACTION BUTTONS */
+        .btn-sm {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 6px;
+        }
 
-.triage-table tbody tr:hover {
-    background-color: #F8FAFC;
-}
+        .btn-view { background: #EFF6FF; color: #1D4ED8; }
+        .btn-view:hover { background: #DBEAFE; }
 
-.triage-table tbody td {
-    padding-top: 4px !important;   /* ✅ BINAWASAN PADDING */
-    padding-bottom: 4px !important;/* ✅ BINAWASAN PADDING */
-    font-size: 13.5px;
-    color: #334155;
-    vertical-align: middle;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.2;
-}
+        .btn-call { background: #10B981; color: white; }
+        .btn-call:hover { background: #059669; }
 
-/* Typography Rules */
-.font-bold   { font-weight: 700; color: #1E293B; }
-.font-medium { font-weight: 500; color: #1E293B; }
-.text-muted  { color: #64748B; }
+        .btn-session { background: #F59E0B; color: white; }
+        .btn-session:hover { background: #D97706; }
 
-/* --- Uniform Badges (Pills) --- */
-.pill {
-    display: inline-block;
-    padding: 3px 6px; /* ✅ Sakto lang na laki */
-    border-radius: 9999px;
-    font-size: 11.5px;
-    font-weight: 600;
-    text-align: center;
-    width: 80px; /* ✅ Sakto lang lapad */
-}
-.pill.high   { background-color: #FEE2E2; color: #991B1B; }
-.pill.medium { background-color: #FEF3C7; color: #92400E; }
-.pill.low    { background-color: #D1FAE5; color: #065F46; }
+        .btn-done { background: #EF4444; color: white; }
+        .btn-done:hover { background: #DC2626; }
 
-/* --- Button Mechanics --- */
-.btn-action {
-    background-color: #2563EB;
-    color: #ffffff;
-    font-weight: 500;
-    font-size: 12px;
-    border: none;
-    padding: 6px 12px; /* ✅ Sakto lang na laki */
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-}
-.btn-action:hover {
-    background-color: #1D4ED8;
-}
+        .empty-row { text-align: center; padding: 40px; color: #6B7280; }
 
-/* Empty State Handling */
-.empty-state {
-    text-align: center;
-    padding: 30px !important;
-    color: #94A3B8;
-    font-size: 13.5px;
-}
-
-.pill {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: bold;
-}
-
-.high {
-    background: #FEE2E2;
-    color: #B91C1C;
-}
-
-.medium {
-    background: #FEF3C7;
-    color: #92400E;
-}
-
-.low {
-    background: #D1FAE5;
-    color: #065F46;
-}
+        /* MODAL STYLES */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); display: none; justify-content: center;
-            align-items: center; z-index: 1000;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            justify-content: center;
+            align-items: flex-start;
+            z-index: 1000;
+            padding: 40px 0;
+            overflow-y: auto;
         }
+
         .modal-content {
-            background: white; width: 650px; border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;
+            background: white;
+            width: 650px;
+            max-width: 95%;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
+
         .modal-header {
-            padding: 16px 20px; border-bottom: 1px solid #E5E7EB;
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #E5E7EB;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-       .modal-body {
-    padding: 20px;
-}
 
-.search-container {
-    position: relative;
-    margin-bottom: 15px;
-}
+        .modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; }
+        .close-btn { font-size: 22px; cursor: pointer; color: #6B7280; border: none; background: none; }
 
-.search-input {
-    width: 100%;
-    padding: 12px 12px 12px 42px;
-    border: 1.5px solid #000;
-    border-radius: 10px;
-    font-size: 14px;
-    box-sizing: border-box;
-    outline: none;
-}
+        .modal-body { padding: 20px; }
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #E5E7EB;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
 
-.search-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-    pointer-events: none;
-}
+        .search-box { position: relative; margin-bottom: 16px; }
+        .search-input {
+            width: 100%;
+            padding: 12px 12px 12px 42px;
+            border: 1.5px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .search-input:focus { border-color: #2563EB; }
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            pointer-events: none;
+        }
 
-.patient-result {
-    padding: 12px;
-    border: 1px solid #E5E7EB;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
+        .patient-result {
+            padding: 12px;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .patient-result:hover { background: #F9FAFB; }
+        .patient-name { font-weight: 600; color: #1F2937; margin-bottom: 4px; }
+        .patient-meta { font-size: 11px; color: #6B7280; }
 
-.patient-result:hover {
-    background: #F9FAFB;
-}
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 12px;
+            color: #9CA3AF;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .divider::before, .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #E5E7EB;
+        }
 
-.patient-name-bold {
-    font-weight: bold;
-    color: #1F2937;
-    margin-bottom: 4px;
-}
+        .reg-link {
+            display: block;
+            text-align: center;
+            padding: 12px;
+            border: 1px solid #2563EB;
+            color: #2563EB;
+            background: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .reg-link:hover { background: #EFF6FF; }
 
-.patient-meta-sm {
-    font-size: 11px;
-    color: #6B7280;
-}
+        .selected-patient-box {
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .selected-patient-box .name { font-weight: 600; color: #1E3A8A; }
+        .selected-patient-box .meta { font-size: 12px; color: #64748B; margin-top: 2px; }
+        .change-link { color: #2563EB; font-size: 13px; font-weight: 600; text-decoration: none; }
 
-.divider-text {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 20px 0;
-    font-size: 12px;
-    color: #9CA3AF;
-    font-weight: bold;
-    text-transform: uppercase;
-}
+        .form-section-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1F2937;
+            margin: 20px 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #E5E7EB;
+        }
 
-.divider-text::before,
-.divider-text::after {
-    content: "";
-    flex: 1;
-    border-bottom: 1px solid #E5E7EB;
-}
+        .form-group { margin-bottom: 14px; }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+        .form-control, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .form-control:focus, .form-select:focus { border-color: #2563EB; }
 
-.reg-btn-container {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-}
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
 
-.reg-btn {
-    display: inline-block;
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #2563EB;
-    color: #2563EB;
-    background: white;
-    border-radius: 8px;
-    text-align: center;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 14px;
-    transition: all 0.2s ease;
-}
+        .symptoms-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 8px;
+        }
 
-.reg-btn:hover {
-    background-color: #f0f7ff;
-}
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #374151;
+            cursor: pointer;
+        }
 
+        .btn-submit {
+            background: #D1D5DB;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: not-allowed;
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+        .btn-submit.active {
+            background: #2563EB;
+            cursor: pointer;
+            opacity: 1;
+        }
+        .btn-cancel {
+            background: white;
+            border: 1px solid #D1D5DB;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
 
-.selected-patient-box {
-    background: #EFF6FF;
-    border: 1px solid #BFDBFE;
-    border-radius: 8px;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            background: #F9FAFB;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #E5E7EB;
+            margin-bottom: 16px;
+        }
+        .detail-item .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #6B7280;
+            text-transform: uppercase;
+        }
+        .detail-item .value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #111827;
+            margin-top: 2px;
+        }
+        .symptoms-box {
+            background: white;
+            border: 1px solid #D1D5DB;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #4B5563;
+            min-height: 40px;
+        }
 
-.assessment-section-title {
-    font-weight: bold;
-    font-size: 16px;
-    color: #1F2937;
-    margin: 20px 0 10px 0;
-    border-bottom: 1px solid #E5E7EB;
-    padding-bottom: 8px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-label {
-    display: block;
-    font-size: 13px;
-    color: #374151;
-    margin-bottom: 5px;
-    font-weight: 500;
-}
-
-.form-select,
-.form-control {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #D1D5DB;
-    border-radius: 8px;
-    font-size: 14px;
-    outline: none;
-    box-sizing: border-box;
-}
-
-.vitals-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-}
-
-.symptoms-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: #374151;
-    cursor: pointer;
-}
-
-.checkbox-item input {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.modal-footer {
-    padding: 16px 20px;
-    border-top: 1px solid #E5E7EB;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    background: #fff;
-}
-
-.btn-submit {
-    background: #D1D5DB;
-    color: white;
-    padding: 10px 30px;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: not-allowed;
-    flex-grow: 1;
-    transition: background 0.3s;
-}
-
-.btn-submit.active {
-    background: #2563EB;
-    cursor: pointer;
-}
-
-.btn-cancel {
-    background: white;
-    border: 1px solid #D1D5DB;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-option.group-header {
-    font-weight: bold;
-    color: #9CA3AF;
-    background-color: #F3F4F6;
-}
+        @media (max-width: 992px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .vitals-grid { grid-template-columns: repeat(2, 1fr); }
+            .detail-grid { grid-template-columns: repeat(2, 1fr); }
+            .symptoms-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -695,208 +583,166 @@ option.group-header {
     <x-sidebar />
 
     <div class="main">
+
+        <!-- ✅ TOP HEADER -->
         <div class="header">
-    <div>
-        <div style="font-size:14px; color:#374151;">Welcome back,</div>
-
-        @php
-            $user = Auth::user();
-
-            $displayRole = (
-                strtolower($user->role) === 'doctor' &&
-                $user->is_physician_in_charge == 1
-            ) ? 'PIC' : strtoupper($role);
-
-            $badgeClass = strtolower($user->role);
-        @endphp
-
-        <div class="welcome-name">
-            {{ $userName }}
-
-            <span class="role-badge bg-{{ $badgeClass }}">
-                {{ $displayRole }}
-            </span>
-        </div>
-    </div>
-
-    <div style="text-align: right; font-size: 12px; color: #374151;">
-        <b>Velasquez Health Center</b><br>
-        {{ date('F d, Y | h:i A') }}
-    </div>
-</div>
-
-        <div class="header-divider"></div>
-
-        <div class="top-bar">
             <div>
-                <div class="page-title">Patient Triage</div>
-                <div class="page-subtitle">Auto-sorted by risk level for priority care</div>
-            </div>
-            @if(in_array(strtolower($role), ['bhw', 'nurse', 'admin']))
-                <button class="add-btn" onclick="toggleModal(true)">Add Patient to Queue</button>
-            @endif
-        </div>
-
-        @if(($highRiskCount ?? 0) > 0)
-            <div class="triage-alert-banner emergency">
-                <div class="alert-icon-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                        <line x1="12" y1="9" x2="12" y2="13"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                </div>
-                <div class="alert-content">
-                    <span class="alert-badge">EMERGENCY NOTICE:</span>
-                    <span class="alert-text">
-                        There are currently <b>{{ $highRiskCount }}</b> High-Risk case(s) waiting in the queue. Please pause routine check-ins if necessary to attend to these critical records immediately.
+                <div class="welcome-text">Welcome back,</div>
+                <div class="welcome-name">
+                    {{ $userName }}
+                    @php
+                        $displayRole = ($isDoctor && $isPIC) ? 'PIC' : strtoupper($role);
+                        $badgeClass = $role;
+                    @endphp
+                    <span class="role-badge bg-{{ $badgeClass }}">
+                        {{ $displayRole }}
                     </span>
                 </div>
             </div>
+            <div style="text-align: right; font-size: 12px; color: #374151;">
+                <b>Velasquez Health Center</b><br>
+                {{ date('F d, Y | h:i A') }}
+            </div>
+        </div>
+
+        <div class="header-divider"></div>
+
+        <!-- ✅ PAGE TOP -->
+        <div class="page-top">
+            <div class="page-title">
+                <h2>Patient Triage</h2>
+                <p>Auto-sorted by risk level for priority care</p>
+            </div>
+            @if(in_array($role, ['bhw', 'nurse', 'admin']))
+                <button class="btn-primary" onclick="toggleModal(true)">+ Add Patient to Queue</button>
+            @endif
+        </div>
+
+        <!-- ✅ EMERGENCY ALERT BANNER -->
+        @if(($highRiskCount ?? 0) > 0)
+        <div class="alert-banner">
+            <div class="alert-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <div class="alert-content">
+                <strong>EMERGENCY NOTICE:</strong> There are currently <b>{{ $highRiskCount }}</b> High-Risk case(s) waiting in the queue. Please attend to these immediately.
+            </div>
+        </div>
         @endif
 
-
-        <div class="kpi-row">
-            
-            <div class="kpi kpi-grey" onclick="filterTriage('all')">
-                <div class="kpi-title">Total in Queue</div>
-                <div class="kpi-number">{{$totalQueueCount}}</div>
+        <!-- ✅ KPI CARDS -->
+        <div class="kpi-grid">
+            <div class="kpi-card card-total" onclick="filterTriage('all')" id="kpi-all">
+                <h4>Total in Queue</h4>
+                <div class="val">{{ $totalQueueCount ?? 0 }}</div>
             </div>
-            <div class="kpi kpi-red" onclick="filterTriage('high')">
-                <div class="kpi-title">High Risk</div>
-                <div class="kpi-number">{{$highRiskCount}}</div>
+            <div class="kpi-card card-high" onclick="filterTriage('high')" id="kpi-high">
+                <h4>High Risk</h4>
+                <div class="val">{{ $highRiskCount ?? 0 }}</div>
             </div>
-
-            <div class="kpi kpi-yellow" onclick="filterTriage('medium')">
-                <div class="kpi-title">Medium Risk</div>
-                <div class="kpi-number">{{$mediumRiskCount}}</div>
+            <div class="kpi-card card-medium" onclick="filterTriage('medium')" id="kpi-medium">
+                <h4>Medium Risk</h4>
+                <div class="val">{{ $mediumRiskCount ?? 0 }}</div>
             </div>
-            <div class="kpi kpi-green" onclick="filterTriage('low')">
-                <div class="kpi-title">Low Risk</div>
-                <div class="kpi-number">{{$lowRiskCount}}</div>
+            <div class="kpi-card card-low" onclick="filterTriage('low')" id="kpi-low">
+                <h4>Low Risk</h4>
+                <div class="val">{{ $lowRiskCount ?? 0 }}</div>
             </div>
         </div>
 
-        <div class="queue-card">
-<table class="triage-table">
-    <colgroup>
-        <col style="width: 6%;">   <col style="width: 26%;">  <col style="width: 25%;">  <col style="width: 15%;">  <col style="width: 28%;">  </colgroup>
-    
-    <thead>
-        <tr>
-            <th class="text-left pad-left">Queue</th>
-            <th class="text-left">Patient Name</th>
-            <th class="text-left">Reason / Service</th>
-            <th class="text-center">Risk Level</th>
-            <th class="text-right pad-right">Action</th>
-        </tr>
-    </thead>
-    
-<tbody>
-    @forelse($triageRecords as $index => $record)
-        <tr data-risk="{{ strtolower($record->risk_level) }}">
-            <td class="font-bold pad-left">#{{ $index + 1 }}</td>
-            <td class="font-medium">
-                {{ $record->patient ? ($record->patient->first_name . ' ' . $record->patient->last_name) : 'Unknown Patient' }}
-            </td>
-            <td class="text-muted">{{ $record->service_type ?? 'General Checkup' }}</td>
-            <td class="text-center">
-                @if(strtolower($record->risk_level) == 'high')
-                    <span class="pill high">High Risk</span>
-                @elseif(strtolower($record->risk_level) == 'medium')
-                    <span class="pill medium">Medium Risk</span>
-                @else
-                    <span class="pill low">Low Risk</span>
-                @endif
-            </td>
-<td class="text-right pad-right" style="white-space: nowrap; vertical-align: middle;">
-            <div style="display: inline-flex; gap: 8px; justify-content: flex-end; align-items: center; width: 100%;">
-                
-                {{-- ✅ VIEW BUTTON: SIGURADONG TAMA ANG DATA --}}
-                <button type="button" class="btn-action" 
-                        onclick="openTriageModal(this)"
-                        data-patient='@json($record->patient)' 
-                        data-record='@json($record)'>
-                    View
-                </button>
+        <!-- ✅ QUEUE TABLE — FULLY FIXED -->
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 8%;">#</th>
+                        <th style="width: 27%;">Patient Name</th>
+                        <th style="width: 25%;">Reason / Service</th>
+                        <th style="width: 15%; text-align: center;">Risk Level</th>
+                        <th style="width: 25%; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="queueTableBody">
+                    @forelse($triageRecords ?? [] as $index => $record)
+                    <tr data-risk="{{ strtolower($record->risk_level ?? 'low') }}" data-status="{{ strtolower($record->status ?? 'waiting') }}">
+                        <td class="font-bold">#{{ $index + 1 }}</td>
+                        <td>
+                            {{ $record->patient ? ($record->patient->first_name . ' ' . $record->patient->last_name) : 'Unknown Patient' }}
+                        </td>
+                        <td class="text-muted">{{ $record->service_type ?? 'General Checkup' }}</td>
+                        <td class="text-center">
+                            @php $risk = strtolower($record->risk_level ?? 'low'); @endphp
+                            <span class="pill {{ $risk }}">{{ ucfirst($risk) }} Risk</span>
+                        </td>
+                        <td class="text-right">
+                            <button class="btn-sm btn-view"
+                                    data-patient='@json($record->patient)'
+                                    data-record='@json($record)'
+                                    onclick="openTriageModal(this)">View</button>
 
-                {{-- ✅ DOCTOR ONLY: TAMA NA DALOY NG STATUS --}}
-                @if(strtolower(auth()->user()->role) === 'doctor')
-                    @php 
-                        $status = strtolower(trim($record->status ?? 'waiting')); 
-                    @endphp
-                    
-                    {{-- ✅ STEP 1: KUNG WAITING O WALANG LAMAN --}}
-                    @if($status === 'waiting' || empty($status))
-                        <button type="button" class="btn-action" style="background-color: #10B981; color: white; border: none; padding: 6px 12px; border-radius: 4px;" 
-                                onclick="updateQueueStatus({{ $record->id }}, 'Called')">
-                            Call Patient
-                        </button>
-                    {{-- ✅ STEP 2: KUNG TINAWAG NA --}}
-                    @elseif($status === 'called')
-                        <button type="button" class="btn-action" style="background-color: #F59E0B; color: white; border: none; padding: 6px 12px; border-radius: 4px;" 
-                                onclick="updateQueueStatus({{ $record->id }}, 'In Session')">
-                            Start Session
-                        </button>
-                    {{-- ✅ STEP 3: KUNG NAGKONSULTA NA --}}
-                    @elseif($status === 'in session')
-                        <button type="button" class="btn-action" style="background-color: #EF4444; color: white; border: none; padding: 6px 12px; border-radius: 4px;" 
-                                onclick="updateQueueStatus({{ $record->id }}, 'Done')">
-                            Done
-                        </button>
-                    @endif
-                @endif
-
-            </div>
-        </td>        
-    </tr>
-    @empty
-        <tr>
-            <td colspan="5" class="empty-state">Queue is currently empty.</td>
-        </tr>
-    @endforelse
-</tbody>
-</table>
-
-            </div>
+                            {{-- ✅ FULLY FIXED: SHOW BUTTONS FOR DOCTOR AND PIC --}}
+                            @if($canCallPatient)
+                                @php $status = strtolower(trim($record->status ?? 'waiting')); @endphp
+                                @if($status === 'waiting' || empty($status))
+                                    <button class="btn-sm btn-call" onclick="updateQueueStatus({{ $record->id }}, 'Called')">Call Patient</button>
+                                @elseif($status === 'called')
+                                    <button class="btn-sm btn-session" onclick="updateQueueStatus({{ $record->id }}, 'In Session')">Start Session</button>
+                                @elseif($status === 'in session')
+                                    <button class="btn-sm btn-done" onclick="updateQueueStatus({{ $record->id }}, 'Done')">Done</button>
+                                @endif
+                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="empty-row">Queue is currently empty.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+
     </div>
+</div>
 
+<!-- ✅ ADD TO QUEUE MODAL -->
 <div class="modal-overlay" id="addQueueModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 style="margin:0; font-size: 16px;">Add Patient to Queue</h3>
-            <span style="cursor:pointer; font-size: 20px; color: #9CA3AF;" onclick="toggleModal(false)">&times;</span>
+            <h3>Add Patient to Queue</h3>
+            <button class="close-btn" onclick="toggleModal(false)">&times;</button>
         </div>
 
         <div class="modal-body" id="searchStep">
-            <div style="font-weight:600; font-size: 14px; margin-bottom: 12px; color: #374151;">Patient Selection</div>
-            <div class="search-container">
+            <div style="font-weight:600; font-size:14px; margin-bottom:12px;">Patient Selection</div>
+            <div class="search-box">
                 <img src="/icons/search.png" class="search-icon" alt="search">
                 <input type="text" class="search-input" id="patientSearch" placeholder="Search by name and press Enter...">
             </div>
             <div id="searchResults"></div>
-            <div class="divider-text">OR</div>
-            <div class="reg-btn-container">
-                <a href="/{{ $role }}/patient-registration" class="reg-btn">Register New Patient</a>
-            </div>
+            <div class="divider">OR</div>
+            <a href="/{{ $role }}/patient-registration" class="reg-link">Register New Patient</a>
         </div>
 
-        <form id="assessmentForm" method="POST" action="{{ route('triage.storeQueue') }}">            
+        <form id="assessmentForm" method="POST" action="{{ route('triage.storeQueue') }}">
             @csrf
             <input type="hidden" name="patient_id" id="selectedPatientId">
+
             <div class="modal-body" id="assessmentStep" style="display: none;">
-                <div style="font-weight:600; font-size: 14px; margin-bottom: 12px; color: #374151;">Patient Selection</div>
                 <div class="selected-patient-box">
                     <div>
-                        <div id="dispName" style="font-weight: bold; color: #1E3A8A;"></div>
-                        <div id="dispMeta" style="font-size: 12px; color: #64748B;"></div>
+                        <div class="name" id="dispName"></div>
+                        <div class="meta" id="dispMeta"></div>
                     </div>
-                    <a href="javascript:void(0)" onclick="goBackToSearch()" style="color: #2563EB; font-size: 13px; font-weight: bold; text-decoration: none;">Change</a>
+                    <a href="javascript:void(0)" onclick="goBackToSearch()" class="change-link">Change</a>
                 </div>
 
-                <div class="assessment-section-title">Initial Assessment</div>
-                
+                <div class="form-section-title">Initial Assessment</div>
+
                 <div class="form-group">
                     <label class="form-label">Service Type</label>
                     <select class="form-select" name="service_type" id="serviceType" required>
@@ -909,10 +755,10 @@ option.group-header {
                         <option value="ECG">ECG</option>
                         <option value="Ultrasound">Ultrasound</option>
                         <option value="Dental">Dental</option>
-                        <option class="group-header" disabled>Laboratory</option>
-                        <option value="Blood Extraction">&nbsp;&nbsp;&nbsp;— Blood extraction</option>
-                        <option value="Sputum Exam">&nbsp;&nbsp;&nbsp;— Sputum Exam</option>
-                        <option value="Tuberculosis Program">&nbsp;&nbsp;&nbsp;— Tuberculosis program</option>
+                        <option disabled>—— Laboratory ——</option>
+                        <option value="Blood Extraction">— Blood Extraction</option>
+                        <option value="Sputum Exam">— Sputum Exam</option>
+                        <option value="Tuberculosis Program">— Tuberculosis Program</option>
                         <option value="Counseling Adolescent">Counseling Adolescent</option>
                     </select>
                 </div>
@@ -936,7 +782,7 @@ option.group-header {
                     </div>
                 </div>
 
-                <div class="form-label" style="margin-top: 10px;">Symptoms</div>
+                <div class="form-label" style="margin-top:10px;">Symptoms</div>
                 <div class="symptoms-grid">
                     <label class="checkbox-item"><input type="checkbox" name="symptoms[]" value="Fever"> Fever</label>
                     <label class="checkbox-item"><input type="checkbox" name="symptoms[]" value="Cough"> Cough</label>
@@ -948,42 +794,40 @@ option.group-header {
             </div>
 
             <div class="modal-footer" id="assessmentFooter" style="display: none;">
-            <button type="submit" class="btn-submit" id="submitBtn" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;" disabled>Add to Queue</button>                <button type="button" class="btn-cancel" onclick="toggleModal(false)">Cancel</button>
+                <button type="button" class="btn-cancel" onclick="toggleModal(false)">Cancel</button>
+                <button type="submit" class="btn-submit" id="submitBtn" disabled>Add to Queue</button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- ✅ VIEW DETAILS MODAL -->
 <div class="modal-overlay" id="viewTriageModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 style="margin:0; font-size: 16px;">Triage Assessment Details</h3>
-            <span style="cursor:pointer; font-size: 20px; color: #9CA3AF;" onclick="closeTriageModal()">&times;</span>
+            <h3>Triage Assessment Details</h3>
+            <button class="close-btn" onclick="closeTriageModal()">&times;</button>
         </div>
-        
         <div class="modal-body">
-            <div class="selected-patient-box" style="margin-bottom: 20px;">
+            <div class="selected-patient-box" style="margin-bottom:20px;">
                 <div>
-                    <div id="vtName" style="font-weight: bold; color: #1E3A8A; font-size: 16px;">---</div>
-                    <div id="vtMeta" style="font-size: 12px; color: #64748B; margin-top: 4px;">---</div>
+                    <div class="name" id="vtName">—</div>
+                    <div class="meta" id="vtMeta">—</div>
                 </div>
-                <span id="vtRisk" class="pill low">Low Risk</span>
+                <span id="vtRiskBadge" class="pill low">Low Risk</span>
             </div>
 
-            <div style="font-size: 13px; font-weight: bold; color: #374151; margin-bottom: 8px;">Vital Signs & Measurements</div>
-            <div class="vitals-grid" style="margin-bottom: 20px; background: #F9FAFB; padding: 15px; border-radius: 8px; border: 1px solid #E5E7EB;">
-                <div><span style="font-size: 11px; color: #6B7280; font-weight: bold;">REASON</span><div id="vtReason" style="font-size: 14px; font-weight: 500; color: #111827;">---</div></div>
-                <div><span style="font-size: 11px; color: #6B7280; font-weight: bold;">TEMP</span><div id="vtTemp" style="font-size: 14px; font-weight: 500; color: #111827;">---</div></div>
-                <div><span style="font-size: 11px; color: #6B7280; font-weight: bold;">BP</span><div id="vtBp" style="font-size: 14px; font-weight: 500; color: #111827;">---</div></div>
-                <div><span style="font-size: 11px; color: #6B7280; font-weight: bold;">WEIGHT/HEIGHT</span><div id="vtWtHt" style="font-size: 14px; font-weight: 500; color: #111827;">---</div></div>
+            <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Vital Signs & Measurements</div>
+            <div class="detail-grid">
+                <div class="detail-item"><div class="label">Reason</div><div class="value" id="vtReason">—</div></div>
+                <div class="detail-item"><div class="label">Temperature</div><div class="value" id="vtTemp">—</div></div>
+                <div class="detail-item"><div class="label">BP</div><div class="value" id="vtBp">—</div></div>
+                <div class="detail-item"><div class="label">Weight / Height</div><div class="value" id="vtWtHt">—</div></div>
             </div>
 
-            <div style="font-size: 13px; font-weight: bold; color: #374151; margin-bottom: 8px;">Reported Symptoms</div>
-            <div id="vtSymptoms" style="background: white; border: 1px solid #D1D5DB; padding: 12px; border-radius: 8px; font-size: 13px; color: #4B5563; min-height: 40px; margin-bottom: 10px;">
-                ---
-            </div>
+            <div style="font-size:13px; font-weight:600; color:#374151; margin:16px 0 8px;">Reported Symptoms</div>
+            <div class="symptoms-box" id="vtSymptoms">No symptoms recorded.</div>
         </div>
-
         <div class="modal-footer">
             <button type="button" class="btn-cancel" onclick="closeTriageModal()">Close</button>
         </div>
@@ -991,19 +835,17 @@ option.group-header {
 </div>
 
 <script>
-    // --- MODAL FUNCTIONS ---
+    // ========== MODAL CONTROLS ==========
     function toggleModal(show) {
-        const m = document.getElementById('addQueueModal');
-        if(m) m.style.display = show ? 'flex' : 'none';
+        document.getElementById('addQueueModal').style.display = show ? 'flex' : 'none';
+        if (!show) resetForm();
     }
 
-    function goBackToSearch() {
+    function resetForm() {
         document.getElementById('searchStep').style.display = 'block';
         document.getElementById('assessmentStep').style.display = 'none';
         document.getElementById('assessmentFooter').style.display = 'none';
         document.getElementById('searchResults').innerHTML = '';
-        
-        // Reset form
         document.getElementById('patientSearch').value = '';
         document.getElementById('serviceType').value = '';
         document.getElementById('temp').value = '';
@@ -1011,167 +853,216 @@ option.group-header {
         document.getElementById('weight').value = '';
         document.getElementById('height').value = '';
         document.querySelectorAll('input[name="symptoms[]"]').forEach(cb => cb.checked = false);
-        
-        // Reset button
-        const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.style.opacity = "0.5";
-        btn.style.cursor = "not-allowed";
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').classList.remove('active');
     }
 
-    // View Modal
+    function goBackToSearch() {
+        resetForm();
+    }
+
+    // ========== VIEW DETAILS MODAL ==========
     function openTriageModal(btn) {
         const p = JSON.parse(btn.dataset.patient);
         const r = JSON.parse(btn.dataset.record);
+        const risk = (r.risk_level ?? 'Low').toLowerCase();
 
-        document.getElementById('vtName').innerText = `${p.first_name||''} ${p.last_name||''}`.trim() || 'Unknown';
-        document.getElementById('vtMeta').innerText = `ID: ${p.patient_id||'---'} | Age: ${p.age||'---'} | ${p.barangay||'---'}`;
-        document.getElementById('vtRisk').innerText = `${r.risk_level||'Low'} Risk`;
-        document.getElementById('vtRisk').className = 'pill ' + (r.risk_level||'low').toLowerCase();
-        document.getElementById('vtReason').innerText = r.service_type||'Consultation';
-        
-        document.getElementById('vtTemp').innerText = r.temp ? r.temp + ' °C' : '---';
-        document.getElementById('vtBp').innerText = r.bp || '---';
-        document.getElementById('vtWtHt').innerText = `${r.weight||'---'} kg / ${r.height||'---'} cm`;
-        document.getElementById('vtSymptoms').innerText = r.symptoms||'No symptoms recorded.';
+        document.getElementById('vtName').innerText = `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown Patient';
+        document.getElementById('vtMeta').innerText = `ID: ${p.patient_id || '—'} | Age: ${p.age || '—'} | ${p.barangay || '—'}`;
+        document.getElementById('vtRiskBadge').innerText = `${risk.charAt(0).toUpperCase() + risk.slice(1)} Risk`;
+        document.getElementById('vtRiskBadge').className = `pill ${risk}`;
+        document.getElementById('vtReason').innerText = r.service_type ?? 'Consultation';
+        document.getElementById('vtTemp').innerText = r.temp ? `${r.temp} °C` : '—';
+        document.getElementById('vtBp').innerText = r.bp ?? '—';
+        document.getElementById('vtWtHt').innerText = `${r.weight ?? '—'} kg / ${r.height ?? '—'} cm`;
+        document.getElementById('vtSymptoms').innerText = r.symptoms ? r.symptoms : 'No symptoms recorded.';
 
         document.getElementById('viewTriageModal').style.display = 'flex';
     }
+
     function closeTriageModal() {
         document.getElementById('viewTriageModal').style.display = 'none';
     }
 
-    // Update Status
+    // ========== UPDATE QUEUE STATUS ==========
     function updateQueueStatus(id, status) {
         const token = document.querySelector('meta[name="csrf-token"]').content;
         fetch(`/triage/update-status/${id}`, {
             method: 'POST',
-            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':token},
-            body: JSON.stringify({status:status})
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+            body: JSON.stringify({ status: status })
         })
         .then(res => res.json())
         .then(d => {
-            if(d.success) window.location.reload();
-            else alert('Error: '+d.message);
+            if (d.success) window.location.reload();
+            else alert('Error: ' + (d.message ?? 'Unknown error'));
         });
     }
 
-    // Search Function
+    // ========== PATIENT SEARCH ==========
     const searchInput = document.getElementById('patientSearch');
-    if(searchInput){
-        searchInput.addEventListener('keypress', e=>{
-            if(e.key==='Enter'){
+    if (searchInput) {
+        searchInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
                 e.preventDefault();
                 const q = e.target.value.trim();
-                if(q.length<2)return;
+                if (q.length < 2) return;
+
                 fetch(`/patients/search?q=${encodeURIComponent(q)}`)
-                .then(res=>res.json())
-                .then(data=>{
-                    const c = document.getElementById('searchResults');
-                    c.innerHTML='';
-                    if(!data.length){c.innerHTML='<div style="padding:1rem; color:#666;">No results found</div>';return;}
-                    data.forEach(p=>{
-                        const d=document.createElement('div');
-                        d.style.padding='.75rem';
-                        d.style.borderBottom='1px solid #eee';
-                        d.style.cursor='pointer';
-                        d.innerHTML=`<strong>${p.first_name} ${p.last_name}</strong><br>ID: ${p.patient_id} | Age: ${p.age} | ${p.barangay}`;
-                        d.onclick=()=>{
-                            document.getElementById('searchStep').style.display='none';
-                            document.getElementById('assessmentStep').style.display='block';
-                            document.getElementById('assessmentFooter').style.display='flex';
-                            document.getElementById('selectedPatientId').value=p.id;
-                            document.getElementById('dispName').innerText=`${p.first_name} ${p.last_name}`;
-                            document.getElementById('dispMeta').innerText=`ID: ${p.patient_id} | Age: ${p.age} | ${p.barangay}`;
-                            
-                            // ✅ CHECK IMMEDIATELY AFTER SELECT
-                            checkFormCompletion();
-                        };
-                        c.appendChild(d);
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('searchResults');
+                    container.innerHTML = '';
+
+                    if (!data.length) {
+                        container.innerHTML = '<div style="padding:16px; color:#6B7280; text-align:center;">No patients found</div>';
+                        return;
+                    }
+
+                    data.forEach(patient => {
+                        const card = document.createElement('div');
+                        card.className = 'patient-result';
+                        card.innerHTML = `
+                            <div class="patient-name">${patient.first_name} ${patient.last_name}</div>
+                            <div class="patient-meta">ID: ${patient.patient_id} | Age: ${patient.age} | ${patient.barangay || '—'}</div>
+                        `;
+                        card.onclick = () => selectPatient(patient);
+                        container.appendChild(card);
                     });
                 });
             }
         });
     }
 
-    // ✅ FORM CHECKER - THE MOST IMPORTANT PART
-    function checkFormCompletion() {
-    const patientId = document.getElementById('selectedPatientId').value.trim();
-    const service = document.getElementById('serviceType').value.trim();
-
-    const submitBtn = document.getElementById('submitBtn');
-
-    // Patient and service type are required to add to queue
-    if (patientId && service) {
-
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = "1";
-        submitBtn.style.cursor = "pointer";
-        submitBtn.style.pointerEvents = "auto";
-        submitBtn.classList.add('active');
-
-    } else {
-
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = "0.5";
-        submitBtn.style.cursor = "not-allowed";
-        submitBtn.style.pointerEvents = "none";
-        submitBtn.classList.remove('active');
-
+    function selectPatient(p) {
+        document.getElementById('searchStep').style.display = 'none';
+        document.getElementById('assessmentStep').style.display = 'block';
+        document.getElementById('assessmentFooter').style.display = 'flex';
+        document.getElementById('selectedPatientId').value = p.id;
+        document.getElementById('dispName').innerText = `${p.first_name} ${p.last_name}`;
+        document.getElementById('dispMeta').innerText = `ID: ${p.patient_id} | Age: ${p.age} | ${p.barangay || '—'}`;
+        checkFormCompletion();
     }
-}
 
-    // ✅ ATTACH CHECKER TO ALL INPUTS
-    document.addEventListener('DOMContentLoaded', function() {
+    // ========== FORM VALIDATION ==========
+    function checkFormCompletion() {
+        const hasPatient = document.getElementById('selectedPatientId').value.trim() !== '';
+        const hasService = document.getElementById('serviceType').value.trim() !== '';
+        const submitBtn = document.getElementById('submitBtn');
+
+        if (hasPatient && hasService) {
+            submitBtn.disabled = false;
+            submitBtn.classList.add('active');
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.classList.remove('active');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('serviceType').addEventListener('change', checkFormCompletion);
-        document.getElementById('temp').addEventListener('input', checkFormCompletion);
-        document.getElementById('bp').addEventListener('input', checkFormCompletion);
-        document.getElementById('weight').addEventListener('input', checkFormCompletion);
-        document.getElementById('height').addEventListener('input', checkFormCompletion);
-        
+        ['temp', 'bp', 'weight', 'height'].forEach(id => {
+            document.getElementById(id).addEventListener('input', checkFormCompletion);
+        });
         document.querySelectorAll('input[name="symptoms[]"]').forEach(cb => {
             cb.addEventListener('change', checkFormCompletion);
         });
     });
 
-    // Filter
-    function filterTriage(risk){
-        document.querySelectorAll('tbody tr').forEach(row=>{
-            const r = row.dataset.risk;
-            const s = row.dataset.status;
-            if(s==='done'||s==='consulted'){row.style.display='none';return;}
-            row.style.display = (risk==='all'||r===risk) ? '' : 'none';
+    // ========== FILTER TABLE BY RISK ==========
+    function filterTriage(risk) {
+        document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('active'));
+        document.getElementById(`kpi-${risk}`)?.classList.add('active');
+
+        document.querySelectorAll('#queueTableBody tr').forEach(row => {
+            const rowRisk = row.dataset.risk;
+            const rowStatus = row.dataset.status;
+            if (rowStatus === 'done' || rowStatus === 'consulted') {
+                row.style.display = 'none';
+                return;
+            }
+            row.style.display = (risk === 'all' || rowRisk === risk) ? '' : 'none';
         });
     }
 
-    // Live Update (BHW/NURSE)
-    @if(strtolower(auth()->user()->role) !== 'doctor')
-    setInterval(()=>{
+    // ========== LIVE QUEUE UPDATE — ✅ FIXED: ONLY BHW/NURSE GET ALERTS ==========
+    @if(!$canCallPatient)
+    setInterval(() => {
         fetch('/triage/live-data')
-        .then(res=>res.json())
-        .then(d=>{
-            const tb = document.querySelector('.triage-table tbody');
-            if(tb && d.html){
-                tb.innerHTML = d.html;
-                tb.querySelectorAll('.btn-action').forEach(btn=>{
-                    if(btn.innerText.includes('Call')||btn.innerText.includes('Start')||btn.innerText.includes('Done')) btn.style.display='none';
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('queueTableBody');
+            if (tbody && data.html) {
+                tbody.innerHTML = data.html;
+                tbody.querySelectorAll('.btn-call, .btn-session, .btn-done').forEach(btn => {
+                    btn.style.display = 'none';
                 });
             }
-            if(d.active_call && localStorage.getItem('last_call') != d.call_id){
-                localStorage.setItem('last_call', d.call_id);
-                const n = document.createElement('div');
-                n.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:1rem 1.5rem;border-radius:6px;z-index:9999;';
-                n.innerHTML=`<strong>🔊 NOW CALLING</strong><br>${d.patient_name}`;
-                document.body.appendChild(n);
-                setTimeout(()=>n.remove(),5000);
-                if('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance(`Patient ${d.patient_name} is now being called`));
+            if (data.active_call && localStorage.getItem('last_call') !== data.call_id) {
+                localStorage.setItem('last_call', data.call_id);
+                const notice = Object.assign(document.createElement('div'), {
+                    style: 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1F2937; color:#fff; padding:12px 20px; border-radius:8px; z-index:9999; font-size:14px;',
+                    innerHTML: `<strong>🔊 NOW CALLING</strong><br>${data.patient_name}`
+                });
+                document.body.appendChild(notice);
+                setTimeout(() => notice.remove(), 5000);
+                if ('speechSynthesis' in window) {
+                    speechSynthesis.speak(new SpeechSynthesisUtterance(`Patient ${data.patient_name}, please proceed.`));
+                }
             }
         });
     }, 3000);
     @endif
 
-    // Close on Escape
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTriageModal();toggleModal(false);}});
+    // ESC KEY TO CLOSE
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            toggleModal(false);
+            closeTriageModal();
+        }
+    });
+
 </script>
+<script>
+let lastCallId = 0;
+
+// Check for called patient every 3 seconds
+function checkActiveCall() {
+    fetch("{{ route('triage.liveData') }}")
+        .then(response => response.json())
+        .then(data => {
+            // ⚠️ NEW CALL DETECTED
+            if (data.active_call && data.call_id !== lastCallId) {
+                lastCallId = data.call_id;
+
+                // 🔔 SHOW ALERT
+                alert('📢 NOW CALLING: ' + data.patient_name + ' — Please proceed!');
+
+                // Optional: Browser notification
+                if (Notification.permission === "granted") {
+                    new Notification("📢 PATIENT BEING CALLED", {
+                        body: data.patient_name,
+                        icon: "/favicon.ico"
+                    });
+                }
+            }
+
+            // Reset when call ends
+            if (!data.active_call) {
+                lastCallId = 0;
+            }
+        })
+        .catch(err => console.log('Live check error:', err));
+}
+
+// Request browser notification permission
+if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+
+// ✅ Start polling — runs for ALL users including BHW
+setInterval(checkActiveCall, 3000); // check every 3 seconds
+</script>
+
 </body>
 </html>
