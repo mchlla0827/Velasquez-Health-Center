@@ -25,6 +25,11 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
+
+        // ✅ Record when the user actually logged in so "Active/Offline" status works
+        $user->last_login_at = now();
+        $user->save();
+
         $this->setSessionData($user);
 
         return $this->redirectBasedOnRole($user);
