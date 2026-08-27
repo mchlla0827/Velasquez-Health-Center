@@ -15,6 +15,7 @@ use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\DispenseController;
+use App\Http\Controllers\ReportsController;
 
 
 /*
@@ -45,13 +46,13 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/patients/show/{id}', [PatientController::class, 'show']);
     Route::get('/patients/search', [PatientController::class, 'search']);
     
-    // ✅ FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
     Route::get('/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('patient.medicine.history');
 Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('nurse.patient.medicine.history');
 
 
     // ==================================================
-    // ✅ ADMIN ROUTES - FULL ACCESS
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ADMIN ROUTES - FULL ACCESS
     // ==================================================
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         
@@ -76,7 +77,24 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::put('/request/{id}', [RequestController::class, 'update'])->name('request.update');
         Route::delete('/request/{id}', [RequestController::class, 'destroy'])->name('request.destroy');
 
-        Route::get('/reports', fn() => view('admin.reports'))->name('reports');
+        Route::get('/reports', fn() => view('reports.landing'))->name('reports');
+        Route::get('/reports/patient', [ReportsController::class, 'patientCategory'])->name('reports.patient');
+        Route::get('/reports/patient/demographic', [ReportsController::class, 'patientDemographic'])->name('reports.patient.demographic');
+        Route::get('/reports/patient/registration', [ReportsController::class, 'patientRegistration'])->name('reports.patient.registration');
+        Route::get('/reports/risk', [ReportsController::class, 'risk'])->name('reports.risk');
+        Route::get('/reports/dispensing', [ReportsController::class, 'dispensing'])->name('reports.dispensing');
+        Route::get('/reports/medicine', [ReportsController::class, 'medicineCategory'])->name('reports.medicine');
+        Route::get('/reports/medicine/inventory-status', [ReportsController::class, 'medicineInventoryStatus'])->name('reports.medicine.inventory-status');
+        Route::get('/reports/medicine/stock-out', [ReportsController::class, 'stockOutReport'])->name('reports.medicine.stock-out');
+        Route::get('/reports/operational', [ReportsController::class, 'operationalCategory'])->name('reports.operational');
+        Route::get('/reports/operational/daily-service', [ReportsController::class, 'dailyServiceReport'])->name('reports.operational.daily-service');
+        Route::get('/reports/operational/morbidity', [ReportsController::class, 'morbidityReport'])->name('reports.operational.morbidity');
+        Route::get('/reports/operational/medicine-request', [ReportsController::class, 'medicineRequestReport'])->name('reports.operational.medicine-request');
+        Route::get('/reports/api/patient', [ReportsController::class, 'apiPatient'])->name('reports.api.patient');
+        Route::get('/reports/api/risk', [ReportsController::class, 'apiRisk'])->name('reports.api.risk');
+        Route::get('/reports/api/medicine', [ReportsController::class, 'apiMedicine'])->name('reports.api.medicine');
+        Route::get('/reports/api/dispensing', [ReportsController::class, 'apiDispensing'])->name('reports.api.dispensing');
+        Route::get('/reports/api/operational', [ReportsController::class, 'apiOperational'])->name('reports.api.operational');
         Route::get('/triage', [PatientController::class, 'triage'])->name('triage');
 
         Route::get('/inventory/index', [InventoryController::class, 'index'])->name('inventory.index');
@@ -115,17 +133,13 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
             ]);
         });
 
-        Route::get('/reports/patient-reports', fn() => view('admin.reports.patient-reports'))->name('reports.patient');
-        Route::get('/reports/risk', fn() => view('admin.reports.risk'))->name('reports.risk');
-        Route::get('/reports/dispensing', fn() => view('admin.reports.dispensing'))->name('reports.dispensing');
-        Route::get('/reports/medicine', fn() => view('admin.reports.medicine'))->name('reports.medicine');
-        Route::get('/reports/operational', fn() => view('admin.reports.operational'))->name('reports.operational');
+        
         Route::delete('/medicine/delete/{id}', [MedicineController::class, 'destroy'])->name('medicine.delete');
     });
 
 
     // ==================================================
-    // ✅ NURSE ROUTES
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ NURSE ROUTES
     // ==================================================
     Route::middleware(['role:nurse'])->prefix('nurse')->name('nurse.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -135,15 +149,27 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
         Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
         Route::get('/triage', [PatientController::class, 'triage'])->name('triage');
-        Route::get('/reports', fn() => view('nurse.reports'))->name('reports');
+        Route::get('/reports', fn() => view('reports.landing'))->name('reports');
         Route::get('/patient-registration', [PatientController::class, 'create'])->name('patient-registration');
         Route::get('/patient-records', [PatientController::class, 'index'])->name('patient-records');
 
-        Route::get('/reports/patient-records', fn() => view('nurse.reports.patient-records'))->name('reports.patient-records');
-        Route::get('/reports/risk', fn() => view('nurse.reports.risk'))->name('reports.risk');
-        Route::get('/reports/medicine', fn() => view('nurse.reports.medicine'))->name('reports.medicine');
-        Route::get('/reports/dispensing', fn() => view('nurse.reports.dispensing'))->name('reports.dispensing');
-        Route::get('/reports/operational', fn() => view('nurse.reports.operational'))->name('reports.operational');
+        Route::get('/reports/patient', [ReportsController::class, 'patientCategory'])->name('reports.patient');
+        Route::get('/reports/patient/demographic', [ReportsController::class, 'patientDemographic'])->name('reports.patient.demographic');
+        Route::get('/reports/patient/registration', [ReportsController::class, 'patientRegistration'])->name('reports.patient.registration');
+        Route::get('/reports/risk', [ReportsController::class, 'risk'])->name('reports.risk');
+        Route::get('/reports/medicine', [ReportsController::class, 'medicineCategory'])->name('reports.medicine');
+        Route::get('/reports/medicine/inventory-status', [ReportsController::class, 'medicineInventoryStatus'])->name('reports.medicine.inventory-status');
+        Route::get('/reports/medicine/stock-out', [ReportsController::class, 'stockOutReport'])->name('reports.medicine.stock-out');
+        Route::get('/reports/dispensing', [ReportsController::class, 'dispensing'])->name('reports.dispensing');
+        Route::get('/reports/operational', [ReportsController::class, 'operationalCategory'])->name('reports.operational');
+        Route::get('/reports/operational/daily-service', [ReportsController::class, 'dailyServiceReport'])->name('reports.operational.daily-service');
+        Route::get('/reports/operational/morbidity', [ReportsController::class, 'morbidityReport'])->name('reports.operational.morbidity');
+        Route::get('/reports/operational/medicine-request', [ReportsController::class, 'medicineRequestReport'])->name('reports.operational.medicine-request');
+        Route::get('/reports/api/patient', [ReportsController::class, 'apiPatient'])->name('reports.api.patient');
+        Route::get('/reports/api/risk', [ReportsController::class, 'apiRisk'])->name('reports.api.risk');
+        Route::get('/reports/api/medicine', [ReportsController::class, 'apiMedicine'])->name('reports.api.medicine');
+        Route::get('/reports/api/dispensing', [ReportsController::class, 'apiDispensing'])->name('reports.api.dispensing');
+        Route::get('/reports/api/operational', [ReportsController::class, 'apiOperational'])->name('reports.api.operational');
 
         Route::get('/request', [RequestController::class, 'index'])->name('request');
         Route::post('/request/store', [RequestController::class, 'store'])->name('request.store');
@@ -152,7 +178,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
 
     // ==================================================
-    // ✅ DOCTOR ROUTES
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ DOCTOR ROUTES
     // ==================================================
     Route::middleware(['role:doctor'])->prefix('doctor')->name('doctor.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -162,16 +188,28 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
         Route::get('/request', [RequestController::class, 'index'])->name('request');
 
-        Route::get('/reports', fn() => view('doctor.reports'))->name('reports');
-        Route::get('/reports/patient-records', fn() => view('doctor.reports.patient-records'))->name('reports.patient-records');
-        Route::get('/reports/risk', fn() => view('doctor.reports.risk'))->name('reports.risk');
-        Route::get('/reports/medicine', fn() => view('doctor.reports.medicine'))->name('reports.medicine');
-        Route::get('/reports/dispensing', fn() => view('doctor.reports.dispensing'))->name('reports.dispensing');
-        Route::get('/reports/operational', fn() => view('doctor.reports.operational'))->name('reports.operational');
+        Route::get('/reports', fn() => view('reports.landing'))->name('reports');
+        Route::get('/reports/patient', [ReportsController::class, 'patientCategory'])->name('reports.patient');
+        Route::get('/reports/patient/demographic', [ReportsController::class, 'patientDemographic'])->name('reports.patient.demographic');
+        Route::get('/reports/patient/registration', [ReportsController::class, 'patientRegistration'])->name('reports.patient.registration');
+        Route::get('/reports/risk', [ReportsController::class, 'risk'])->name('reports.risk');
+        Route::get('/reports/medicine', [ReportsController::class, 'medicineCategory'])->name('reports.medicine');
+        Route::get('/reports/medicine/inventory-status', [ReportsController::class, 'medicineInventoryStatus'])->name('reports.medicine.inventory-status');
+        Route::get('/reports/medicine/stock-out', [ReportsController::class, 'stockOutReport'])->name('reports.medicine.stock-out');
+        Route::get('/reports/dispensing', [ReportsController::class, 'dispensing'])->name('reports.dispensing');
+        Route::get('/reports/operational', [ReportsController::class, 'operationalCategory'])->name('reports.operational');
+        Route::get('/reports/operational/daily-service', [ReportsController::class, 'dailyServiceReport'])->name('reports.operational.daily-service');
+        Route::get('/reports/operational/morbidity', [ReportsController::class, 'morbidityReport'])->name('reports.operational.morbidity');
+        Route::get('/reports/operational/medicine-request', [ReportsController::class, 'medicineRequestReport'])->name('reports.operational.medicine-request');
+        Route::get('/reports/api/patient', [ReportsController::class, 'apiPatient'])->name('reports.api.patient');
+        Route::get('/reports/api/risk', [ReportsController::class, 'apiRisk'])->name('reports.api.risk');
+        Route::get('/reports/api/medicine', [ReportsController::class, 'apiMedicine'])->name('reports.api.medicine');
+        Route::get('/reports/api/dispensing', [ReportsController::class, 'apiDispensing'])->name('reports.api.dispensing');
+        Route::get('/reports/api/operational', [ReportsController::class, 'apiOperational'])->name('reports.api.operational');
     });
 
     // ==================================================
-    // ✅ BHW ROUTES
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ BHW ROUTES
     // ==================================================
     Route::middleware(['role:bhw'])->prefix('bhw')->name('bhw.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -179,17 +217,24 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::get('/triage', [PatientController::class, 'triage'])->name('triage');
         Route::get('/patient-registration', [PatientController::class, 'create'])->name('patient-registration');
         Route::get('/patient-records', [PatientController::class, 'index'])->name('patient-records');
-        Route::get('/reports', fn() => view('bhw.reports'))->name('reports');
+        Route::get('/reports', fn() => view('reports.landing'))->name('reports');
 
-        Route::get('/reports/patient-records', fn() => view('bhw.reports.patient-records'))->name('reports.patient-records');
-        Route::get('/reports/risk', fn() => view('bhw.reports.risk'))->name('reports.risk');
-        Route::get('/reports/medicine', fn() => view('bhw.reports.medicine'))->name('reports.medicine');
-        Route::get('/reports/dispensing', fn() => view('bhw.reports.dispensing'))->name('reports.dispensing');
-        Route::get('/reports/operational', fn() => view('bhw.reports.operational'))->name('reports.operational');
+        Route::get('/reports/patient', [ReportsController::class, 'patientCategory'])->name('reports.patient');
+        Route::get('/reports/patient/demographic', [ReportsController::class, 'patientDemographic'])->name('reports.patient.demographic');
+        Route::get('/reports/patient/registration', [ReportsController::class, 'patientRegistration'])->name('reports.patient.registration');
+        Route::get('/reports/risk', [ReportsController::class, 'risk'])->name('reports.risk');
+        Route::get('/reports/medicine', [ReportsController::class, 'medicineCategory'])->name('reports.medicine');
+        Route::get('/reports/medicine/inventory-status', [ReportsController::class, 'medicineInventoryStatus'])->name('reports.medicine.inventory-status');
+        Route::get('/reports/medicine/stock-out', [ReportsController::class, 'stockOutReport'])->name('reports.medicine.stock-out');
+        Route::get('/reports/dispensing', [ReportsController::class, 'dispensing'])->name('reports.dispensing');
+        Route::get('/reports/operational', [ReportsController::class, 'operationalCategory'])->name('reports.operational');
+        Route::get('/reports/operational/daily-service', [ReportsController::class, 'dailyServiceReport'])->name('reports.operational.daily-service');
+        Route::get('/reports/operational/morbidity', [ReportsController::class, 'morbidityReport'])->name('reports.operational.morbidity');
+        Route::get('/reports/operational/medicine-request', [ReportsController::class, 'medicineRequestReport'])->name('reports.operational.medicine-request');
     });
 
     // ==================================================
-    // ✅ SHARED ROUTES (ANY LOGGED IN USER)
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ SHARED ROUTES (ANY LOGGED IN USER)
     // ==================================================
     Route::post('/patients/queue', [PatientController::class, 'addToQueue'])->name('patients.queue.store');
     Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('patients.edit');
@@ -202,28 +247,12 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     Route::get('/ai-forecast', [ForecastController::class, 'index'])->name('ai.forecast');
     Route::post('/patients/queue/store', [PatientController::class, 'storeQueue'])->name('triage.storeQueue');
 
-    // ✅ STANDARD URL: /triage/update-status/{id}
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ STANDARD URL: /triage/update-status/{id}
 Route::post('/triage/update-status/{id}', [PatientController::class, 'updateStatus'])->name('triage.update-status');
 Route::get('/triage/live-queue-data', [PatientController::class, 'getLiveQueueData'])->name('triage.liveData');
 
     Route::get('/patients/{id}/service-history', [PatientController::class, 'serviceHistory'])
     ->name('patients.service-history');
 
-    // Reports Main Page
-Route::get('/reports', [ReportsController::class, 'index'])->name('admin.reports');
-
-// Report Pages
-Route::get('/reports/patient', [ReportsController::class, 'patient'])->name('admin.reports.patient');
-Route::get('/reports/risk', [ReportsController::class, 'risk'])->name('admin.reports.risk');
-Route::get('/reports/medicine', [ReportsController::class, 'medicine'])->name('admin.reports.medicine');
-Route::get('/reports/dispensing', [ReportsController::class, 'dispensing'])->name('admin.reports.dispensing');
-Route::get('/reports/operational', [ReportsController::class, 'operational'])->name('admin.reports.operational');
-
-// API Counters
-Route::get('/reports/api/patient', [ReportsController::class, 'apiPatient'])->name('admin.reports.api.patient');
-Route::get('/reports/api/risk', [ReportsController::class, 'apiRisk'])->name('admin.reports.api.risk');
-Route::get('/reports/api/medicine', [ReportsController::class, 'apiMedicine'])->name('admin.reports.api.medicine');
-Route::get('/reports/api/dispensing', [ReportsController::class, 'apiDispensing'])->name('admin.reports.api.dispensing');
-Route::get('/reports/api/operational', [ReportsController::class, 'apiOperational'])->name('admin.reports.api.operational');
 
 });

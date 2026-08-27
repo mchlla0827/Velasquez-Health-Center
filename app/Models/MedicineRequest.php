@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MedicineRequest extends Model
 {
-    // ✅ GAMITIN NATIN ANG EXISTING TABLE MO
+    // âœ… GAMITIN NATIN ANG EXISTING TABLE MO
     protected $table = 'restock_requests';
 
     protected $fillable = [
@@ -28,19 +28,19 @@ class MedicineRequest extends Model
         'expiry',
     ];
 
-    // ✅ Koneksyon: Gamot
+    // âœ… Koneksyon: Gamot
     public function medicine(): BelongsTo
     {
         return $this->belongsTo(Medicine::class, 'medicine_id');
     }
 
-    // ✅ Koneksyon: Sino nag-request
+    // âœ… Koneksyon: Sino nag-request
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
 
-    // ✅ Koneksyon: Sino nag-approve
+    // âœ… Koneksyon: Sino nag-approve
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
