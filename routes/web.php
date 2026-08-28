@@ -50,6 +50,12 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('patient.medicine.history');
 Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('nurse.patient.medicine.history');
 
+    Route::get('/check-batch', function(Request $request) {
+        return response()->json(['exists' => \App\Models\Batch::where('batch_number', $request->batch_number)->exists()]);
+    })->name('check.batch');
+
+    Route::post('/stock-in', [StockController::class, 'storeIn'])->name('stock.in.store');
+
 
     // ==================================================
     // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ADMIN ROUTES - FULL ACCESS
@@ -105,12 +111,6 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::post('/inventory/send-lhd/{id}', [InventoryController::class, 'sendToLHD'])->name('restock.sendlhd');
 
         Route::post('/medicines/store', [MedicineController::class, 'store'])->name('medicines.store');
-        Route::get('/check-batch', function(Request $request) {
-            return response()->json(['exists' => \App\Models\Batch::where('batch_number', $request->batch_number)->exists()]);
-        })->name('check.batch');
-
-        Route::post('/stock-in', [StockController::class, 'storeIn'])->name('stock.in.store');
-
         Route::get('/patient-registration', [PatientController::class, 'create'])->name('patient-registration');
         Route::get('/patient-records', [PatientController::class, 'index'])->name('patient-records');
 

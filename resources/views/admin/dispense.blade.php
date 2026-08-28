@@ -4,7 +4,7 @@
 <link rel="icon" type="image/png" href="/bhclogo.jpg">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dispense Medicine | Admin</title>
+<title>Dispense Medicine | {{ ucfirst($role) }}</title>
 
 <style>
     body {
@@ -107,7 +107,7 @@
     .welcome-name { font-weight: bold; color: #1F2937; font-size: 18px; }
 
     .role {
-        background: #9333EA;
+        background: #10B981;
         color: white;
         padding: 3px 10px;
         border-radius: 20px;
@@ -115,6 +115,8 @@
         margin-left: 6px;
         text-transform: uppercase;
     }
+    .role-admin { background: #9333EA; }
+    .role-nurse { background: #10B981; }
 
     .right { text-align: right; font-size: 12px; color: #374151; }
 
@@ -153,9 +155,37 @@
 
     .filter-grid {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 16px;
     }
+    .filter-actions {
+        display: flex;
+        align-items: flex-end;
+    }
+    .clear-filters-btn {
+        width: 100%;
+        min-height: 42px;
+        padding: 10px 14px;
+        border: 1px solid #93C5FD;
+        border-radius: 8px;
+        background: #EFF6FF;
+        color: #1D4ED8;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .clear-filters-btn:hover {
+        background: #DBEAFE;
+        border-color: #60A5FA;
+        color: #1E40AF;
+    }
+    .clear-filters-btn:focus-visible {
+        outline: none;
+        border-color: #2563EB;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+    }
+    .clear-filters-btn:active { background: #BFDBFE; }
 
     /* ================= TABLE CARD ================= */
     .table-card {
@@ -376,8 +406,8 @@
         <div>
             <div class="welcome-text">Welcome back,</div>
             <div class="welcome-name">
-                {{ session('admin_name') }}
-                <span class="role">{{ session('admin_role') }}</span>
+                {{ $userName }}
+                <span class="role role-{{ strtolower($role) }}">{{ strtoupper($role) }}</span>
             </div>
         </div>
 
@@ -398,7 +428,7 @@
         </button>
     </div>
 
-    <!-- ADMIN FILTERS CARD -->
+    <!-- FILTERS CARD -->
 <div class="filter-card">
     <div class="filter-grid">
 
@@ -449,6 +479,10 @@
                     </option>
                 @endforeach
             </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="button" class="clear-filters-btn" id="clearFiltersBtn">Clear Filters</button>
         </div>
 
     </div>
@@ -850,6 +884,7 @@ const dateFilter = document.getElementById('dateFilter');
 const patientFilter = document.getElementById('patientFilter');
 const medicineFilter = document.getElementById('medicineFilter');
 const staffFilter = document.getElementById('staffFilter');
+const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
 const dispensingRows = document.querySelectorAll('.dispensing-row');
 
@@ -900,6 +935,14 @@ dateFilter.addEventListener('change', filterRecords);
 patientFilter.addEventListener('change', filterRecords);
 medicineFilter.addEventListener('change', filterRecords);
 staffFilter.addEventListener('change', filterRecords);
+clearFiltersBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    dateFilter.value = '';
+    patientFilter.value = '';
+    medicineFilter.value = '';
+    staffFilter.value = '';
+    filterRecords();
+});
 
     checkReady();
 

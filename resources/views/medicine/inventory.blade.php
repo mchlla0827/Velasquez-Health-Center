@@ -202,6 +202,7 @@ $canDelete = ($role === 'admin');
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
+        gap: 20px;
     }
 
     .page-subtitle {
@@ -213,11 +214,17 @@ $canDelete = ($role === 'admin');
     .add-btn {
         background: #2563EB;
         color: white;
-        padding: 10px 14px;
+        padding: 11px 16px;
         border: none;
         border-radius: 8px;
         cursor: pointer;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+        transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     }
+    .add-btn:hover { background: #1D4ED8; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(37, 99, 235, 0.22); }
+    .add-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.2); outline-offset: 2px; }
 
 /* KPI Grid Wrapper */
 .kpi-row {
@@ -231,14 +238,12 @@ $canDelete = ($role === 'admin');
 
 /* Base Card Styling — matches the glass style */
 .kpi {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 22px 24px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: white;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -297,8 +302,14 @@ $canDelete = ($role === 'admin');
 }
 .kpi-orange .kpi-title { color: #2563EB; }
 .kpi-orange .kpi-number { color: #1E40AF; }
+.kpi-expiry { cursor: pointer; }
 
 .kpi:active {
+    transform: translateY(-2px);
+}
+.kpi:hover, .kpi:focus-visible {
+    border-color: #93C5FD;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
     transform: translateY(-2px);
 }
 
@@ -445,6 +456,7 @@ $canDelete = ($role === 'admin');
         display: flex;
         gap: 10px;
         margin-top: 16px;
+        align-items: stretch;
     }
 
     .search-box {
@@ -454,7 +466,9 @@ $canDelete = ($role === 'admin');
         border-radius: 8px;
         padding: 0 10px;
         background: white;
-        width: 100%;
+        flex: 1;
+        min-width: 220px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
     }
 
     .search-box input {
@@ -476,6 +490,7 @@ $canDelete = ($role === 'admin');
         border-radius: 8px;
         padding: 0 10px;
         background: white;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
     }
 
     .filter-box input {
@@ -484,6 +499,22 @@ $canDelete = ($role === 'admin');
         padding: 10px;
         width: 120px;
     }
+
+    .reset-filter-btn {
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+        padding: 0 14px;
+        background: #FFFFFF;
+        color: #475569;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .reset-filter-btn:hover { background: #F8FAFC; border-color: #94A3B8; color: #1E293B; }
+    .reset-filter-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.18); outline-offset: 2px; }
 
     .medicine-name {
         margin-bottom: 5px;
@@ -503,6 +534,8 @@ $canDelete = ($role === 'admin');
         padding: 4px 8px;
         border-radius: 12px;
         font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
     }
 
     .status-normal {
@@ -573,6 +606,43 @@ $canDelete = ($role === 'admin');
         justify-content: center;
         margin-left: -15px;
     }
+
+    .inventory-table-wrap { overflow-x: auto; }
+    .inventory-table-wrap table {
+        min-width: 760px;
+        table-layout: fixed;
+    }
+    .inventory-table th,
+    .inventory-table td {
+        padding: 14px 20px;
+        vertical-align: middle;
+    }
+    .inventory-table th {
+        color: #475569;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .inventory-table th:nth-child(1),
+    .inventory-table td:nth-child(1) { width: 44%; text-align: left; }
+    .inventory-table th:nth-child(2),
+    .inventory-table td:nth-child(2) { width: 18%; text-align: center; }
+    .inventory-table th:nth-child(3),
+    .inventory-table td:nth-child(3) { width: 18%; text-align: center; }
+    .inventory-table th:nth-child(4),
+    .inventory-table td:nth-child(4) { width: 26%; text-align: center; }
+    .inventory-table td:nth-child(2) { font-size: 16px; }
+    .inventory-table td:nth-child(4) .action-group {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .inventory-table-wrap tbody tr { transition: background-color 0.15s ease; }
+    .inventory-table-wrap tbody tr:hover { background: #F8FAFC; }
 
     .icon-box img {
         width: 14px;
@@ -868,6 +938,81 @@ $canDelete = ($role === 'admin');
     background: #F9FAFB;
 }
 
+.stock-card-modal {
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    padding: 0;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 20px 35px rgba(15, 23, 42, 0.16);
+    overflow-y: auto;
+}
+.stock-card-modal .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #E5E7EB;
+}
+.stock-card-modal .modal-title { font-size: 18px; font-weight: 700; color: #111827; }
+.stock-card-modal .modal-subtitle { font-size: 13px; color: #64748B; font-style: normal; }
+.stock-card-modal .close-btn {
+    border: 0;
+    background: transparent;
+    padding: 4px 8px;
+    color: #64748B;
+    font-size: 22px;
+    line-height: 1;
+}
+.stock-card-modal .close-btn:hover { color: #111827; background: #F1F5F9; border-radius: 6px; }
+.stock-card-content { padding: 24px; }
+.stock-card-heading { text-align: center; margin-bottom: 18px; }
+.stock-card-heading .gov-sub-title { font-size: 11px; color: #64748B; letter-spacing: 0.08em; font-weight: 600; }
+.stock-card-heading .gov-main-title { font-size: 15px; color: #111827; font-weight: 700; margin-top: 5px; }
+.stock-card-heading::after { content: ''; display: block; width: 42px; height: 3px; margin: 10px auto 0; border-radius: 2px; background: #2563EB; }
+.stock-card-metadata {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 28px;
+    padding: 18px 20px;
+    background: #FAFAFA;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+}
+.stock-card-metadata .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #E5E7EB;
+    text-align: left;
+}
+.stock-card-metadata .meta-row:nth-last-child(-n + 2) { border-bottom: 0; padding-bottom: 0; }
+.stock-card-metadata .meta-icon { width: 16px; height: 16px; flex: 0 0 auto; color: #2563EB; }
+.stock-card-metadata .meta-label { color: #64748B; font-weight: 600; }
+.stock-card-metadata .meta-value { margin-left: auto; color: #111827; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.stock-card-table-wrap { margin-top: 22px; overflow-x: auto; border: 1px solid #E5E7EB; border-radius: 8px; }
+.stock-card-table { width: 100%; min-width: 680px; border-collapse: collapse; table-layout: fixed; }
+.stock-card-table th, .stock-card-table td { padding: 12px 14px; border-bottom: 1px solid #E5E7EB; vertical-align: middle; }
+.stock-card-table th { background: #FFFFFF; color: #475569; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; text-align: left; }
+.stock-card-table td { color: #334155; font-size: 13px; }
+.stock-card-table th:nth-child(1), .stock-card-table td:nth-child(1) { width: 18%; }
+.stock-card-table th:nth-child(2), .stock-card-table td:nth-child(2), .stock-card-table th:nth-child(3), .stock-card-table td:nth-child(3), .stock-card-table th:nth-child(4), .stock-card-table td:nth-child(4) { width: 14%; text-align: center; }
+.stock-card-table th:nth-child(5), .stock-card-table td:nth-child(5) { width: 40%; }
+.stock-card-table tbody tr:last-child td { border-bottom: 0; }
+.stock-card-table .received-value { color: #16A34A; font-weight: 700; }
+.stock-card-table .issued-value { color: #DC2626; font-weight: 700; }
+.stock-card-table .balance-value { color: #2563EB; font-weight: 700; }
+.stock-card-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #E5E7EB; }
+.stock-card-actions .print-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #CBD5E1; border-radius: 7px; padding: 9px 14px; background: #FFFFFF; color: #334155; font-weight: 600; cursor: pointer; }
+.stock-card-actions .print-btn:hover { background: #F8FAFC; border-color: #94A3B8; }
+.stock-card-actions .print-icon { width: 16px; height: 16px; color: #2563EB; }
+@media (max-width: 640px) {
+    .stock-card-metadata { grid-template-columns: 1fr; }
+    .stock-card-metadata .meta-row:nth-last-child(-n + 2) { border-bottom: 1px solid #E5E7EB; padding-bottom: 10px; }
+    .stock-card-metadata .meta-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .stock-card-content { padding: 16px; }
+}
+
 /*ACTION - VIEW*/
 /* HEADER ALIGNMENT */
 .stock-card-header {
@@ -1142,6 +1287,110 @@ $canDelete = ($role === 'admin');
         font-weight: bold;
     }
 
+    /* Keep the stock card compact enough to display without an inner scrollbar. */
+    .stock-card-modal {
+        height: auto !important;
+        max-height: calc(100vh - 32px) !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-sizing: border-box;
+    }
+    #stockCardModal {
+        overflow-y: auto;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+    #stockCardModal .stock-card-modal { margin: auto; }
+    .stock-card-modal .stock-card-content { padding: 18px 24px; }
+    .stock-card-modal .stock-card-heading { margin-bottom: 14px; }
+    .stock-card-modal .stock-card-metadata { padding: 14px 16px; gap: 10px 24px; }
+    .stock-card-modal .stock-card-metadata .meta-row { padding-bottom: 7px; }
+    .stock-card-modal .stock-card-table-wrap { margin-top: 16px; }
+    .stock-card-modal .stock-card-table th,
+    .stock-card-modal .stock-card-table td { padding: 10px 12px; }
+    .stock-card-modal .stock-card-actions { margin-top: 16px; padding-top: 12px; }
+    @media (max-width: 640px) {
+        .stock-card-modal .stock-card-content { padding: 14px 16px; }
+        .stock-card-modal .stock-card-metadata { gap: 7px; }
+        .stock-card-modal .stock-card-metadata .meta-row { padding-bottom: 6px; }
+        .stock-card-modal .stock-card-actions { margin-top: 12px; padding-top: 10px; }
+    }
+
+    .expiring-batches-modal {
+    width: 92%;
+    max-width: 1080px;
+    max-height: 90vh;
+    padding: 0;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 20px 35px rgba(15, 23, 42, 0.16);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.expiring-batches-modal .modal-header { 
+    padding: 20px 24px; 
+    border-bottom: 1px solid #E5E7EB; 
+    flex-shrink: 0;
+}
+
+.expiring-batches-modal .modal-title { font-size: 18px; font-weight: 700; color: #111827; }
+.expiring-batches-modal .modal-subtitle { font-size: 13px; color: #64748B; font-style: normal; }
+
+/* Scrollable Container */
+.expiring-batches-content { 
+    padding: 22px 24px 24px; 
+    overflow-y: auto; 
+    flex-grow: 1;
+}
+
+.expiring-table-wrap { 
+    overflow-x: auto; 
+    border: 1px solid #E5E7EB; 
+    border-radius: 8px; 
+}
+
+.expiring-table { width: 100%; min-width: 820px; border-collapse: collapse; table-layout: fixed; }
+.expiring-table th, .expiring-table td { padding: 12px 14px; border-bottom: 1px solid #E5E7EB; vertical-align: middle; }
+
+/* Sticky Header Logic */
+.expiring-table th { 
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #FAFAFA; 
+    color: #475569; 
+    font-size: 11px; 
+    font-weight: 700; 
+    letter-spacing: 0.05em; 
+    text-align: left; 
+    text-transform: uppercase; 
+    white-space: nowrap; 
+    box-shadow: inset 0 -1px 0 #E5E7EB; /* Prevents border gap during scrolling */
+}
+
+.expiring-table td { color: #334155; font-size: 13px; }
+.expiring-table th:nth-child(1), .expiring-table td:nth-child(1) { width: 25%; }
+.expiring-table th:nth-child(2), .expiring-table td:nth-child(2) { width: 17%; }
+.expiring-table th:nth-child(3), .expiring-table td:nth-child(3) { width: 12%; text-align: center; }
+.expiring-table th:nth-child(4), .expiring-table td:nth-child(4) { width: 16%; }
+.expiring-table th:nth-child(5), .expiring-table td:nth-child(5) { width: 14%; text-align: center; }
+.expiring-table th:nth-child(6), .expiring-table td:nth-child(6) { width: 16%; text-align: center; }
+
+.expiring-table tbody tr:last-child td { border-bottom: 0; }
+.expiring-table tbody tr.urgent { background: #FFF7F7; }
+.expiring-table tbody tr.warning { background: #FFFBEB; }
+.expiring-table .medicine-cell { font-weight: 700; color: #1E293B; }
+.expiring-table .brand-cell { display: block; margin-top: 3px; color: #64748B; font-size: 12px; font-weight: 400; }
+.expiring-table .days-urgent { color: #DC2626; font-weight: 700; }
+.expiring-table .days-warning { color: #D97706; font-weight: 700; }
+
+.expiry-view-btn { border: 1px solid #BFDBFE; border-radius: 6px; padding: 7px 10px; background: #EFF6FF; color: #1D4ED8; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.expiry-view-btn:hover { background: #DBEAFE; border-color: #93C5FD; }
+
+@media (max-width: 640px) { .expiring-batches-content { padding: 16px; } }
+
 </style>
 </head>
 <script>
@@ -1150,7 +1399,20 @@ $canDelete = ($role === 'admin');
         try { batch = JSON.parse(batchString); } 
         catch (e) { batch = batchString; }
 
+        closeExpiringBatchesModal();
         const modal = document.getElementById("stockCardModal");
+        const medicineModal = document.getElementById("medicineModal");
+
+        // Detach the stock card from the medicine modal so it can open independently.
+        if (modal && modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+        if (medicineModal) {
+            medicineModal.classList.remove("show");
+            medicineModal.style.display = "none";
+        }
+
+        if (!modal) return;
         modal.style.display = "flex";
         setTimeout(() => modal.classList.add("show"), 10);
 
@@ -1159,23 +1421,14 @@ $canDelete = ($role === 'admin');
         document.getElementById("sc-item").innerText = medicineName;
         document.getElementById("sc-expiry").innerText = batch.expiry_date || "Not Set";
         document.getElementById("sc-batchnum").innerText = batch.batch_number;
-
-        const modeOfProcurement = batch.remarks || "Not Specified";
-        const rightSide = modal.querySelector('.meta-column.align-right');
-        if(rightSide){
-            rightSide.innerHTML = `
-                <div class="meta-row"><b>Batch Number:</b> <span class="batch-val">${batch.batch_number}</span></div>
-                <div class="meta-row"><b>Entity Name:</b> <span>Velasquez Health Center</span></div>
-                <div class="meta-row"><b>Mode:</b> <span class="mode-val">${modeOfProcurement}</span></div>
-            `;
-        }
+        document.querySelector('#stockCardModal .mode-val').innerText = batch.remarks || "Not Specified";
 
         document.getElementById("sc-table-body").innerHTML = `
             <tr>
                 <td>${new Date(batch.created_at).toLocaleDateString()}</td>
-                <td style="background:#ECFDF5;">${batch.quantity}</td>
-                <td style="background:#FEF2F2;">0</td>
-                <td style="background:#EFF6FF;">${batch.quantity}</td>
+                <td class="received-value">${batch.quantity}</td>
+                <td class="issued-value">0</td>
+                <td class="balance-value">${batch.quantity}</td>
                 <td>${batch.remarks || 'Initial Stock Entry'}</td>
             </tr>
         `;
@@ -1184,6 +1437,22 @@ $canDelete = ($role === 'admin');
     function closeStockCard() {
         const modal = document.getElementById("stockCardModal");
         modal.classList.remove("show");
+        setTimeout(() => modal.style.display = "none", 200);
+    }
+
+    function openExpiringBatchesModal() {
+        const modal = document.getElementById("expiringBatchesModal");
+        if (!modal) return;
+        modal.style.display = "flex";
+        modal.setAttribute("aria-hidden", "false");
+        setTimeout(() => modal.classList.add("show"), 10);
+    }
+
+    function closeExpiringBatchesModal() {
+        const modal = document.getElementById("expiringBatchesModal");
+        if (!modal) return;
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
         setTimeout(() => modal.style.display = "none", 200);
     }
 
@@ -1296,6 +1565,16 @@ function closeEditStockModal() {
             filterSelect.addEventListener("change", applyFilters);
         }
 
+        const resetInventoryFilters = document.getElementById("resetInventoryFilters");
+        if (resetInventoryFilters) {
+            resetInventoryFilters.addEventListener("click", function() {
+                if (searchInput) searchInput.value = "";
+                if (filterSelect) filterSelect.value = "all";
+                applyFilters();
+                if (searchInput) searchInput.focus();
+            });
+        }
+
         const addForm = document.querySelector('#addMedicineModal form');
         if(addForm){
             addForm.addEventListener('submit', function(e) {
@@ -1398,26 +1677,26 @@ $nearExpiry = 0;
 
 foreach ($medicines as $medicine) {
 
-    $stock = $medicine->total_stock ?? 0; // <-- DAGDAG: Kung walang stock, maging 0
+    $stock = $medicine->total_stock ?? 0;
 
-    // ✅ INAYOS: Tugma sa JS Filter (Low: 21-100, Critical: <=20)
+    // Low: 21-100, Critical: <=20
     if ($stock <= 100 && $stock > 20) {
         $lowStock++;
     } elseif ($stock <= 20) {
         $criticalStock++;
     }
 
-    // EXPIRY CHECK (180 days = 6 months)
-    $nearestExpiry = optional(
-        $medicine->batches->sortBy('expiry_date')->first()
-    )->expiry_date;
+    // ✅ FIX: Loop through ALL batches of this medicine instead of just the first one
+    if ($medicine->batches) {
+        foreach ($medicine->batches as $batch) {
+            if ($batch->expiry_date) {
+                $daysLeft = Carbon::now()->diffInDays(Carbon::parse($batch->expiry_date), false);
 
-    if ($nearestExpiry) {
-        $daysLeft = Carbon::now()->diffInDays(Carbon::parse($nearestExpiry), false);
-
-        // ✅ INAYOS: Bilangin lang kung paparating na at hindi pa tapos
-        if ($daysLeft <= 180 && $daysLeft > 0) {
-            $nearExpiry++;
+                // Counts every batch expiring within 180 days (and not yet expired)
+                if ($daysLeft <= 180 && $daysLeft > 0) {
+                    $nearExpiry++;
+                }
+            }
         }
     }
 }
@@ -1426,22 +1705,22 @@ foreach ($medicines as $medicine) {
 
 <div class="kpi-row">
 
-    <div class="kpi kpi-grey" onclick="filterMedicines('all')">
+    <div class="kpi kpi-grey" role="button" tabindex="0" onclick="filterMedicines('all')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); filterMedicines('all'); }">
         <div class="kpi-title">Total Medicines</div>
         <div class="kpi-number">{{ $totalMedicines }}</div>
     </div>
 
-    <div class="kpi kpi-yellow" onclick="filterMedicines('low')">
+    <div class="kpi kpi-yellow" role="button" tabindex="0" onclick="filterMedicines('low')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); filterMedicines('low'); }">
         <div class="kpi-title">Low Stock</div>
         <div class="kpi-number">{{ $lowStock }}</div>
     </div>
 
-    <div class="kpi kpi-red" onclick="filterMedicines('critical')">
+    <div class="kpi kpi-red" role="button" tabindex="0" onclick="filterMedicines('critical')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); filterMedicines('critical'); }">
         <div class="kpi-title">Critical Stock</div>
         <div class="kpi-number">{{ $criticalStock }}</div>
     </div>
 
-    <div class="kpi kpi-orange" onclick="filterMedicines('expiry')">
+    <div class="kpi kpi-orange kpi-expiry" role="button" tabindex="0" onclick="openExpiringBatchesModal()" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openExpiringBatchesModal(); }">
         <div class="kpi-title">Near Expiry</div>
         <div class="kpi-number">{{ $nearExpiry }}</div>
     </div>
@@ -1506,6 +1785,64 @@ $criticalItem = $medicines
 
     </div>
 
+    <button type="button" class="reset-filter-btn" id="resetInventoryFilters">Clear filters</button>
+
+</div>
+
+<div class="modal-overlay" id="expiringBatchesModal" aria-hidden="true">
+    <div class="modal expiring-batches-modal" role="dialog" aria-modal="true" aria-labelledby="expiringBatchesTitle">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title" id="expiringBatchesTitle">Expiring Stock Batches</div>
+                <div class="modal-subtitle">Active batches expiring within the next 180 days</div>
+            </div>
+            <button type="button" class="close-btn" onclick="closeExpiringBatchesModal()" aria-label="Close expiring stock batches">✕</button>
+        </div>
+        <div class="expiring-batches-content">
+            <div class="expiring-table-wrap">
+                <table class="expiring-table">
+                    <thead>
+                        <tr>
+                            <th>Medicine &amp; Brand</th>
+                            <th>Batch Number</th>
+                            <th>Qty in Batch</th>
+                            <th>Expiration Date</th>
+                            <th>Days Remaining</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($expiringBatches as $batch)
+                            @php
+                                $daysRemaining = max(0, Carbon::today()->diffInDays(Carbon::parse($batch->expiry_date), false));
+                                $urgencyClass = $daysRemaining < 30 ? 'urgent' : 'warning';
+                                $daysClass = $daysRemaining < 30 ? 'days-urgent' : 'days-warning';
+                            @endphp
+                            <tr class="{{ $urgencyClass }}">
+                                <td class="medicine-cell">
+                                    {{ $batch->medicine_name }}
+                                    <span class="brand-cell">{{ $batch->brand_name ?: 'Brand not specified' }}</span>
+                                </td>
+                                <td>{{ $batch->batch_number }}</td>
+                                <td>{{ $batch->quantity }}</td>
+                                <td>{{ Carbon::parse($batch->expiry_date)->format('M d, Y') }}</td>
+                                <td class="{{ $daysClass }}">{{ $daysRemaining }} days</td>
+                                <td>
+                                    <button type="button" class="expiry-view-btn" onclick="viewBatch(@js($batch->medicine_name . ' ' . ($batch->dosage_strength ?: '')), @js($batch->toArray()))">
+                                        View Stock Card
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="empty-table-state">No active batches are expiring within 180 days.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
     @php
@@ -1563,7 +1900,8 @@ $criticalItem = $medicines
             </div>
         @endif
 
-        <table>
+        <div class="inventory-table-wrap">
+        <table class="inventory-table">
             <thead>
                 <tr>
                     <th>MEDICINE NAME</th>
@@ -1620,15 +1958,13 @@ $criticalItem = $medicines
                                     View Details
                                 </button>
 
-                                @if($canDelete)
-                                        <form action="{{ url('/medicine/delete/' . $medicine->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this medicine?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="action-btn delete-btn">
-                                                    Delete
-                                                </button>
-                                        </form>
-                                @endif
+                                <form action="{{ url('/medicine/delete/' . $medicine->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this medicine?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="action-btn delete-btn">
+                                        Delete
+                                    </button>
+                                </form>
             
                             </div>
                         </td>
@@ -1642,6 +1978,7 @@ $criticalItem = $medicines
                     @endforelse
                 </tbody>
             </table>
+        </div>
         </div>
 
     </div>
@@ -1695,30 +2032,21 @@ $criticalItem = $medicines
         </div>
 
        <div class="modal-footer">
-            @if(isset($medicine) && !is_null($medicine))
             <button 
                 type="button"
-                onclick="openStockInModal({{ $medicine->id }}, '{{ addslashes($medicine->name) }}')" 
+                onclick="openStockInModal(selectedMedicineId, selectedMedicineName)" 
                 onmouseover="this.style.backgroundColor='#0045E6'"
                 onmouseout="this.style.backgroundColor='#165DFF'"
                 style="background-color: #165DFF; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s ease;">
                 Add Stock (IN)
             </button>  
-            @else
-            <button 
-                type="button"
-                disabled
-                style="background-color: #94A3B8; color: #E2E8F0; padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: not-allowed;">
-                Add Stock (IN)
-            </button>
-            @endif
 
             <button class="btn-close" onclick="closeModal()" style="margin-left: 10px; padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 6px; cursor: pointer;">Close</button>
         </div>
 
         <!-- STOCK CARD MODAL (Nakapatong sa loob) -->
         <div class="modal-overlay" id="stockCardModal">
-            <div class="modal" style="max-width: 1050px;">
+            <div class="modal stock-card-modal">
                 <div class="modal-header">
                     <div>
                         <div class="modal-title" id="sc-title">Stock Card —</div>
@@ -1727,37 +2055,44 @@ $criticalItem = $medicines
                     <div class="close-btn" onclick="closeStockCard()">✕</div>
                 </div>
 
-                <div class="stock-card-header">
+                <div class="stock-card-content">
+                <div class="stock-card-heading">
                     <div class="gov-sub-title">Republic of the Philippines</div>
                     <div class="gov-main-title">Barangay Health Center — Stock Card</div>
                 </div>
 
-                <div class="stock-card-meta-grid">
-                    <div class="meta-column">
-                        <div class="meta-row"><b>Item Description:</b> <span id="sc-item">—</span></div>
-                        <div class="meta-row"><b>Expiration Date:</b> <span id="sc-expiry">—</span></div>
+                <div class="stock-card-metadata">
+                    <div class="meta-row">
+                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5a2.5 2.5 0 0 0-2.5-2.5h-11A2.5 2.5 0 0 0 4 18.5V5.5Z"/><path d="M4 18.5A2.5 2.5 0 0 0 6.5 21H20"/></svg>
+                        <span class="meta-label">Item Description</span><span class="meta-value" id="sc-item">—</span>
                     </div>
-                    <div class="meta-column align-right">
-                        <div class="meta-row"><b>Batch Number:</b> <span id="sc-batchnum" class="batch-val">—</span></div>
-                        <div class="meta-row"><b>Entity Name:</b> <span>Velasquez Health Center</span></div>
-                        <div class="meta-row"><b>Mode:</b> <span class="mode-val">—</span></div>
+                    <div class="meta-row">
+                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M7.5 2.5v4M16.5 2.5v4M3.5 9h17"/></svg>
+                        <span class="meta-label">Expiration Date</span><span class="meta-value" id="sc-expiry">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 13.5 13.5 20a2.1 2.1 0 0 1-3 0L4 13.5V4h9.5L20 10.5a2.1 2.1 0 0 1 0 3Z"/><circle cx="8.5" cy="8.5" r="1.2"/></svg>
+                        <span class="meta-label">Batch Number</span><span class="meta-value" id="sc-batchnum">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+                        <span class="meta-label">Entity Name</span><span class="meta-value">Velasquez Health Center</span>
+                    </div>
+                    <div class="meta-row">
+                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="2"/></svg>
+                        <span class="meta-label">Mode</span><span class="meta-value mode-val">—</span>
                     </div>
                 </div>
 
-                <div style="margin-top:32px;">
-                    <table>
+                <div class="stock-card-table-wrap">
+                    <table class="stock-card-table">
                         <thead>
                             <tr>
                                 <th>DATE</th>
-                                <th colspan="3">QUANTITY</th>
+                                <th style="color:#16A34A;">RECEIVED</th>
+                                <th style="color:#DC2626;">ISSUED</th>
+                                <th style="color:#2563EB;">BALANCE</th>
                                 <th>REMARKS</th>
-                            </tr>
-                            <tr>
-                                <th></th>
-                                <th style="background:#ECFDF5; color:#059669;">RECEIVED</th>
-                                <th style="background:#FEF2F2; color:#DC2626;">ISSUED</th>
-                                <th style="background:#EFF6FF; color:#1A73E8;">BALANCE</th>
-                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="sc-table-body">
@@ -1765,14 +2100,14 @@ $criticalItem = $medicines
                     </table>
                 </div>
 
-               <div style="display:flex; justify-content:space-between; margin-top:20px; font-size:12px; align-items:center;">
-    <div>
-        <span style="color: #22C55E; font-weight: bold;">■ Stock Received</span>
-        &nbsp;&nbsp;
-        <span style="color: #EF4444; font-weight: bold;">■ Stock Issued</span>
-    </div>
-    <button class="btn-close" onclick="closeStockCard()">Close</button>
-</div>
+                <div class="stock-card-actions">
+                    <button type="button" class="print-btn" onclick="window.print()">
+                        <svg class="print-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7z"/><path d="M17 12h.01"/></svg>
+                        Print
+                    </button>
+                    <button type="button" class="btn-close" onclick="closeStockCard()">Close</button>
+                </div>
+                </div>
             </div>
         </div>
         <!-- END STOCK CARD MODAL -->
@@ -1793,7 +2128,7 @@ $criticalItem = $medicines
             <div class="close-btn" onclick="closeStockInModal()" style="font-size: 20px; cursor: pointer; color: #6B7280; line-height: 1;">✕</div>
         </div>
 
-        <form method="POST" action="{{ route('admin.stock.in.store') }}" id="stockInForm" style="padding: 26px;">
+        <form method="POST" action="{{ route('stock.in.store') }}" id="stockInForm" style="padding: 26px;">
             @csrf
 
             <input type="hidden" name="medicine_id" id="stock_in_medicine_id" value="">
@@ -2133,6 +2468,9 @@ function generateAutoBatch() {
 
 function openStockInModal(medicineId) {
 
+    let form = document.getElementById('stockInForm');
+    if(form) form.reset();
+
     let inputId = document.getElementById('stock_in_medicine_id');
     if(inputId) inputId.value = medicineId;
 
@@ -2149,9 +2487,6 @@ function openStockInModal(medicineId) {
         let innerForm = formModal.querySelector('.modal');
         if(innerForm) innerForm.style.pointerEvents = 'auto';
     }
-
-    let form = document.getElementById('stockInForm');
-    if(form) form.reset();
 
     // ✅ AUTOMATICALLY GENERATE BATCH NUMBER
     generateAutoBatch();
@@ -2212,7 +2547,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.style.border = "1px solid #D1D5DB";
                 return;
             }
-            fetch("{{ route('admin.check.batch') }}?batch_number=" + encodeURIComponent(batchVal))
+            fetch("{{ route('check.batch') }}?batch_number=" + encodeURIComponent(batchVal))
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('batch_error_text').style.display = data.exists ? 'block' : 'none';
@@ -2231,7 +2566,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if(batchInput) batchInput.style.border = "1px solid #D1D5DB";
             if(errorTextAjax) errorTextAjax.style.display = 'none';
 
-            fetch("{{ route('admin.stock.in.store') }}", {
+            fetch("{{ route('stock.in.store') }}", {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -2246,10 +2581,8 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .then(data => {
                 if (data.success) {
-                    // ✅ PINALITAN KO ANG SWAL NG ALERT PARA WALANG ERROR
-                    alert("✅ Stock Added Successfully!");
-                    closeStockInModal(); 
-                    location.reload();
+                    closeStockInModal();
+                    window.location.reload();
                 }
             })
             .catch(errors => {

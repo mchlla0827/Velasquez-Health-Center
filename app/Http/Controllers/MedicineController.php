@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\DispensingRecord;
+use App\Models\Batch;
 use App\Models\Medicine;
 use App\Models\Patient;
 use App\Models\StockTransaction;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +47,26 @@ class MedicineController extends Controller
         $this->syncMedicineStock($medicine);
     }
 
+    $expiringBatches = Batch::query()
+        ->join('medicines', 'medicines.id', '=', 'batches.medicine_id')
+        ->where('batches.quantity', '>', 0)
+        ->whereDate('batches.expiry_date', '>=', today())
+        ->whereDate('batches.expiry_date', '<=', today()->addDays(180))
+        ->orderBy('batches.expiry_date')
+        ->orderBy('batches.id')
+        ->get([
+            'batches.id',
+            'batches.medicine_id',
+            'batches.batch_number',
+            'batches.expiry_date',
+            'batches.quantity',
+            'batches.remarks',
+            'batches.created_at',
+            'medicines.name as medicine_name',
+            'medicines.brand as brand_name',
+            'medicines.dosage_strength',
+        ]);
+
     // Doctor PIC can VIEW inventory but cannot add medicine.
     $canAddMedicine = in_array(
         $role,
@@ -83,6 +105,7 @@ class MedicineController extends Controller
 
     return view('medicine.inventory', [
         'medicines' => $medicines,
+        'expiringBatches' => $expiringBatches,
         'userName' => $user?->name
             ?? session('admin_name')
             ?? session('user_name')
@@ -117,17 +140,22 @@ class MedicineController extends Controller
 
         $patients = Patient::orderByDesc('patient_id')->get();
 
+        $staffMembers = User::where('role', 'nurse')
+            ->orderBy('name')
+            ->get(['name']);
+
         $dispensingHistory = DispensingRecord::with(['patient', 'medicine'])
             ->orderByDesc('dispense_date')
             ->orderByDesc('created_at')
             ->paginate(10);
 
         $userName = Auth::user()?->name ?? session('admin_name') ?? 'Staff';
-        $viewPath = $role === 'admin' ? 'admin.dispense' : 'nurse.dispense';
+        $viewPath = 'admin.dispense';
 
         return view($viewPath, compact(
             'medicines',
             'patients',
+            'staffMembers',
             'dispensingHistory',
             'role',
             'userName'
