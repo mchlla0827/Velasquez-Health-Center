@@ -45,6 +45,9 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/patients/store', [PatientController::class, 'store'])->name('patients.store');
     Route::get('/patients/show/{id}', [PatientController::class, 'show']);
     Route::get('/patients/search', [PatientController::class, 'search']);
+    Route::middleware(['auth'])->group(function () {
+    Route::post('/queue', [YourController::class, 'storeQueue']);
+});
     
     // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
     Route::get('/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('patient.medicine.history');

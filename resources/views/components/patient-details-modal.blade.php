@@ -1197,7 +1197,7 @@ function loadServiceHistory(patientId) {
                                 </span>
 
                                 <span class="service-history-value">
-                                    ${record.registered_by}
+                                    ${record.registered_by_name} (${record.registered_by_role})
                                 </span>
                             </div>
 

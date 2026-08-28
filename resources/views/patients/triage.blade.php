@@ -213,6 +213,27 @@
 
         .alert-content b { color: #DC2626; }
 
+        .queue-notice {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #DC2626;
+            color: #FFFFFF;
+            padding: 14px 24px;
+            border-radius: 8px;
+            z-index: 9999;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(127, 29, 29, .35);
+            animation: queue-notice-flash .8s ease-in-out 3;
+        }
+
+        @keyframes queue-notice-flash {
+            50% { opacity: .35; }
+        }
+
         /* KPI CARDS */
         .kpi-grid {
             display: grid;
@@ -884,6 +905,17 @@
         document.getElementById('viewTriageModal').style.display = 'none';
     }
 
+    function showQueueNotice(message, isError = false) {
+        const notice = Object.assign(document.createElement('div'), {
+            textContent: message,
+            role: 'status'
+        });
+        notice.className = 'queue-notice';
+        if (isError) notice.style.background = '#B91C1C';
+        document.body.appendChild(notice);
+        setTimeout(() => notice.remove(), 5000);
+    }
+
     // ========== UPDATE QUEUE STATUS ==========
     function updateQueueStatus(id, status) {
         const token = document.querySelector('meta[name="csrf-token"]').content;
@@ -895,8 +927,9 @@
         .then(res => res.json())
         .then(d => {
             if (d.success) window.location.reload();
-            else alert('Error: ' + (d.message ?? 'Unknown error'));
-        });
+            else showQueueNotice('Error: ' + (d.message ?? 'Unknown error'), true);
+        })
+        .catch(() => showQueueNotice('Unable to update the patient status.', true));
     }
 
     // ========== PATIENT SEARCH ==========
@@ -985,10 +1018,10 @@
         });
     }
 
-    // ========== LIVE QUEUE UPDATE — ✅ FIXED: ONLY BHW/NURSE GET ALERTS ==========
-    @if(!$canCallPatient)
+    // ========== LIVE QUEUE UPDATE — BHW RECEIVES DOCTOR CALLS ==========
+    @if($role === 'bhw')
     setInterval(() => {
-        fetch('/triage/live-data')
+        fetch("{{ route('triage.liveData') }}")
         .then(res => res.json())
         .then(data => {
             const tbody = document.getElementById('queueTableBody');
@@ -1000,15 +1033,7 @@
             }
             if (data.active_call && localStorage.getItem('last_call') !== data.call_id) {
                 localStorage.setItem('last_call', data.call_id);
-                const notice = Object.assign(document.createElement('div'), {
-                    style: 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1F2937; color:#fff; padding:12px 20px; border-radius:8px; z-index:9999; font-size:14px;',
-                    innerHTML: `<strong>🔊 NOW CALLING</strong><br>${data.patient_name}`
-                });
-                document.body.appendChild(notice);
-                setTimeout(() => notice.remove(), 5000);
-                if ('speechSynthesis' in window) {
-                    speechSynthesis.speak(new SpeechSynthesisUtterance(`Patient ${data.patient_name}, please proceed.`));
-                }
+                showQueueNotice('NOW CALLING: ' + data.patient_name + ' - Please proceed.');
             }
         });
     }, 3000);
@@ -1022,46 +1047,6 @@
         }
     });
 
-</script>
-<script>
-let lastCallId = 0;
-
-// Check for called patient every 3 seconds
-function checkActiveCall() {
-    fetch("{{ route('triage.liveData') }}")
-        .then(response => response.json())
-        .then(data => {
-            // ⚠️ NEW CALL DETECTED
-            if (data.active_call && data.call_id !== lastCallId) {
-                lastCallId = data.call_id;
-
-                // 🔔 SHOW ALERT
-                alert('📢 NOW CALLING: ' + data.patient_name + ' — Please proceed!');
-
-                // Optional: Browser notification
-                if (Notification.permission === "granted") {
-                    new Notification("📢 PATIENT BEING CALLED", {
-                        body: data.patient_name,
-                        icon: "/favicon.ico"
-                    });
-                }
-            }
-
-            // Reset when call ends
-            if (!data.active_call) {
-                lastCallId = 0;
-            }
-        })
-        .catch(err => console.log('Live check error:', err));
-}
-
-// Request browser notification permission
-if (Notification.permission !== "granted") {
-    Notification.requestPermission();
-}
-
-// ✅ Start polling — runs for ALL users including BHW
-setInterval(checkActiveCall, 3000); // check every 3 seconds
 </script>
 
 </body>

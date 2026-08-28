@@ -256,6 +256,8 @@ class PatientController extends Controller
             'patient_id' => $patient->id,
             'service_type' => $request->service_type,
             'risk_level' => $riskLevel,
+            'triage_level' => $riskLevel,
+            'registered_by' => auth()->id(),
             'temp' => $request->temp,
             'bp' => $request->bp,
             'weight' => $request->weight,
@@ -505,15 +507,18 @@ class PatientController extends Controller
                 'time' => $record->created_at ? $record->created_at->format('h:i A') : '---',
                 'service_type' => $record->service_type ?: '---',
                 'risk_level' => $record->risk_level ?: '---',
-                'triage_level' => $record->triage_level ?: '---',
+                'triage_level' => $record->triage_level ?: ($record->risk_level ?: '---'),
                 'status' => $record->status ?: '---',
                 'bp' => $record->bp ?: '---',
                 'temp' => $record->temp !== null ? $record->temp . ' °C' : '---',
                 'weight' => $record->weight !== null ? $record->weight . ' kg' : '---',
                 'height' => $record->height !== null ? $record->height . ' cm' : '---',
                 'symptoms' => $record->symptoms ?: '---',
-                'registered_by' => $record->registeredBy
-                    ? ($record->registeredBy->name ?? $record->registeredBy->email)
+                'registered_by_name' => $record->registeredBy
+                    ? ($record->registeredBy->name ?: $record->registeredBy->email)
+                    : '---',
+                'registered_by_role' => $record->registeredBy
+                    ? ucfirst($record->registeredBy->role ?: 'User')
                     : '---',
             ];
         }));

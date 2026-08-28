@@ -26,9 +26,10 @@
         <td class="text-right pad-right" style="white-space: nowrap; vertical-align: middle;">
             <div style="display: inline-flex; gap: 8px; justify-content: flex-end; align-items: center; width: 100%;">
                 
-                <button type="button" class="btn-action view-btn" 
+                <button type="button" class="btn-sm btn-view" 
                         data-patient='@json($record->patient)' 
-                        data-record='@json($record)'>
+                    data-record='@json($record)'
+                    onclick="openTriageModal(this)">
                     View
                 </button>
 
