@@ -6,7 +6,7 @@
             <div>
                 <h3 style="margin: 0; font-size: 18px; color: #111827;">Patient Record Details</h3>
                 <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">
-                    <span id="headerPatientID" style="font-weight: 500;">---</span> â€¢ 
+                    <span id="headerPatientID" style="font-weight: 500;">---</span> 
                     <span id="detInternalId" style="display:none;"></span>
                     <span id="headerPatientName">---</span>
                 </p>
@@ -92,7 +92,7 @@
             <div id="medical-history" class="tab-pane" style="display: none;">
                 
                 <div id="medical-history-empty" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: white; border: 1px dashed #D1D5DB; border-radius: 10px;">
-                    <span style="font-size: 40px; margin-bottom: 12px;">[No Records]</span>
+                    <div style="font-size: 36px; margin-bottom: 10px;">❤️</div>
                     <h4 style="margin: 0; font-size: 16px; color: #111827;">No Medical History Found</h4>
                     <p style="margin: 4px 0 20px; font-size: 13px; color: #6B7280; text-align: center; max-width: 400px;">This patient has not yet undergone their initial Integrated NCD Risk Assessment.</p>
                     @if(auth()->user()->role === 'doctor' || auth()->user()->is_physician_in_charge)
@@ -201,7 +201,7 @@
                     text-align: center;">
 
             <div style="font-size: 36px; margin-bottom: 10px;">
-                ðŸ©º
+                🩺
             </div>
 
             <h4 style="margin: 0 0 5px; font-size: 15px; color: #111827;">
@@ -246,7 +246,7 @@
                     </div>
                 </div>
                 <div style="margin-top: 16px; padding: 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 12px; color: #6B7280;">
-                    ðŸ“‹ <b>Note:</b> This is a read-only historical record based on inventory dispensing.
+                    <b>Note:</b> This is a read-only historical record based on inventory dispensing.
                 </div>
             </div>
 
@@ -542,12 +542,10 @@
     }
 }
 </style>
-
 <script>
     const currentUserRole = "{{ strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw') }}";
-    let activePatientData = null; // Store patient data globally for modal use
+    let activePatientData = null;
 
-    // --- HELPER: Toggle PhilHealth Fields ---
     window.togglePhilHealthFields = function() {
         const typeEl = document.getElementById('detPhilType');
         if (!typeEl) return;
@@ -556,7 +554,6 @@
         const noBox = document.getElementById('detPhilNo')?.closest('.item');
         const nameBox = document.getElementById('phMemberNameBox');
         const dobBox = document.getElementById('phMemberDobBox');
-
         if (type === 'none') {
             if (noBox) noBox.style.display = 'none';
             if (nameBox) nameBox.style.display = 'none';
@@ -572,46 +569,36 @@
         }
     };
 
-    // --- HELPER: Tab Switching ---
     function switchTab(event, tabId) {
         document.querySelectorAll('.tab-pane').forEach(pane => pane.style.display = 'none');
         document.querySelectorAll('.tab-item').forEach(tab => tab.classList.remove('active'));
         
         const targetPane = document.getElementById(tabId);
         if(targetPane) targetPane.style.display = 'block';
-
         if (event && event.currentTarget) {
             event.currentTarget.classList.add('active');
         }
-
         const btnContainer = document.getElementById('dynamic-action-button');
         if (!btnContainer) return; 
         
         btnContainer.innerHTML = ''; 
-
         const idElement = document.getElementById('detInternalId');
         const currentPatientId = idElement ? idElement.innerText : '';
-
         let showButton = false;
         let btnText = "Edit Information";
         let btnAction = `editPatient('${currentPatientId}')`;
-
         if (currentUserRole === 'admin') {
             showButton = true; 
         } else if ((currentUserRole === 'nurse' || currentUserRole === 'bhw') && tabId === 'basic-info') {
             showButton = true; 
         }
-
         if (showButton && currentPatientId) {
             btnContainer.innerHTML = `<button class="btn-primary" onclick="${btnAction}">${btnText}</button>`;
         }
 
-        // âœ… FIXED TAB SWITCH LOAD
-
         if (tabId === 'service-history' && activePatientData) {
-    loadServiceHistory(activePatientData.id);
-}
-
+            loadServiceHistory(activePatientData.id);
+        }
         if (tabId === 'medicine-history' && activePatientData) {
             const identifier = activePatientData.patient_id || activePatientData.id;
             loadMedicineHistory(identifier);
@@ -627,15 +614,9 @@
     function loadMedicineHistory(patientIdentifier) {
         const tbody = document.getElementById('detMedicineHistoryBody');
         const totalSpan = document.getElementById('detTotalMedicines');
-
         if (!tbody) return;
-
         tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #6B7280;">Loading history...</td></tr>`;
-
-
-        console.log("Patient Identifier:", patientIdentifier);
-
-        // Root relative URL fetch
+        
         fetch(`/patient/${encodeURIComponent(patientIdentifier)}/medicine-history`)
             .then(async res => {
                 if (!res.ok) {
@@ -646,15 +627,20 @@
             })
             .then(data => {
                 tbody.innerHTML = '';
-
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: #9CA3AF;">No medicine history recorded.</td></tr>`;
+                    // ✅ SAME STYLE — No Records with Icon
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align:center; padding: 60px 20px; color: #9CA3AF;">
+                                <div style="font-size: 36px; margin-bottom: 10px;">💊</div>
+                                <h4 style="margin: 0 0 5px; font-size: 15px; color: #111827;">No Dispensed Medicines</h4>
+                                <p style="margin: 0; font-size: 13px; color: #9CA3AF;">No medicines have been dispensed to this patient yet.</p>
+                            </td>
+                        </tr>`;
                     if (totalSpan) totalSpan.textContent = '0';
                     return;
                 }
-
                 if (totalSpan) totalSpan.textContent = data.length;
-
                 let rows = '';
                 data.forEach(row => {
                     rows += `
@@ -666,7 +652,6 @@
                         <td style="padding: 12px; border-bottom: 1px solid #E5E7EB;">${row.dispensed_by}</td>
                     </tr>`;
                 });
-
                 tbody.innerHTML = rows;
             })
             .catch(err => {
@@ -675,54 +660,42 @@
             });
     }
 
-    // --- MAIN: Open Modal & Fetch Data ---
     window.openPatientModal = function(id) {
         const modal = document.getElementById('patientDetailModal');
         modal.style.display = 'flex';
-
         fetch(`/patients/show/${id}`)
             .then(response => response.json())
             .then(data => {
-                activePatientData = data; // Save patient object
+                activePatientData = data;
                 document.getElementById('detInternalId').innerText = data.id;
-
                 const basicTab = document.querySelector('.tab-item:first-child');
                 switchTab({ currentTarget: basicTab }, 'basic-info');
 
-                // Header Mapping
                 document.getElementById('headerPatientID').innerText = data.patient_id || '---';
                 document.getElementById('headerPatientName').innerText = `${data.first_name || ''} ${data.last_name || ''}`;
                 document.getElementById('detID').innerText = data.patient_id || '---';
                 document.getElementById('detFam').innerText = data.family_number || '---';
-
-                console.log(data);
-console.log("data.id =", data.id);
-console.log("data.patient_id =", data.patient_id);
-
+                
                 loadMedicineHistory(data.patient_id);
 
-                // Patient Name
                 const fullNameEl = document.getElementById('detFullName');
                 fullNameEl.innerText = `${data.first_name || ''} ${data.middle_name || ''} ${data.last_name || ''}`.trim() || '---';
                 fullNameEl.dataset.first = data.first_name || '';
                 fullNameEl.dataset.middle = data.middle_name || '';
                 fullNameEl.dataset.last = data.last_name || '';
 
-                // Mother's Name 
                 const motherEl = document.getElementById('detMother');
                 motherEl.innerText = `${data.mother_first || ''} ${data.mother_middle || ''} ${data.mother_last || ''}`.trim() || '---';
                 motherEl.dataset.first = data.mother_first || '';
                 motherEl.dataset.middle = data.mother_middle || '';
                 motherEl.dataset.last = data.mother_last || '';
 
-                // Father's Name 
                 const fatherEl = document.getElementById('detFather');
                 fatherEl.innerText = `${data.father_first || ''} ${data.father_middle || ''} ${data.father_last || ''}`.trim() || '---';
                 fatherEl.dataset.first = data.father_first || '';
                 fatherEl.dataset.middle = data.father_middle || '';
                 fatherEl.dataset.last = data.father_last || '';
 
-                // General Basic Info
                 document.getElementById('detSex').innerText = data.gender || '---';
                 document.getElementById('detDOB').innerText = data.dob || '---';
                 document.getElementById('detAge').innerText = data.age || '---';
@@ -732,19 +705,15 @@ console.log("data.patient_id =", data.patient_id);
                 document.getElementById('detBrgy').innerText = data.barangay || '---';
                 document.getElementById('detContact').innerText = data.contact_number || '---'; 
                 document.getElementById('detEmail').innerText = data.email || '---';
-
-                // Government IDs
                 document.getElementById('detOscaPwd').innerText = data.osca_pwd_no || '---';
                 document.getElementById('det4ps').innerText = data.four_ps_no || '---';
                 document.getElementById('detReligion').innerText = data.religion || '---';
                 document.getElementById('detEducation').innerText = data.educational_attainment || '---';
 
-                // PhilHealth Data
                 let phType = 'None';
                 let phNo = '---';
                 let memberNameBox = document.getElementById('phMemberNameBox');
                 let memberDobBox = document.getElementById('phMemberDobBox');
-
                 if (data.philhealth === 'member') { 
                     phType = 'Member'; 
                     phNo = data.philhealth_no_member || '---'; 
@@ -761,82 +730,129 @@ console.log("data.patient_id =", data.patient_id);
                     if(memberNameBox) memberNameBox.style.display = 'none';
                     if(memberDobBox) memberDobBox.style.display = 'none';
                 }
-                
                 document.getElementById('detPhilType').innerText = phType;
                 document.getElementById('detPhilNo').innerText = phNo;
 
-                // --- Immunization & Maternal Health tabs: show only if tracking is enabled ---
+
                 const immTab = document.getElementById('tab-immunization');
                 const matTab = document.getElementById('tab-maternal');
 
-                if (String(data.tracking_immunization).toLowerCase() === 'yes') {
-                    immTab.style.display = 'block';
+                immTab.style.display = 'block';
+                matTab.style.display = 'block';
 
-                    const vacFields = [
-                        'vac_bcg','vac_hepa','vac_penta1','vac_opv1','vac_pcv1',
-                        'vac_ipv1','vac_ipv2','vac_penta2','vac_opv2','vac_pcv2',
-                        'vac_penta3','vac_opv3','vac_pcv3','vac_mr1','vac_mmr1',
-                        'vac_mmr2','vac_hpv1','vac_hpv2','vac_flu','vac_pneumo','vac_td'
-                    ];
-                    vacFields.forEach(function(field) {
-                        const el = document.getElementById('v_' + field);
-                        if (el) el.innerText = data[field] || '---';
-                    });
-                } else {
-                    immTab.style.display = 'none';
-                }
+                const vacFields = [
+                    'vac_bcg','vac_hepa','vac_penta1','vac_opv1','vac_pcv1',
+                    'vac_ipv1','vac_ipv2','vac_penta2','vac_opv2','vac_pcv2',
+                    'vac_penta3','vac_opv3','vac_pcv3','vac_mr1','vac_mmr1',
+                    'vac_mmr2','vac_hpv1','vac_hpv2','vac_flu','vac_pneumo','vac_td'
+                ];
 
-                if (String(data.tracking_maternal).toLowerCase() === 'yes') {
-                    matTab.style.display = 'block';
+                const trackingImmYes = String(data.tracking_immunization).toLowerCase() === 'yes';
+                let hasImmunizationData = false;
 
-                    const matFields = {
-                        'v_mat_nbs': 'mat_nbs',
-                        'v_mat_nbs_date': 'mat_nbs_date',
-                        'v_mat_nbs_result': 'mat_nbs_result',
-                        'v_mat_hearing': 'mat_hearing',
-                        'v_mat_hearing_date': 'mat_hearing_date',
-                        'v_mat_hearing_result': 'mat_hearing_result',
-                        'v_mat_birth_order': 'mat_birth_order',
-                        'v_mat_birth_length': 'mat_birth_length',
-                        'v_mat_birth_weight': 'mat_birth_weight',
-                        'v_mat_del_type': 'mat_delivery_type',
-                        'v_mat_feed_type': 'mat_feeding_type',
-                        'v_mat_attendant': 'mat_attendant',
-                        'v_mat_del_place': 'mat_delivery_place',
-                        'v_mat_vit_a_dose': 'mat_vit_a_dose',
-                        'v_mat_vit_a_date': 'mat_vit_a_date',
-                        'v_mat_deworm1': 'mat_deworming_1',
-                        'v_mat_deworm2': 'mat_deworming_2',
-                        'v_ob_g': 'ob_g',
-                        'v_ob_menarche': 'ob_menarche',
-                        'v_ob_pmp': 'ob_pmp',
-                        'v_ob_lmp': 'ob_lmp',
-                        'v_ob_edc': 'ob_edc',
-                        'v_ob_tt_status': 'ob_tt_status',
-                        'v_ob_td1': 'ob_td1',
-                        'v_ob_td2': 'ob_td2',
-                        'v_ob_td3': 'ob_td3',
-                        'v_ob_td4': 'ob_td4',
-                        'v_ob_td5': 'ob_td5',
-                    };
-                    Object.keys(matFields).forEach(function(elId) {
-                        const el = document.getElementById(elId);
-                        if (el) el.innerText = data[matFields[elId]] || '---';
-                    });
-
-                    const obPEl = document.getElementById('v_ob_p');
-                    if (obPEl) {
-                        const t = data.ob_p_t || '0';
-                        const p = data.ob_p_p || '0';
-                        const a = data.ob_p_a || '0';
-                        const l = data.ob_p_l || '0';
-                        obPEl.innerText = t + '-' + p + '-' + a + '-' + l;
+                vacFields.forEach(function(field) {
+                    const el = document.getElementById('v_' + field);
+                    if (el) {
+                        const value = data[field];
+                        if (value && value !== null && value !== '' && value !== '---') {
+                            hasImmunizationData = true;
+                        }
+                        el.innerText = value || '---';
                     }
+                });
+
+                const immTableBody = document.querySelector('#immunization table tbody');
+                const immNote = document.querySelector('#immunization > div:last-child');
+
+                if (!trackingImmYes && !hasImmunizationData) {
+                    if (immTableBody) {
+                        immTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding: 60px 20px; color: #9CA3AF;">
+                                    <div style="font-size: 36px; margin-bottom: 10px;">🏥</div>
+                                    <h4 style="margin: 0 0 5px; font-size: 15px; color: #111827;">No Immunization Records</h4>
+                                    <p style="margin: 0; font-size: 13px; color: #9CA3AF;">This patient has no recorded vaccines yet.</p>
+                                </td>
+                            </tr>`;
+                    }
+                    if (immNote) immNote.style.display = 'none';
                 } else {
-                    matTab.style.display = 'none';
+                    if (immNote) immNote.style.display = 'flex';
                 }
 
-                // Rest of medical history mapping
+                const matFields = {
+                    'v_mat_nbs': 'mat_nbs',
+                    'v_mat_nbs_date': 'mat_nbs_date',
+                    'v_mat_nbs_result': 'mat_nbs_result',
+                    'v_mat_hearing': 'mat_hearing',
+                    'v_mat_hearing_date': 'mat_hearing_date',
+                    'v_mat_hearing_result': 'mat_hearing_result',
+                    'v_mat_birth_order': 'mat_birth_order',
+                    'v_mat_birth_length': 'mat_birth_length',
+                    'v_mat_birth_weight': 'mat_birth_weight',
+                    'v_mat_del_type': 'mat_delivery_type',
+                    'v_mat_feed_type': 'mat_feeding_type',
+                    'v_mat_attendant': 'mat_attendant',
+                    'v_mat_del_place': 'mat_delivery_place',
+                    'v_mat_vit_a_dose': 'mat_vit_a_dose',
+                    'v_mat_vit_a_date': 'mat_vit_a_date',
+                    'v_mat_deworm1': 'mat_deworming_1',
+                    'v_mat_deworm2': 'mat_deworming_2',
+                    'v_ob_g': 'ob_g',
+                    'v_ob_menarche': 'ob_menarche',
+                    'v_ob_pmp': 'ob_pmp',
+                    'v_ob_lmp': 'ob_lmp',
+                    'v_ob_edc': 'ob_edc',
+                    'v_ob_tt_status': 'ob_tt_status',
+                    'v_ob_td1': 'ob_td1',
+                    'v_ob_td2': 'ob_td2',
+                    'v_ob_td3': 'ob_td3',
+                    'v_ob_td4': 'ob_td4',
+                    'v_ob_td5': 'ob_td5',
+                };
+
+                const trackingMatYes = String(data.tracking_maternal).toLowerCase() === 'yes';
+                let hasMaternalData = false;
+
+                Object.keys(matFields).forEach(function(elId) {
+                    const el = document.getElementById(elId);
+                    const value = data[matFields[elId]];
+                    if (value && value !== null && value !== '' && value !== '---') {
+                        hasMaternalData = true;
+                    }
+                    if (el) el.innerText = value || '---';
+                });
+
+                const obPEl = document.getElementById('v_ob_p');
+                if (obPEl) {
+                    const t = data.ob_p_t || '0';
+                    const p = data.ob_p_p || '0';
+                    const a = data.ob_p_a || '0';
+                    const l = data.ob_p_l || '0';
+                    obPEl.innerText = t + '-' + p + '-' + a + '-' + l;
+                }
+
+                document.getElementById('maternal-empty-state')?.remove();
+
+                const matPane = document.getElementById('maternal-health');
+                const matCards = matPane?.querySelectorAll('.detail-card');
+
+                if (!trackingMatYes && !hasMaternalData) {
+                    if (matCards) matCards.forEach(card => card.style.display = 'none');
+
+                    const emptyHtml = `
+                        <div id="maternal-empty-state" style="text-align:center; padding: 60px 20px; background: white; border: 1px dashed #D1D5DB; border-radius: 10px; margin-top: 20px;">
+                            <div style="font-size: 36px; margin-bottom: 10px;">📋</div>
+                            <h4 style="margin: 0 0 5px; font-size: 15px; color: #111827;">No Maternal Health Records</h4>
+                            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">This patient has no recorded maternal health information yet.</p>
+                        </div>`;
+                    matPane?.insertAdjacentHTML('beforeend', emptyHtml);
+                } else {
+                    
+                    document.getElementById('maternal-empty-state')?.remove();
+                    if (matCards) matCards.forEach(card => card.style.display = 'block');
+                }
+                
                 if(!data.screen_bp && !data.screen_bmi) {
                     document.getElementById('medical-history-empty').style.display = 'flex';
                     document.getElementById('medical-history-filled').style.display = 'none';
@@ -849,10 +865,9 @@ console.log("data.patient_id =", data.patient_id);
             .catch(error => console.error('Error loading patient:', error));
     };
 
-    // --- EDIT PATIENT & UPDATE LOGIC ---
+    
     window.editPatient = function(patientId) {
         if (!patientId) patientId = document.getElementById('detInternalId').innerText;
-
         Swal.fire({
             title: 'Enable Editing?',
             text: "Switching to edit mode for Basic Information.",
@@ -864,7 +879,6 @@ console.log("data.patient_id =", data.patient_id);
                 const paragraphs = document.querySelectorAll('#basic-info .item p');
                 paragraphs.forEach(p => {
                     if (['detID', 'detAge', 'detFam'].includes(p.id)) return;
-
                     const currentValue = p.innerText === '---' ? '' : p.innerText;
                     
                     if (['detFullName', 'detMother', 'detFather'].includes(p.id)) {
@@ -876,13 +890,11 @@ console.log("data.patient_id =", data.patient_id);
                         let prefix = 'edit_';
                         if (p.id === 'detMother') prefix = 'mother_';
                         if (p.id === 'detFather') prefix = 'father_';
-
                         const names = [
                             { id: prefix + 'first_name', val: p.dataset.first, placeholder: 'First Name' },
                             { id: prefix + 'middle_name', val: p.dataset.middle, placeholder: 'Middle Name' },
                             { id: prefix + 'last_name', val: p.dataset.last, placeholder: 'Last Name' }
                         ];
-
                         names.forEach(n => {
                             const nInput = document.createElement('input');
                             nInput.type = 'text';
@@ -896,7 +908,6 @@ console.log("data.patient_id =", data.patient_id);
                         p.replaceWith(container);
                         return;
                     }
-
                     let input;
                     if (['detSex', 'detBrgy', 'detCivil', 'detPhilType'].includes(p.id)) {
                         input = document.createElement('select');
@@ -942,14 +953,11 @@ console.log("data.patient_id =", data.patient_id);
                             input.oninput = function() { this.value = this.value.replace(/[^0-9]/g, ''); };
                         }
                     }
-
                     input.id = p.id;
                     input.style.cssText = "width:100%; padding:8px; border:1px solid #1A73E8; border-radius:4px;";
                     p.replaceWith(input);
                 });
-
                 window.togglePhilHealthFields();
-
                 document.getElementById('dynamic-action-button').innerHTML = 
                     `<button class="btn-primary" onclick="savePatientUpdate('${patientId}')">Save Changes</button>
                      <button class="btn-secondary" style="margin-left:8px;" onclick="location.reload()">Cancel</button>`;
@@ -957,403 +965,172 @@ console.log("data.patient_id =", data.patient_id);
         });
     };
 
-window.savePatientUpdate = function(dbId) {
-
-    const contactNo = document.getElementById('detContact')?.value || '';
-
-    // Required name validation
-    const firstName = document.getElementById('edit_first_name')?.value.trim() || '';
-    const lastName = document.getElementById('edit_last_name')?.value.trim() || '';
-
-    if (firstName === '' || lastName === '') {
-        Swal.fire(
-            'Warning',
-            'Patient First Name and Last Name cannot be empty.',
-            'warning'
-        );
-        return;
-    }
-
-    // Contact number validation
-    if (contactNo.length > 0 && contactNo.length !== 11) {
-        Swal.fire(
-            'Warning',
-            'Contact Number must be exactly 11 digits.',
-            'warning'
-        );
-        return;
-    }
-
-    const philType =
-        document.getElementById('detPhilType')?.value.toLowerCase() || 'none';
-
-    const philNo =
-        document.getElementById('detPhilNo')?.value || '';
-
-    const csrfToken =
-        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-    const updatedData = {
-
-        _token: csrfToken,
-
-        first_name: firstName,
-        middle_name:
-            document.getElementById('edit_middle_name')?.value.trim() || '',
-        last_name: lastName,
-
-        mother_first:
-            document.getElementById('mother_first_name')?.value.trim() || '',
-        mother_middle:
-            document.getElementById('mother_middle_name')?.value.trim() || '',
-        mother_last:
-            document.getElementById('mother_last_name')?.value.trim() || '',
-
-        father_first:
-            document.getElementById('father_first_name')?.value.trim() || '',
-        father_middle:
-            document.getElementById('father_middle_name')?.value.trim() || '',
-        father_last:
-            document.getElementById('father_last_name')?.value.trim() || '',
-
-        dob:
-            document.getElementById('detDOB')?.value || '',
-
-        pob:
-            document.getElementById('detPOB')?.value.trim() || '',
-
-        gender:
-            document.getElementById('detSex')?.value || '',
-
-        civil_status:
-            document.getElementById('detCivil')?.value || '',
-
-        address:
-            document.getElementById('detAddress')?.value.trim() || '',
-
-        barangay:
-            document.getElementById('detBrgy')?.value || '',
-
-        // This matches your Patient model
-        contact_number: contactNo,
-
-        email:
-            document.getElementById('detEmail')?.value.trim() || '',
-
-        osca_pwd_no:
-            document.getElementById('detOscaPwd')?.value.trim() || '',
-
-        four_ps_no:
-            document.getElementById('det4ps')?.value.trim() || '',
-
-        religion:
-            document.getElementById('detReligion')?.value.trim() || '',
-
-        educational_attainment:
-            document.getElementById('detEducation')?.value.trim() || '',
-
-        philhealth: philType,
-
-        philhealth_no_member:
-            philType === 'member' ? philNo : '',
-
-        philhealth_no_dependent:
-            philType === 'dependent' ? philNo : '',
-
-        philhealth_member_name:
-            philType === 'dependent'
-                ? document.getElementById('detPhilMemberName')?.value.trim() || ''
-                : '',
-
-        philhealth_member_dob:
-            philType === 'dependent'
-                ? document.getElementById('detPhilMemberDob')?.value || ''
-                : ''
-    };
-
-    console.log('Updating patient:', dbId);
-    console.log('Data being sent:', updatedData);
-
-    Swal.fire({
-        title: 'Saving...',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
+    window.savePatientUpdate = function(dbId) {
+        const contactNo = document.getElementById('detContact')?.value || '';
+        const firstName = document.getElementById('edit_first_name')?.value.trim() || '';
+        const lastName = document.getElementById('edit_last_name')?.value.trim() || '';
+        if (firstName === '' || lastName === '') {
+            Swal.fire('Warning', 'Patient First Name and Last Name cannot be empty.', 'warning');
+            return;
         }
-    });
-
-    // ONLY ONE REQUEST
-    fetch(`${window.location.origin}/patients/${dbId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken,
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify(updatedData)
-    })
-    .then(async response => {
-
-        const contentType = response.headers.get('content-type') || '';
-
-        // Read server response even when there is an error
-        const responseText = await response.text();
-
-        console.log('Server status:', response.status);
-        console.log('Server response:', responseText);
-
-        if (!response.ok) {
-            let message = 'Patient update failed.';
-
-            try {
-                const errorData = JSON.parse(responseText);
-
-                if (errorData.message) {
-                    message = errorData.message;
-                }
-
-                if (errorData.errors) {
-                    console.error('Validation errors:', errorData.errors);
-
-                    message = Object.values(errorData.errors)
-                        .flat()
-                        .join('<br>');
-                }
-
-            } catch (e) {
-                // Response was not JSON
-                if (responseText) {
-                    console.error('Server returned:', responseText);
-                }
-            }
-
-            throw new Error(message);
+        if (contactNo.length > 0 && contactNo.length !== 11) {
+            Swal.fire('Warning', 'Contact Number must be exactly 11 digits.', 'warning');
+            return;
         }
-
-        // Parse JSON only if server actually returned JSON
-        if (contentType.includes('application/json')) {
-            return JSON.parse(responseText);
-        }
-
-        return {};
-    })
-    .then(result => {
-
-        console.log('Update successful:', result);
-
-        Swal.fire(
-            'Updated!',
-            'Patient record saved successfully.',
-            'success'
-        ).then(() => {
-
-            // Refresh the page after successful save
-            location.reload();
-
-        });
-    })
-    .catch(error => {
-
-        console.error('Patient update error:', error);
-
-        Swal.fire(
-            'Error',
-            error.message || 'Unable to update patient record.',
-            'error'
-        );
-    });
-};
-
-function loadServiceHistory(patientId) {
-
-    const loading = document.getElementById('serviceHistoryLoading');
-    const empty = document.getElementById('serviceHistoryEmpty');
-    const list = document.getElementById('serviceHistoryList');
-
-    if (!loading || !empty || !list) return;
-
-    loading.style.display = 'block';
-    empty.style.display = 'none';
-    list.innerHTML = '';
-
-    fetch(`/patients/${patientId}/service-history`)
-        .then(async response => {
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(
-                    `HTTP ${response.status}: ${errorText}`
-                );
-            }
-
-            return response.json();
+        const philType = document.getElementById('detPhilType')?.value.toLowerCase() || 'none';
+        const philNo = document.getElementById('detPhilNo')?.value || '';
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const updatedData = {
+            _token: csrfToken,
+            first_name: firstName,
+            middle_name: document.getElementById('edit_middle_name')?.value.trim() || '',
+            last_name: lastName,
+            mother_first: document.getElementById('mother_first_name')?.value.trim() || '',
+            mother_middle: document.getElementById('mother_middle_name')?.value.trim() || '',
+            mother_last: document.getElementById('mother_last_name')?.value.trim() || '',
+            father_first: document.getElementById('father_first_name')?.value.trim() || '',
+            father_middle: document.getElementById('father_middle_name')?.value.trim() || '',
+            father_last: document.getElementById('father_last_name')?.value.trim() || '',
+            dob: document.getElementById('detDOB')?.value || '',
+            pob: document.getElementById('detPOB')?.value.trim() || '',
+            gender: document.getElementById('detSex')?.value || '',
+            civil_status: document.getElementById('detCivil')?.value || '',
+            address: document.getElementById('detAddress')?.value.trim() || '',
+            barangay: document.getElementById('detBrgy')?.value || '',
+            contact_number: contactNo,
+            email: document.getElementById('detEmail')?.value.trim() || '',
+            osca_pwd_no: document.getElementById('detOscaPwd')?.value.trim() || '',
+            four_ps_no: document.getElementById('det4ps')?.value.trim() || '',
+            religion: document.getElementById('detReligion')?.value.trim() || '',
+            educational_attainment: document.getElementById('detEducation')?.value.trim() || '',
+            philhealth: philType,
+            philhealth_no_member: philType === 'member' ? philNo : '',
+            philhealth_no_dependent: philType === 'dependent' ? philNo : '',
+            philhealth_member_name: philType === 'dependent' ? document.getElementById('detPhilMemberName')?.value.trim() || '' : '',
+            philhealth_member_dob: philType === 'dependent' ? document.getElementById('detPhilMemberDob')?.value || '' : ''
+        };
+        Swal.fire({ title: 'Saving...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        fetch(`${window.location.origin}/patients/${dbId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(updatedData)
         })
-        .then(records => {
-
-            loading.style.display = 'none';
-
-            if (!records || records.length === 0) {
-                empty.style.display = 'block';
-                return;
+        .then(async response => {
+            const contentType = response.headers.get('content-type') || '';
+            const responseText = await response.text();
+            if (!response.ok) {
+                let message = 'Patient update failed.';
+                try {
+                    const errorData = JSON.parse(responseText);
+                    if (errorData.message) message = errorData.message;
+                    if (errorData.errors) message = Object.values(errorData.errors).flat().join('<br>');
+                } catch (e) {}
+                throw new Error(message);
             }
-
-            list.innerHTML = '';
-
-            records.forEach(record => {
-
-                const riskClass =
-                    record.risk_level?.toLowerCase() === 'high'
-                        ? 'background:#FEF2F2;color:#B91C1C;'
-                        : record.risk_level?.toLowerCase() === 'moderate'
-                        ? 'background:#FFFBEB;color:#B45309;'
-                        : 'background:#ECFDF5;color:#047857;';
-
-                const card = document.createElement('div');
-
-                card.className = 'service-history-card';
-
-                card.innerHTML = `
-                    <div class="service-history-header">
-
-                        <div>
-                            <div class="service-history-date">
-                                ${record.date}
-                            </div>
-
-                            <div class="service-history-time">
-                                ${record.time}
-                            </div>
-
-                            <div class="service-history-type">
-                                ${record.service_type}
-                            </div>
-                        </div>
-
-                        <span
-                            class="service-history-status"
-                            style="${riskClass}">
-                            ${record.risk_level}
-                        </span>
-
-                    </div>
-
-                    <div class="service-history-body">
-
-                        <div class="service-history-grid">
-
-                            <div class="service-history-field">
-                                <span class="service-history-label">
-                                    Triage Level
-                                </span>
-
-                                <span class="service-history-value">
-                                    ${record.triage_level}
-                                </span>
-                            </div>
-
-                            <div class="service-history-field">
-                                <span class="service-history-label">
-                                    Status
-                                </span>
-
-                                <span class="service-history-value">
-                                    ${record.status}
-                                </span>
-                            </div>
-
-                            <div class="service-history-field">
-                                <span class="service-history-label">
-                                    Registered By
-                                </span>
-
-                                <span class="service-history-value">
-                                    ${record.registered_by_name} (${record.registered_by_role})
-                                </span>
-                            </div>
-
-                        </div>
-
-                        <div class="service-history-vitals">
-
-                            <div class="service-history-vital">
-                                <span class="service-history-vital-label">
-                                    Blood Pressure
-                                </span>
-
-                                <span class="service-history-vital-value">
-                                    ${record.bp}
-                                </span>
-                            </div>
-
-                            <div class="service-history-vital">
-                                <span class="service-history-vital-label">
-                                    Temperature
-                                </span>
-
-                                <span class="service-history-vital-value">
-                                    ${record.temp}
-                                </span>
-                            </div>
-
-                            <div class="service-history-vital">
-                                <span class="service-history-vital-label">
-                                    Weight
-                                </span>
-
-                                <span class="service-history-vital-value">
-                                    ${record.weight}
-                                </span>
-                            </div>
-
-                            <div class="service-history-vital">
-                                <span class="service-history-vital-label">
-                                    Height
-                                </span>
-
-                                <span class="service-history-vital-value">
-                                    ${record.height}
-                                </span>
-                            </div>
-
-                        </div>
-
-                        <div class="service-history-symptoms">
-
-                            <span class="service-history-label">
-                                Symptoms / Reason
-                            </span>
-
-                            <p>
-                                ${record.symptoms}
-                            </p>
-
-                        </div>
-
-                    </div>
-                `;
-
-                list.appendChild(card);
-            });
+            return contentType.includes('application/json') ? JSON.parse(responseText) : {};
+        })
+        .then(result => {
+            Swal.fire('Updated!', 'Patient record saved successfully.', 'success').then(() => location.reload());
         })
         .catch(error => {
-
-            console.error('Error loading service history:', error);
-
-            loading.style.display = 'none';
-
-            list.innerHTML = `
-                <div style="
-                    background: #FEF2F2;
-                    border: 1px solid #FECACA;
-                    border-radius: 10px;
-                    padding: 20px;
-                    color: #B91C1C;
-                    font-size: 13px;
-                ">
-                    Unable to load this patient's service history.
-                </div>
-            `;
+            Swal.fire('Error', error.message || 'Unable to update patient record.', 'error');
         });
-}
+    };
+
+    function loadServiceHistory(patientId) {
+        const loading = document.getElementById('serviceHistoryLoading');
+        const empty = document.getElementById('serviceHistoryEmpty');
+        const list = document.getElementById('serviceHistoryList');
+        if (!loading || !empty || !list) return;
+        loading.style.display = 'block';
+        empty.style.display = 'none';
+        list.innerHTML = '';
+        fetch(`/patients/${patientId}/service-history`)
+            .then(async response => {
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                return response.json();
+            })
+            .then(records => {
+                loading.style.display = 'none';
+                if (!records || records.length === 0) {
+                    empty.style.display = 'block';
+                    return;
+                }
+                list.innerHTML = '';
+                records.forEach(record => {
+                    const riskClass =
+                        record.risk_level?.toLowerCase() === 'high'
+                            ? 'background:#FEF2F2;color:#B91C1C;'
+                            : record.risk_level?.toLowerCase() === 'moderate'
+                            ? 'background:#FFFBEB;color:#B45309;'
+                            : 'background:#ECFDF5;color:#047857;';
+                    const card = document.createElement('div');
+                    card.className = 'service-history-card';
+                    card.innerHTML = `
+                        <div class="service-history-header">
+                            <div>
+                                <div class="service-history-date">${record.date}</div>
+                                <div class="service-history-time">${record.time}</div>
+                                <div class="service-history-type">${record.service_type}</div>
+                            </div>
+                            <span class="service-history-status" style="${riskClass}">${record.risk_level}</span>
+                        </div>
+                        <div class="service-history-body">
+                            <div class="service-history-grid">
+                                <div class="service-history-field">
+                                    <span class="service-history-label">Triage Level</span>
+                                    <span class="service-history-value">${record.triage_level}</span>
+                                </div>
+                                <div class="service-history-field">
+                                    <span class="service-history-label">Status</span>
+                                    <span class="service-history-value">${record.status}</span>
+                                </div>
+                                <div class="service-history-field">
+                                    <span class="service-history-label">Registered By</span>
+                                    <span class="service-history-value">${record.registered_by_name} (${record.registered_by_role})</span>
+                                </div>
+                            </div>
+                            <div class="service-history-vitals">
+                                <div class="service-history-vital">
+                                    <span class="service-history-vital-label">BP</span>
+                                    <span class="service-history-vital-value">${record.bp}</span>
+                                </div>
+                                <div class="service-history-vital">
+                                    <span class="service-history-vital-label">Temp</span>
+                                    <span class="service-history-vital-value">${record.temp}</span>
+                                </div>
+                                <div class="service-history-vital">
+                                    <span class="service-history-vital-label">Weight</span>
+                                    <span class="service-history-vital-value">${record.weight}</span>
+                                </div>
+                                <div class="service-history-vital">
+                                    <span class="service-history-vital-label">Height</span>
+                                    <span class="service-history-vital-value">${record.height}</span>
+                                </div>
+                            </div>
+                            <div class="service-history-symptoms">
+                                <span class="service-history-label">Symptoms / Reason</span>
+                                <p>${record.symptoms}</p>
+                            </div>
+                        </div>`;
+                    list.appendChild(card);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading service history:', error);
+                loading.style.display = 'none';
+                list.innerHTML = `
+                    <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 10px; padding: 20px; color: #B91C1C; font-size: 13px;">
+                        Unable to load this patient's service history.
+                    </div>`;
+            });
+    }
 </script>
