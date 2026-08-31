@@ -6,7 +6,7 @@
             <div>
                 <h3 style="margin: 0; font-size: 18px; color: #111827;">Patient Record Details</h3>
                 <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">
-                    <span id="headerPatientID" style="font-weight: 500;">---</span> • 
+                    <span id="headerPatientID" style="font-weight: 500;">---</span> â€¢ 
                     <span id="detInternalId" style="display:none;"></span>
                     <span id="headerPatientName">---</span>
                 </p>
@@ -92,7 +92,7 @@
             <div id="medical-history" class="tab-pane" style="display: none;">
                 
                 <div id="medical-history-empty" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: white; border: 1px dashed #D1D5DB; border-radius: 10px;">
-                    <span style="font-size: 40px; margin-bottom: 12px;">📝</span>
+                    <span style="font-size: 40px; margin-bottom: 12px;">[No Records]</span>
                     <h4 style="margin: 0; font-size: 16px; color: #111827;">No Medical History Found</h4>
                     <p style="margin: 4px 0 20px; font-size: 13px; color: #6B7280; text-align: center; max-width: 400px;">This patient has not yet undergone their initial Integrated NCD Risk Assessment.</p>
                     @if(auth()->user()->role === 'doctor' || auth()->user()->is_physician_in_charge)
@@ -201,7 +201,7 @@
                     text-align: center;">
 
             <div style="font-size: 36px; margin-bottom: 10px;">
-                🩺
+                ðŸ©º
             </div>
 
             <h4 style="margin: 0 0 5px; font-size: 15px; color: #111827;">
@@ -246,7 +246,7 @@
                     </div>
                 </div>
                 <div style="margin-top: 16px; padding: 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 12px; color: #6B7280;">
-                    📋 <b>Note:</b> This is a read-only historical record based on inventory dispensing.
+                    ðŸ“‹ <b>Note:</b> This is a read-only historical record based on inventory dispensing.
                 </div>
             </div>
 
@@ -309,7 +309,7 @@
                     </div>
                 </div>
                 <div style="margin-top: 16px; padding: 12px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; font-size: 12px; color: #1E40AF; display: flex; align-items: center; gap: 8px;">
-                    <span>ℹ️</span>
+                    <span>â„¹ï¸</span>
                     <span><b>Note:</b> Immunization tracking is enabled for this patient. Records are automatically updated when vaccines are administered.</span>
                 </div>
             </div>
@@ -606,7 +606,7 @@
             btnContainer.innerHTML = `<button class="btn-primary" onclick="${btnAction}">${btnText}</button>`;
         }
 
-        // ✅ FIXED TAB SWITCH LOAD
+        // âœ… FIXED TAB SWITCH LOAD
 
         if (tabId === 'service-history' && activePatientData) {
     loadServiceHistory(activePatientData.id);
@@ -764,6 +764,77 @@ console.log("data.patient_id =", data.patient_id);
                 
                 document.getElementById('detPhilType').innerText = phType;
                 document.getElementById('detPhilNo').innerText = phNo;
+
+                // --- Immunization & Maternal Health tabs: show only if tracking is enabled ---
+                const immTab = document.getElementById('tab-immunization');
+                const matTab = document.getElementById('tab-maternal');
+
+                if (String(data.tracking_immunization).toLowerCase() === 'yes') {
+                    immTab.style.display = 'block';
+
+                    const vacFields = [
+                        'vac_bcg','vac_hepa','vac_penta1','vac_opv1','vac_pcv1',
+                        'vac_ipv1','vac_ipv2','vac_penta2','vac_opv2','vac_pcv2',
+                        'vac_penta3','vac_opv3','vac_pcv3','vac_mr1','vac_mmr1',
+                        'vac_mmr2','vac_hpv1','vac_hpv2','vac_flu','vac_pneumo','vac_td'
+                    ];
+                    vacFields.forEach(function(field) {
+                        const el = document.getElementById('v_' + field);
+                        if (el) el.innerText = data[field] || '---';
+                    });
+                } else {
+                    immTab.style.display = 'none';
+                }
+
+                if (String(data.tracking_maternal).toLowerCase() === 'yes') {
+                    matTab.style.display = 'block';
+
+                    const matFields = {
+                        'v_mat_nbs': 'mat_nbs',
+                        'v_mat_nbs_date': 'mat_nbs_date',
+                        'v_mat_nbs_result': 'mat_nbs_result',
+                        'v_mat_hearing': 'mat_hearing',
+                        'v_mat_hearing_date': 'mat_hearing_date',
+                        'v_mat_hearing_result': 'mat_hearing_result',
+                        'v_mat_birth_order': 'mat_birth_order',
+                        'v_mat_birth_length': 'mat_birth_length',
+                        'v_mat_birth_weight': 'mat_birth_weight',
+                        'v_mat_del_type': 'mat_delivery_type',
+                        'v_mat_feed_type': 'mat_feeding_type',
+                        'v_mat_attendant': 'mat_attendant',
+                        'v_mat_del_place': 'mat_delivery_place',
+                        'v_mat_vit_a_dose': 'mat_vit_a_dose',
+                        'v_mat_vit_a_date': 'mat_vit_a_date',
+                        'v_mat_deworm1': 'mat_deworming_1',
+                        'v_mat_deworm2': 'mat_deworming_2',
+                        'v_ob_g': 'ob_g',
+                        'v_ob_menarche': 'ob_menarche',
+                        'v_ob_pmp': 'ob_pmp',
+                        'v_ob_lmp': 'ob_lmp',
+                        'v_ob_edc': 'ob_edc',
+                        'v_ob_tt_status': 'ob_tt_status',
+                        'v_ob_td1': 'ob_td1',
+                        'v_ob_td2': 'ob_td2',
+                        'v_ob_td3': 'ob_td3',
+                        'v_ob_td4': 'ob_td4',
+                        'v_ob_td5': 'ob_td5',
+                    };
+                    Object.keys(matFields).forEach(function(elId) {
+                        const el = document.getElementById(elId);
+                        if (el) el.innerText = data[matFields[elId]] || '---';
+                    });
+
+                    const obPEl = document.getElementById('v_ob_p');
+                    if (obPEl) {
+                        const t = data.ob_p_t || '0';
+                        const p = data.ob_p_p || '0';
+                        const a = data.ob_p_a || '0';
+                        const l = data.ob_p_l || '0';
+                        obPEl.innerText = t + '-' + p + '-' + a + '-' + l;
+                    }
+                } else {
+                    matTab.style.display = 'none';
+                }
 
                 // Rest of medical history mapping
                 if(!data.screen_bp && !data.screen_bmi) {

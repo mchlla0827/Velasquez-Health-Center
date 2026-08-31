@@ -52,7 +52,7 @@ class PatientController extends Controller
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'middle_initial' => 'nullable|string|max:1',
+            'middle_initial' => 'nullable|string|max:100',
             'dob' => 'required|date',
             'gender' => 'required|string',
             'address' => 'required|string|max:255',
@@ -64,6 +64,21 @@ class PatientController extends Controller
             'philhealth_no_member' => 'required_if:philhealth_type,Member|nullable|digits:12',
             'philhealth_no_dep' => 'required_if:philhealth_type,Dependent|nullable|digits:12',
             'philhealth_member_name' => 'required_if:philhealth_type,Dependent|nullable|string|max:255',
+            'mother_first' => 'nullable|string|max:255',
+            'mother_middle' => 'nullable|string|max:255',
+            'mother_last' => 'nullable|string|max:255',
+            'father_first' => 'nullable|string|max:255',
+            'father_middle' => 'nullable|string|max:255',
+            'father_last' => 'nullable|string|max:255',
+            'pob' => 'nullable|string|max:255',
+            'civil_status' => 'nullable|string|max:50',
+            'osca_pwd_no' => 'nullable|string|max:50',
+            'four_ps_no' => 'nullable|string|max:50',
+            'religion' => 'nullable|string|max:100',
+            'educational_attainment' => 'nullable|string|max:100',
+            'philhealth_member_dob' => 'nullable|date',
+            'tracking_immunization' => 'nullable|string',
+            'tracking_maternal' => 'nullable|string',
         ]);
 
         $age = Carbon::parse($validated['dob'])->age;
@@ -77,12 +92,30 @@ class PatientController extends Controller
 
         $patientId = 'PAT-' . date('Y') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
 
-        DB::transaction(function () use ($validated, $request, $patientId, $philhealthNo, $age) {
-            Patient::create([
+        $immunizationFields = $request->only([
+            'vac_bcg', 'vac_hepa', 'vac_penta1', 'vac_opv1', 'vac_pcv1',
+            'vac_ipv1', 'vac_ipv2', 'vac_penta2', 'vac_opv2', 'vac_pcv2',
+            'vac_penta3', 'vac_opv3', 'vac_pcv3', 'vac_mr1', 'vac_mmr1',
+            'vac_mmr2', 'vac_hpv1', 'vac_hpv2', 'vac_flu', 'vac_pneumo', 'vac_td',
+        ]);
+
+        $maternalFields = $request->only([
+            'mat_nbs', 'mat_nbs_date', 'mat_nbs_result',
+            'mat_hearing', 'mat_hearing_date', 'mat_hearing_result',
+            'mat_birth_order', 'mat_birth_length', 'mat_birth_weight',
+            'mat_delivery_type', 'mat_feeding_type', 'mat_attendant', 'mat_delivery_place',
+            'mat_vit_a_dose', 'mat_vit_a_date', 'mat_deworming_1', 'mat_deworming_2',
+            'ob_g', 'ob_p_t', 'ob_p_p', 'ob_p_a', 'ob_p_l',
+            'ob_menarche', 'ob_pmp', 'ob_lmp', 'ob_edc', 'ob_tt_status',
+            'ob_td1', 'ob_td2', 'ob_td3', 'ob_td4', 'ob_td5',
+        ]);
+
+        DB::transaction(function () use ($validated, $request, $patientId, $philhealthNo, $age, $immunizationFields, $maternalFields) {
+            Patient::create(array_merge([
                 'patient_id' => $patientId,
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
-                'middle_initial' => $validated['middle_initial'] ?? null,
+                'middle_name' => $validated['middle_initial'] ?? null,
                 'dob' => $validated['dob'],
                 'age' => $age,
                 'gender' => $validated['gender'],
@@ -91,12 +124,28 @@ class PatientController extends Controller
                 'contact_number' => $validated['contact_number'],
                 'family_number' => $validated['family_number'],
                 'email' => $validated['email'] ?? null,
-                'philhealth_type' => $validated['philhealth_type'],
-                'philhealth_no' => $philhealthNo,
-                'principal_member_name' => $validated['philhealth_type'] === 'Dependent'
+                'philhealth' => strtolower($validated['philhealth_type']),
+                'philhealth_no_member' => $validated['philhealth_type'] === 'Member' ? $philhealthNo : null,
+                'philhealth_no_dependent' => $validated['philhealth_type'] === 'Dependent' ? $philhealthNo : null,
+                'philhealth_member_name' => $validated['philhealth_type'] === 'Dependent'
                     ? $validated['philhealth_member_name']
                     : null,
-            ]);
+                'philhealth_member_dob' => $validated['philhealth_member_dob'] ?? null,
+                'mother_first' => $validated['mother_first'] ?? null,
+                'mother_middle' => $validated['mother_middle'] ?? null,
+                'mother_last' => $validated['mother_last'] ?? null,
+                'father_first' => $validated['father_first'] ?? null,
+                'father_middle' => $validated['father_middle'] ?? null,
+                'father_last' => $validated['father_last'] ?? null,
+                'pob' => $validated['pob'] ?? null,
+                'civil_status' => $validated['civil_status'] ?? null,
+                'osca_pwd_no' => $validated['osca_pwd_no'] ?? null,
+                'four_ps_no' => $validated['four_ps_no'] ?? null,
+                'religion' => $validated['religion'] ?? null,
+                'educational_attainment' => $validated['educational_attainment'] ?? null,
+                'tracking_immunization' => $validated['tracking_immunization'] ?? 'No',
+                'tracking_maternal' => $validated['tracking_maternal'] ?? 'No',
+            ], $immunizationFields, $maternalFields));
         });
 
         return redirect()
@@ -139,10 +188,30 @@ class PatientController extends Controller
             'philhealth_no_dependent' => 'nullable|string|max:255',
             'philhealth_member_name' => 'nullable|string|max:255',
             'philhealth_member_dob' => 'nullable|date',
+            'tracking_immunization' => 'nullable|string',
+            'tracking_maternal' => 'nullable|string',
+        ]);
+
+        $immunizationFields = $request->only([
+            'vac_bcg', 'vac_hepa', 'vac_penta1', 'vac_opv1', 'vac_pcv1',
+            'vac_ipv1', 'vac_ipv2', 'vac_penta2', 'vac_opv2', 'vac_pcv2',
+            'vac_penta3', 'vac_opv3', 'vac_pcv3', 'vac_mr1', 'vac_mmr1',
+            'vac_mmr2', 'vac_hpv1', 'vac_hpv2', 'vac_flu', 'vac_pneumo', 'vac_td',
+        ]);
+
+        $maternalFields = $request->only([
+            'mat_nbs', 'mat_nbs_date', 'mat_nbs_result',
+            'mat_hearing', 'mat_hearing_date', 'mat_hearing_result',
+            'mat_birth_order', 'mat_birth_length', 'mat_birth_weight',
+            'mat_delivery_type', 'mat_feeding_type', 'mat_attendant', 'mat_delivery_place',
+            'mat_vit_a_dose', 'mat_vit_a_date', 'mat_deworming_1', 'mat_deworming_2',
+            'ob_g', 'ob_p_t', 'ob_p_p', 'ob_p_a', 'ob_p_l',
+            'ob_menarche', 'ob_pmp', 'ob_lmp', 'ob_edc', 'ob_tt_status',
+            'ob_td1', 'ob_td2', 'ob_td3', 'ob_td4', 'ob_td5',
         ]);
 
         $patient = Patient::findOrFail($id);
-        $patient->update($validated);
+        $patient->update(array_merge($validated, $immunizationFields, $maternalFields));
 
         return response()->json([
             'success' => true,
@@ -197,7 +266,7 @@ class PatientController extends Controller
     }
 
     // ==================================================
-    // UPDATE STATUS — Doctor OR PIC
+    // UPDATE STATUS Ã¢â‚¬â€ Doctor OR PIC
     // ==================================================
     public function updateStatus(Request $request, $id)
     {
@@ -355,7 +424,7 @@ class PatientController extends Controller
     }
 
     // ==================================================
-    // ✅ NCD ASSESSMENT — LOAD LATEST (AJAX)
+    // Ã¢Å“â€¦ NCD ASSESSMENT Ã¢â‚¬â€ LOAD LATEST (AJAX)
     // ==================================================
     public function getMedicalHistory($patientId)
     {
@@ -371,7 +440,7 @@ class PatientController extends Controller
     }
 
     // ==================================================
-    // ✅ NCD ASSESSMENT — SHOW FORM
+    // Ã¢Å“â€¦ NCD ASSESSMENT Ã¢â‚¬â€ SHOW FORM
     // ==================================================
     public function createNcdAssessment($patientId)
     {
@@ -384,7 +453,7 @@ class PatientController extends Controller
     }
 
     // ==================================================
-    // ✅ NCD ASSESSMENT — SAVE FORM
+    // Ã¢Å“â€¦ NCD ASSESSMENT Ã¢â‚¬â€ SAVE FORM
     // ==================================================
     public function storeNcdAssessment(Request $request, $patientId)
     {
@@ -486,7 +555,7 @@ class PatientController extends Controller
 
         return redirect()
             ->back()
-            ->with('success', '✅ NCD Risk Assessment saved successfully!');
+            ->with('success', 'Ã¢Å“â€¦ NCD Risk Assessment saved successfully!');
     }
 
     // ==================================================
@@ -510,7 +579,7 @@ class PatientController extends Controller
                 'triage_level' => $record->triage_level ?: ($record->risk_level ?: '---'),
                 'status' => $record->status ?: '---',
                 'bp' => $record->bp ?: '---',
-                'temp' => $record->temp !== null ? $record->temp . ' °C' : '---',
+                'temp' => $record->temp !== null ? $record->temp . ' Ã‚Â°C' : '---',
                 'weight' => $record->weight !== null ? $record->weight . ' kg' : '---',
                 'height' => $record->height !== null ? $record->height . ' cm' : '---',
                 'symptoms' => $record->symptoms ?: '---',
