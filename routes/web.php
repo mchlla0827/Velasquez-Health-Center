@@ -46,7 +46,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/patients/show/{id}', [PatientController::class, 'show']);
     Route::get('/patients/search', [PatientController::class, 'search']);
     Route::middleware(['auth'])->group(function () {
-    Route::post('/queue', [YourController::class, 'storeQueue']);
+    Route::post('/queue', [PatientController::class, 'storeQueue']);
 });
     
     // FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
@@ -256,6 +256,11 @@ Route::get('/triage/live-queue-data', [PatientController::class, 'getLiveQueueDa
 
     Route::get('/patients/{id}/service-history', [PatientController::class, 'serviceHistory'])
     ->name('patients.service-history');
+    Route::get('/patients/{id}/medical-history', [PatientController::class, 'medicalHistory'])->name('patients.medical-history');
+    Route::get('/patients/{id}/succeeding-visits/create', [PatientController::class, 'createSucceedingVisit'])->name('patients.succeeding-visits.create');
+    Route::post('/patients/{id}/succeeding-visits', [PatientController::class, 'storeSucceedingVisit'])->name('patients.succeeding-visits.store');
+    Route::get('/patients/{id}/succeeding-visits/{visit}', [PatientController::class, 'showSucceedingVisit'])->name('patients.succeeding-visits.show');
+    Route::get('/patients/{id}/medical-history/ncd', [PatientController::class, 'showNcdAssessment'])->name('patients.medical-history.ncd');
 
 
 });

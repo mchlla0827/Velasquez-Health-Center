@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Models\DispensingRecord;
+use App\Models\Consultation;
 
 class PatientController extends Controller
 {
@@ -378,6 +379,69 @@ class PatientController extends Controller
         $data['latest_ncd_assessment'] = $latestAssessment;
 
         return response()->json($data);
+    }
+
+    public function medicalHistory($patientId)
+    {
+        $patient = Patient::findOrFail($patientId);
+        $assessment = NcdAssessment::with('assessedBy:id,name')
+            ->where('patient_id', $patient->id)->latest('assessment_date')->latest('id')->first();
+        $visits = Consultation::with('provider:id,name,role')
+            ->where('patient_id', $patient->id)->latest('consultation_date')->latest('id')->get();
+
+        return response()->json(['assessment' => $assessment, 'visits' => $visits]);
+    }
+
+    public function createSucceedingVisit($patientId)
+    {
+        $patient = Patient::findOrFail($patientId);
+        $assessment = NcdAssessment::where('patient_id', $patient->id)->latest('assessment_date')->latest('id')->first();
+        $previousVisit = $patient->consultations()->latest('consultation_date')->first();
+        $providers = \App\Models\User::orderBy('name')->get(['id', 'name', 'role']);
+        return view('patients.partials.succeeding-visit-form', compact('patient', 'assessment', 'previousVisit', 'providers'));
+    }
+
+    public function storeSucceedingVisit(Request $request, $patientId)
+    {
+        $patient = Patient::findOrFail($patientId);
+        $validated = $request->validate([
+            'attended_by' => 'required|exists:users,id',
+            'consultation_type' => 'required|in:consultation,maintenance,ecg,ultrasound,dental,laboratory,counseling_adolescent',
+            'consultation_date' => 'required|date',
+            'reason_for_visit' => 'nullable|string|max:255',
+            'chief_complaint' => 'nullable|string|max:2000',
+            'blood_pressure' => 'nullable|string|max:30', 'temperature' => 'nullable|numeric',
+            'pulse_rate' => 'nullable|integer', 'respiratory_rate' => 'nullable|integer',
+            'oxygen_saturation' => 'nullable|numeric', 'weight' => 'nullable|numeric',
+            'height' => 'nullable|numeric', 'assessment' => 'nullable|string|max:4000',
+            'treatment' => 'nullable|string|max:4000', 'medicines' => 'nullable|string|max:4000',
+            'follow_up_date' => 'nullable|date', 'details' => 'nullable|array',
+        ]);
+
+        $height = (float) ($validated['height'] ?? 0);
+        if (!empty($validated['weight']) && $height > 0) $validated['bmi'] = round($validated['weight'] / (($height / 100) ** 2), 2);
+        $previous = $patient->consultations()->latest('consultation_date')->first();
+        $validated['patient_id'] = $patient->id;
+        $validated['previous_consultation_id'] = $previous?->id;
+        $validated['ncd_assessment_id'] = ($validated['consultation_type'] === 'consultation' && ($validated['reason_for_visit'] ?? null) === 'NCD Follow-up')
+            ? NcdAssessment::where('patient_id', $patient->id)->latest('assessment_date')->latest('id')->value('id') : null;
+        $validated['consultation_id'] = 'VIS-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+        $visit = Consultation::create($validated);
+
+        return response()->json(['id' => $visit->id, 'message' => 'Succeeding visit recorded successfully.']);
+    }
+
+    public function showSucceedingVisit($patientId, $visitId)
+    {
+        $visit = Consultation::with(['patient', 'provider:id,name,role', 'previousConsultation', 'ncdAssessment'])
+            ->where('patient_id', $patientId)->findOrFail($visitId);
+        return view('patients.partials.succeeding-visit-details', compact('visit'));
+    }
+
+    public function showNcdAssessment($patientId)
+    {
+        $assessment = NcdAssessment::with('assessedBy:id,name')->where('patient_id', $patientId)->latest('assessment_date')->latest('id')->firstOrFail();
+        return view('patients.partials.ncd-assessment-readonly', compact('assessment'));
     }
 
     public function getMedicineHistory($id) 

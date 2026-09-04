@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\DispensingRecord;
+use App\Models\Consultation;
 use Carbon\Carbon;
 
 class Patient extends Model
@@ -66,4 +67,9 @@ class Patient extends Model
         'patient_id'
     );
 }
+
+    public function consultations()
+    {
+        return $this->hasMany(Consultation::class)->latest('consultation_date');
+    }
 }

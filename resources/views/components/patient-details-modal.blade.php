@@ -90,25 +90,7 @@
             
 
             <div id="medical-history" class="tab-pane" style="display: none;">
-                
-                <div id="medical-history-empty" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: white; border: 1px dashed #D1D5DB; border-radius: 10px;">
-                    <div style="font-size: 36px; margin-bottom: 10px;">❤️</div>
-                    <h4 style="margin: 0; font-size: 16px; color: #111827;">No Medical History Found</h4>
-                    <p style="margin: 4px 0 20px; font-size: 13px; color: #6B7280; text-align: center; max-width: 400px;">This patient has not yet undergone their initial Integrated NCD Risk Assessment.</p>
-                    @if(auth()->user()->role === 'doctor' || auth()->user()->is_physician_in_charge)
-                        <a id="btn-start-ncd" href="#" class="btn-primary" style="text-decoration: none; display: inline-block;">
-                            Conduct NCD Risk Assessment
-                        </a>
-                    @else
-                        <p style="font-size: 13px; font-style: italic; color: #9CA3AF; margin-top: 10px;">
-                            Please coordinate with the attending Doctor to conduct this assessment.
-                        </p>
-                    @endif             
-                </div>
-
-                <div id="medical-history-filled" style="display: none;">
-                    <div id="mh-render"></div>
-                </div>
+                <div id="mh-render"></div>
             </div>
 
                 
@@ -339,6 +321,11 @@
 </div>
 
 <style>
+/* Medical History only */
+.mh-form-view{max-width:980px;margin:0 auto}.mh-form-view .mh-form-head{padding-bottom:14px;border-bottom:1px solid #E5E7EB}.mh-form-view .mh-form-head h4{font-size:19px}.mh-form-view .mh-form-head p{max-width:620px}.mh-form-section{box-shadow:0 1px 2px rgba(15,23,42,.03)}.mh-form-section h5{padding-bottom:10px;border-bottom:1px solid #F1F5F9}.mh-form-section textarea{resize:vertical;min-height:42px}.mh-form-section input:focus,.mh-form-section select:focus,.mh-form-section textarea:focus{outline:0;border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.1)}.mh-form-section label{color:#4B5563;text-transform:none;letter-spacing:0;font-size:12px}.mh-form-section label::first-line{font-weight:600}.mh-previous-record{background:#F8FAFC;border-left:3px solid #64748B}.mh-previous-record p{margin:0;color:#475569;font-size:13px;line-height:1.65}.mh-ncd-record{background:#fff;border:1px solid #DCE5F0;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,.04)}.mh-ncd-record .mh-form-head{padding:18px 20px;margin:0;background:#F8FAFC}.mh-ncd-record .mh-readonly-line{margin:0 20px}.mh-ncd-record .mh-readonly-line:last-child{padding-bottom:20px}.mh-ncd-record .mh-readonly-line:first-of-type{padding-top:16px}.mh-ncd-record .mh-readonly-line label{color:#64748B}.mh-ncd-record .mh-readonly-line span{color:#1E293B}
+.mh-kicker{display:block;margin-bottom:4px;color:#64748B;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.mh-ncd-header{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:20px}.mh-ncd-header p{margin:5px 0 0}.mh-risk-banner{min-width:120px;padding:9px 12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:7px;text-align:center}.mh-risk-banner span{display:block;color:#991B1B;font-size:10px;font-weight:700;text-transform:uppercase}.mh-risk-banner strong{display:block;margin-top:2px;color:#B91C1C;font-size:14px}.mh-ncd-section{padding:0;box-shadow:none;border-color:#DCE5F0}.mh-ncd-section h5{margin:0;padding:13px 16px;background:#F8FAFC;border-bottom:1px solid #E5E7EB}.mh-ncd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;padding:4px 16px 12px}.mh-ncd-grid .mh-readonly-line{margin:0;padding:10px 0;border-bottom:1px solid #F1F5F9}.mh-ncd-grid .mh-readonly-line label{flex-basis:150px}.mh-visit-card{background:#fff;border:1px solid #DCE5F0;border-left:4px solid #2563EB;border-radius:8px;padding:16px;margin:0 0 12px;box-shadow:0 1px 3px rgba(15,23,42,.04)}.mh-visit-card:last-child{margin-bottom:0}.mh-visit-card .mh-actions{justify-content:flex-end}.mh-vital-list-large{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.mh-vital-list-large>div{padding:11px 12px;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:7px}.mh-vital-list-large label{margin:0 0 3px}.mh-vital-list-large strong{color:#1E293B;font-size:14px}.mh-form-view>form>.mh-form-section{padding:20px}.mh-form-view>form>.mh-form-section h5{font-size:13px}.mh-form-view>form>.mh-form-section>label{display:block}.mh-form-view>form>.mh-form-section>label textarea{display:block}.mh-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}.mh-heading h4{margin:0;font-size:19px;color:#111827}.mh-heading p{margin:4px 0 0;color:#6B7280;font-size:13px}
+@media(max-width:700px){.mh-ncd-header{display:block}.mh-ncd-header .mh-risk-banner{margin:14px 0;max-width:180px}.mh-ncd-grid,.mh-vital-list-large{grid-template-columns:1fr}.mh-visit-card{padding:14px}.mh-heading{display:block}.mh-heading button{margin-top:12px}}
+.mh-board-head,.mh-form-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}.mh-board-head h4,.mh-form-head h4{margin:0;font-size:18px;color:#111827}.mh-board-head p,.mh-form-head p{margin:4px 0 0;color:#6B7280;font-size:13px}.mh-section{background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:18px;margin-bottom:16px}.mh-section h5{margin:0 0 16px;color:#111827;font-size:12px;letter-spacing:.5px;text-transform:uppercase}.mh-baseline{border-top:3px solid #2563EB}.mh-baseline-grid,.mh-visit-grid,.mh-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.mh-baseline-grid>div,.mh-visit-grid>div{min-width:0}.mh-label,.mh-section label{display:block;font-size:10px;text-transform:uppercase;font-weight:700;color:#9CA3AF;margin-bottom:4px}.mh-value{font-size:13px;color:#1F2937}.mh-condition-list,.mh-risk-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}.mh-pill{background:#EFF6FF;color:#1D4ED8;border-radius:5px;padding:5px 9px;font-size:12px;font-weight:600}.mh-risk{background:#FEF2F2;color:#B91C1C}.mh-risk.overall{font-size:13px}.mh-actions{display:flex;gap:8px;align-items:center;margin-top:16px}.mh-visits{border-top:3px solid #64748B}.mh-visit-card{border-left:3px solid #2563EB;border-bottom:1px solid #E5E7EB;padding:14px 0 16px;margin-bottom:14px}.mh-visit-card:last-child{border-bottom:0;margin-bottom:0}.mh-visit-date{font-weight:700;color:#111827}.mh-visit-type{margin-top:3px;color:#1D4ED8;font-weight:700;font-size:13px;text-transform:uppercase}.mh-visit-provider,.mh-visit-reason{font-size:12px;color:#6B7280;margin-top:3px}.mh-visit-grid{margin-top:12px;grid-template-columns:repeat(3,1fr)}.mh-visit-grid p{margin:0;font-size:13px;color:#374151;white-space:pre-wrap}.mh-empty{border:1px dashed #D1D5DB;padding:35px 20px;text-align:center;color:#6B7280;border-radius:8px}.mh-form-grid{grid-template-columns:repeat(2,1fr)}.mh-form-grid label,.mh-section>label{margin-bottom:12px}.mh-section input,.mh-section select,.mh-section textarea{width:100%;box-sizing:border-box;padding:9px;border:1px solid #D1D5DB;border-radius:6px;font:inherit;font-size:13px;background:#fff}.mh-readonly{background:#F9FAFB;border-left:3px solid #94A3B8;padding:12px;margin-bottom:16px;font-size:13px;color:#374151}.mh-form-actions{display:flex;justify-content:flex-end;gap:8px}.mh-detail-row{display:grid;grid-template-columns:180px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid #F3F4F6}.mh-detail-row:last-child{border-bottom:0}.mh-detail-row span:last-child{white-space:pre-wrap;color:#374151}.mh-readonly-line{display:flex;gap:14px;padding:9px 0;border-bottom:1px solid #F3F4F6}.mh-readonly-line label{flex:0 0 190px;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase}.mh-readonly-line span{color:#374151;white-space:pre-wrap}.mh-alert{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:6px;padding:10px;font-size:13px}@media(max-width:700px){.mh-board-head,.mh-form-head{display:block}.mh-board-head button,.mh-form-head button{margin-top:12px}.mh-baseline-grid,.mh-visit-grid,.mh-form-grid{grid-template-columns:1fr}.mh-detail-row{grid-template-columns:1fr;gap:3px}.mh-readonly-line{display:block}.mh-readonly-line label{display:block;margin-bottom:3px}}
 /* ===== Medical History (NCD) - clean record layout v2 ===== */
 .mh-topbar { display: flex; justify-content: flex-end; margin-bottom: -6px; }
 .mh-view-btn {
@@ -599,6 +586,7 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
 </style>
 <script>
     const currentUserRole = "{{ strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw') }}";
+    const currentUserIsPic = @json((bool) (Auth::user()->is_physician_in_charge ?? false));
     let activePatientData = null;
 
     window.togglePhilHealthFields = function() {
@@ -660,6 +648,7 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
             const identifier = activePatientData.patient_id || activePatientData.id;
             loadMedicineHistory(identifier);
         }
+        if (tabId === 'medical-history' && activePatientData) loadMedicalHistory();
     }
 
     function closePatientModal() {
@@ -718,7 +707,7 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
     }
 
     // --- MAIN: Open Modal & Fetch Data ---
-    window.openPatientModal = function(id) {
+    window.openPatientModal = function(id, initialTab = 'basic-info') {
         const modal = document.getElementById('patientDetailModal');
         modal.style.display = 'flex';
         fetch(`/patients/show/${id}`)
@@ -728,7 +717,8 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
                 document.getElementById('detInternalId').innerText = data.id;
 
                 const basicTab = document.querySelector('.tab-item:first-child');
-                switchTab({ currentTarget: basicTab }, 'basic-info');
+                const initialTabElement = document.querySelector(`.tab-item[onclick*="'${initialTab}'"]`) || basicTab;
+                switchTab({ currentTarget: initialTabElement }, initialTab);
 
                 document.getElementById('headerPatientID').innerText = data.patient_id || '---';
                 document.getElementById('headerPatientName').innerText = `${data.first_name || ''} ${data.last_name || ''}`;
@@ -912,20 +902,34 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
                     if (matCards) matCards.forEach(card => card.style.display = 'block');
                 }
 
-                // Rest of medical history mapping
-                if(!data.screen_bp && !data.screen_bmi) {
-                    document.getElementById('medical-history-empty').style.display = 'flex';
-                    document.getElementById('medical-history-filled').style.display = 'none';
-                    const btnNcd = document.getElementById('btn-start-ncd');
-                    if (btnNcd) btnNcd.href = `/patients/${data.id}/ncd-assessment`;
-                } else {
-                    document.getElementById('medical-history-empty').style.display = 'none';
-                    document.getElementById('medical-history-filled').style.display = 'block';
-                    renderMedicalHistory(ncd);
-                }
+                loadMedicalHistory();
             })
             .catch(error => console.error('Error loading patient:', error));
     };
+
+    const mhText = value => String(value ?? '---').replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
+    const mhDate = value => value ? new Date(value).toLocaleDateString(undefined, {month:'long', day:'2-digit', year:'numeric'}) : 'Undated';
+    function loadMedicalHistory() {
+        if (!activePatientData) return;
+        const target = document.getElementById('mh-render');
+        if (!target) return;
+        target.innerHTML = '<div class="mh-empty">Loading Medical History...</div>';
+        fetch(`/patients/${activePatientData.id}/medical-history`).then(response => response.json()).then(data => {
+            const assessment = data.assessment;
+            const visits = data.visits || [];
+            const conditions = assessment ? [['is_hypertensive','Hypertension'],['is_diabetic','Diabetes Mellitus'],['has_copd','COPD'],['has_cancer','Cancer'],['has_eye_disease','Eye Disease']].filter(item => assessment[item[0]]).map(item => item[1]) : [];
+            const risks = assessment ? [['risk_hpn','Hypertension Risk'],['risk_dm','Diabetes Risk'],['r_over','Overweight'],['r_obese','Obesity'],['r_chol','High Cholesterol']].filter(item => assessment[item[0]]).map(item => item[1]) : [];
+            const ncdAction = (currentUserRole === 'doctor' || currentUserIsPic) ? `<div class="mh-actions"><a class="btn-primary" href="/patients/${activePatientData.id}/ncd-assessment" style="text-decoration:none">Conduct NCD Risk Assessment</a></div>` : '';
+            const baseline = assessment ? `<section class="mh-section mh-baseline"><h5>Initial NCD Risk Assessment</h5><div class="mh-baseline-grid"><div><span class="mh-label">Assessment date</span><span class="mh-value">${mhText(assessment.assessment_date || 'Undated')}</span></div><div><span class="mh-label">Assessed by</span><span class="mh-value">${mhText(assessment.assessed_by?.name || '---')}</span></div><div><span class="mh-label">Existing conditions</span><div class="mh-condition-list">${(conditions.length ? conditions : ['None recorded']).map(item => `<span class="mh-pill">${mhText(item)}</span>`).join('')}</div></div><div><span class="mh-label">Baseline measurements</span><span class="mh-value">BP: ${mhText(assessment.bp_b)} · FBS: ${mhText(assessment.fbs)} · BMI: ${mhText(assessment.bmi)} · Cholesterol: ${mhText(assessment.chol)}</span></div><div><span class="mh-label">Risk indicators</span><div class="mh-risk-list">${(risks.length ? risks : ['None recorded']).map(item => `<span class="mh-pill mh-risk">${mhText(item)}</span>`).join('')}</div></div><div><span class="mh-label">Overall risk</span><span class="mh-pill mh-risk overall">${mhText(assessment.cs || 'Not classified')}</span></div></div><div class="mh-actions"><button class="mh-view-btn" onclick="viewFullNcdAssessment()">View Full NCD Assessment</button></div></section>` : `<section class="mh-section mh-baseline"><h5>Initial NCD Risk Assessment</h5><div class="mh-empty">No NCD Risk Assessment recorded yet.<br>The patient's initial NCD assessment will appear here once it has been completed.${ncdAction}</div></section>`;
+            const visitCards = visits.length ? visits.map(visit => `<article class="mh-visit-card"><div class="mh-visit-date">${mhDate(visit.consultation_date)}</div><div class="mh-visit-type">${mhText(visit.consultation_type.replaceAll('_',' '))}</div><div class="mh-visit-provider">Attended by: ${mhText(visit.provider?.name)}</div><div class="mh-visit-reason">Reason: ${mhText(visit.reason_for_visit)}</div><div class="mh-visit-grid"><div><span class="mh-label">Current findings</span><p>BP ${mhText(visit.blood_pressure)} · BS ${mhText(visit.details?.current_blood_sugar)} · Weight ${mhText(visit.weight)} · BMI ${mhText(visit.bmi)}</p></div><div><span class="mh-label">Assessment</span><p>${mhText(visit.assessment)}</p></div><div><span class="mh-label">Treatment / next follow-up</span><p>${mhText(visit.treatment)} · ${mhText(visit.follow_up_date)}</p></div></div><div class="mh-actions"><button class="mh-view-btn" onclick="viewSucceedingVisit(${visit.id})">View Full Record</button></div></article>`).join('') : '<div class="mh-empty">No succeeding visits have been recorded yet.</div>';
+            target.innerHTML = `<div class="mh-board-head"><div><h4>Medical History</h4><p>Patient's baseline NCD information and succeeding clinical visits.</p></div><button class="btn-primary" onclick="openSucceedingVisitForm()">+ Record Succeeding Visit</button></div>${baseline}<section class="mh-section mh-visits"><div class="mh-board-head"><h5>Succeeding Visits</h5><button class="btn-secondary" onclick="openSucceedingVisitForm()">+ Record Succeeding Visit</button></div>${visitCards}</section>`;
+        }).catch(() => target.innerHTML = '<div class="mh-alert">Unable to load Medical History.</div>');
+    }
+    function openSucceedingVisitForm() { fetch(`/patients/${activePatientData.id}/succeeding-visits/create`).then(response => response.text()).then(html => document.getElementById('mh-render').innerHTML = html); }
+    function viewSucceedingVisit(id) { fetch(`/patients/${activePatientData.id}/succeeding-visits/${id}`).then(response => response.text()).then(html => document.getElementById('mh-render').innerHTML = html); }
+    function viewFullNcdAssessment() { fetch(`/patients/${activePatientData.id}/medical-history/ncd`).then(response => response.text()).then(html => document.getElementById('mh-render').innerHTML = html); }
+    function reviewSucceedingVisit() { const form = document.getElementById('succeedingVisitForm'); if (!form.reportValidity()) return; const data = new FormData(form); const value = name => data.get(name) || '---'; Swal.fire({title:'Review Succeeding Visit', html:`<div style="text-align:left;font-size:13px"><p><b>Patient:</b> ${mhText(activePatientData.first_name)} ${mhText(activePatientData.last_name)}</p><p><b>Visit date:</b> ${mhText(value('consultation_date'))}</p><p><b>Visit type:</b> ${mhText(form.querySelector('[name=consultation_type] option:checked').textContent)}</p><p><b>Provider:</b> ${mhText(form.querySelector('[name=attended_by] option:checked').textContent)}</p><p><b>BP:</b> ${mhText(value('blood_pressure'))} <b>Blood Sugar:</b> ${mhText(data.get('details[current_blood_sugar]'))}</p><p><b>Assessment:</b> ${mhText(value('assessment'))}</p><p><b>Treatment:</b> ${mhText(value('treatment'))}</p><p><b>Next follow-up:</b> ${mhText(value('follow_up_date'))}</p></div>`,showCancelButton:true,confirmButtonText:'Save Visit',cancelButtonText:'Back / Edit'}).then(result => { if (result.isConfirmed) saveSucceedingVisit(form); }); }
+    function saveSucceedingVisit(form) { fetch(`/patients/${activePatientData.id}/succeeding-visits`, {method:'POST', body:new FormData(form), headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}}).then(async response => { const body = await response.json(); if (!response.ok) throw new Error(body.errors ? Object.values(body.errors).flat().join('<br>') : body.message); return body; }).then(body => Swal.fire({icon:'success',title:'Succeeding Visit Recorded Successfully',showCancelButton:true,confirmButtonText:'View Full Record',cancelButtonText:'Back to Medical History'}).then(result => result.isConfirmed ? viewSucceedingVisit(body.id) : loadMedicalHistory())).catch(error => Swal.fire({icon:'error',title:'Please review the highlighted fields.',html:error.message})); }
 
     
     window.editPatient = function(patientId) {
