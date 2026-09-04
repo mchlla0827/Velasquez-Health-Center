@@ -10,6 +10,10 @@ class NcdAssessment extends Model
 
     protected $fillable = [
         'patient_id', 'assessed_by',
+        'health_facility', 'assessment_date', 'family_no',
+        'first_name', 'middle_name', 'last_name', 'id_no',
+        'address', 'barangay', 'telepono', 'birthday', 'edad',
+        'kasarian', 'estadocivil', 'relihiyon', 'educational_attainment',
         'is_diabetic', 'is_diabetic_year', 'is_diabetic_meds', 'risk_dm',
         'is_hypertensive', 'is_hypertensive_year', 'is_hypertensive_meds', 'risk_hpn',
         'has_copd', 'has_copd_year', 'has_copd_meds', 'risk_copd',
@@ -17,7 +21,7 @@ class NcdAssessment extends Model
         'has_eye_disease', 'eye_year', 'eye_meds',
         'cp1','cp2','cp3','cp4','cp5','cp6','cp7','cp8',
         'r_diet','r_salt',
-        'diet_gulay','diet_prutas','diet_isda','diet_karne','diet_processed food',
+        'diet_gulay','diet_prutas','diet_isda','diet_karne','diet_processed_food',
         'diet_maalat','diet_matatamis','diet_mamantika',
         'alc_u','alc_q','alc_t','amt_b','amt_w','amt_s','alc_f','alc_b','r_binge',
         'w','h','bmi','bmi_s','r_over','r_obese',

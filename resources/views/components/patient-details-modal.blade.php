@@ -6,7 +6,7 @@
             <div>
                 <h3 style="margin: 0; font-size: 18px; color: #111827;">Patient Record Details</h3>
                 <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">
-                    <span id="headerPatientID" style="font-weight: 500;">---</span> 
+                    <span id="headerPatientID" style="font-weight: 500;">---</span> â€¢ 
                     <span id="detInternalId" style="display:none;"></span>
                     <span id="headerPatientName">---</span>
                 </p>
@@ -107,62 +107,7 @@
                 </div>
 
                 <div id="medical-history-filled" style="display: none;">
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="margin: 0; font-size: 16px; color: #111827;">Integrated NCD Risk Assessment Form</h4>
-                        <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">Department of Health Baseline Profile</p>
-                    </div>
-
-                    <div class="detail-card">
-                        <h5>Part II. Past Medical History</h5>
-                        <div class="detail-grid">
-                            <div class="item"><span>KARAMDAMAN (Conditions)</span><p id="doh_conditions">---</p></div>
-                            <div class="item"><span>CANCER SITE (If applicable)</span><p id="doh_cancer_site">---</p></div>
-                            <div class="item"><span>CHEST PAIN / ANGINA</span><p id="doh_chest_pain">---</p></div>
-                        </div>
-                    </div>
-
-                    <div class="detail-card">
-                        <h5>Part III. Assessment of Risk Factors</h5>
-                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #F3F4F6;">
-                            <span style="font-size: 12px; font-weight: bold; color: #374151;">A. Non-Modifiable (Family History)</span>
-                            <div class="detail-grid" style="margin-top: 10px;">
-                                <div class="item"><span>1ST DEGREE RELATIVES WITH:</span><p id="doh_fam_history">---</p></div>
-                            </div>
-                        </div>
-                        <div>
-                            <span style="font-size: 12px; font-weight: bold; color: #374151;">B. Modifiable Risk Factors</span>
-                            <div class="detail-grid" style="margin-top: 10px;">
-                                <div class="item"><span>B.1 NUTRITION (Healthy/Unhealthy)</span><p id="doh_nutrition">---</p></div>
-                                <div class="item"><span>B.2 ALCOHOL (Binge/Occasional)</span><p id="doh_alcohol">---</p></div>
-                                <div class="item"><span>B.3 EXERCISE (Intensity/Minutes)</span><p id="doh_exercise">---</p></div>
-                                <div class="item"><span>B.4 SMOKING (Status/Sticks)</span><p id="doh_smoking">---</p></div>
-                                <div class="item"><span>B.5 STRESS (Frequency)</span><p id="doh_stress">---</p></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="detail-card">
-                        <h5>Part IV. Risk Screening</h5>
-                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #F3F4F6;">
-                            <span style="font-size: 12px; font-weight: bold; color: #374151;">4.1 Anthropometric Measurement</span>
-                            <div class="detail-grid" style="margin-top: 10px;">
-                                <div class="item"><span>WEIGHT (kg)</span><p id="doh_weight">---</p></div>
-                                <div class="item"><span>HEIGHT (cm)</span><p id="doh_height">---</p></div>
-                                <div class="item"><span>BMI (Status)</span><p id="doh_bmi" style="font-weight:bold;">---</p></div>
-                                <div class="item"><span>WAIST (cm)</span><p id="doh_waist">---</p></div>
-                                <div class="item"><span>W/H RATIO</span><p id="doh_wh_ratio">---</p></div>
-                            </div>
-                        </div>
-                        
-                        <div class="detail-grid">
-                            <div class="item"><span>4.2 BLOOD SUGAR (FBS/RBS)</span><p id="doh_sugar">---</p></div>
-                            <div class="item"><span>4.3 BLOOD PRESSURE (Baseline)</span><p id="doh_bp" style="font-weight:bold; color:#DC2626;">---</p></div>
-                            <div class="item"><span>4.4 CHOLESTEROL LEVEL</span><p id="doh_cholesterol">---</p></div>
-                            <div class="item"><span>4.5 URINE DIPSTICK (Protein)</span><p id="doh_urine_pro">---</p></div>
-                            <div class="item"><span>4.5 URINE DIPSTICK (Ketones)</span><p id="doh_urine_ket">---</p></div>
-                            <div class="item"><span>4.7 CANCER SCREENING</span><p id="doh_cancer_screen">---</p></div>
-                        </div>
-                    </div>
+                    <div id="mh-render"></div>
                 </div>
             </div>
 
@@ -201,7 +146,7 @@
                     text-align: center;">
 
             <div style="font-size: 36px; margin-bottom: 10px;">
-                🩺
+                ðŸ©º
             </div>
 
             <h4 style="margin: 0 0 5px; font-size: 15px; color: #111827;">
@@ -246,7 +191,7 @@
                     </div>
                 </div>
                 <div style="margin-top: 16px; padding: 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 12px; color: #6B7280;">
-                    <b>Note:</b> This is a read-only historical record based on inventory dispensing.
+                    ðŸ“‹ <b>Note:</b> This is a read-only historical record based on inventory dispensing.
                 </div>
             </div>
 
@@ -309,7 +254,6 @@
                     </div>
                 </div>
                 <div style="margin-top: 16px; padding: 12px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; font-size: 12px; color: #1E40AF; display: flex; align-items: center; gap: 8px;">
-                    <span>â„¹ï¸</span>
                     <span><b>Note:</b> Immunization tracking is enabled for this patient. Records are automatically updated when vaccines are administered.</span>
                 </div>
             </div>
@@ -395,6 +339,118 @@
 </div>
 
 <style>
+/* ===== Medical History (NCD) - clean record layout v2 ===== */
+.mh-topbar { display: flex; justify-content: flex-end; margin-bottom: -6px; }
+.mh-view-btn {
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;
+    font-size: 12.5px; font-weight: 600;
+    padding: 7px 14px; border-radius: 7px;
+    text-decoration: none; transition: background .12s;
+}
+.mh-view-btn:hover { background: #DBEAFE; }
+.mh-view-btn svg { width: 13px; height: 13px; }
+#mh-render {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    font-size: 13.5px;
+    color: #1F2937;
+    line-height: 1.5;
+}
+
+/* Top summary strip - simple row, not boxed grid */
+.mh-meta {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    padding: 14px 0 18px;
+    border-bottom: 1px solid #E5E7EB;
+    margin-bottom: 16px;
+}
+.mh-meta-fields { display: flex; flex-wrap: wrap; gap: 24px; }
+.mh-meta-item { min-width: 130px; }
+.mh-meta-item .k { font-size: 10.5px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 3px; }
+.mh-meta-item .val { font-size: 14px; font-weight: 600; color: #111827; }
+
+/* Risk flags */
+.mh-flags { margin-bottom: 22px; }
+.mh-flags-title { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #6B7280; margin-bottom: 10px; }
+.mh-flag-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.mh-flag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #FEF2F2; color: #B91C1C;
+    font-size: 12px; font-weight: 600;
+    padding: 5px 12px; border-radius: 6px;
+    border: 1px solid #FECACA;
+}
+.mh-flag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #DC2626; flex-shrink: 0; }
+.mh-flag.none { background: #F0FDF4; color: #166534; border-color: #BBF7D0; }
+.mh-flag.none::before { background: #16A34A; }
+
+/* Accordion sections */
+.mh-sec { border: 1px solid #E5E7EB; border-radius: 10px; margin-bottom: 10px; background: #fff; overflow: hidden; }
+.mh-sec > summary {
+    list-style: none; cursor: pointer;
+    padding: 14px 16px;
+    font-size: 13.5px; font-weight: 700; color: #111827;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    transition: background .12s;
+}
+.mh-sec > summary::-webkit-details-marker { display: none; }
+.mh-sec > summary:hover { background: #FAFAFA; }
+.mh-sec-right { display: flex; align-items: center; gap: 10px; }
+.mh-sec-note { font-size: 12px; font-weight: 500; color: #9CA3AF; white-space: nowrap; }
+.mh-chevron { width: 9px; height: 9px; border-right: 2px solid #9CA3AF; border-bottom: 2px solid #9CA3AF;
+    transform: rotate(-45deg); transition: transform .15s; flex-shrink: 0; }
+.mh-sec[open] .mh-chevron { transform: rotate(45deg); }
+.mh-body { padding: 4px 18px 18px; border-top: 1px solid #F3F4F6; }
+
+/* Label/value row list - replaces cramped grid boxes */
+.mh-rows { }
+.mh-row {
+    display: flex; align-items: baseline; gap: 16px;
+    padding: 9px 0; border-bottom: 1px solid #F3F4F6;
+}
+.mh-row:last-child { border-bottom: none; }
+.mh-row .k { flex: 0 0 220px; font-size: 12.5px; color: #6B7280; }
+.mh-row .val { flex: 1; font-size: 13.5px; color: #111827; font-weight: 500; }
+.mh-row .val.strong { font-weight: 700; }
+.mh-row .val.muted { color: #9CA3AF; font-weight: 400; }
+
+.mh-cols2 .mh-rows { columns: 2; column-gap: 28px; }
+.mh-cols2 .mh-row { break-inside: avoid; }
+
+.mh-sub { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+    color: #2563EB; margin: 18px 0 4px; }
+.mh-sub:first-child { margin-top: 6px; }
+
+/* Chest pain table */
+table.mh-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+table.mh-table td { padding: 9px 4px; border-bottom: 1px solid #F3F4F6; }
+table.mh-table tr:last-child td { border-bottom: none; }
+table.mh-table td:first-child { color: #374151; }
+table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700; }
+.mh-yes { color: #DC2626; }
+.mh-no { color: #9CA3AF; font-weight: 400; }
+.mh-tag { display: inline-block; background: #FEE2E2; color: #B91C1C; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+
+.mh-warn {
+    display: flex; align-items: flex-start; gap: 9px;
+    background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B;
+    font-size: 12.5px; font-weight: 500; line-height: 1.4;
+    padding: 11px 14px; border-radius: 8px; margin-top: 14px;
+}
+.mh-warn::before { content: '!'; flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%;
+    background: #DC2626; color: #fff; font-weight: 800; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; }
+
+.mh-chiplist { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 2px; }
+.mh-chip { background: #F3F4F6; color: #374151; border-radius: 6px; font-size: 12.5px; padding: 5px 11px; }
+
+@media (max-width: 780px) {
+    .mh-cols2 .mh-rows { columns: 1; }
+    .mh-row .k { flex-basis: 160px; }
+}
+
+
     .modal-backdrop { display: none; } 
     .tab-item { padding: 14px 20px; font-size: 13px; color: #6B7280; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
     .tab-item.active { color: #1A73E8; border-bottom-color: #1A73E8; font-weight: bold; }
@@ -428,8 +484,7 @@
 
 .service-history-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+        align-items: flex-start;
     padding: 16px 18px;
     border-bottom: 1px solid #F3F4F6;
 }
@@ -596,6 +651,8 @@
             btnContainer.innerHTML = `<button class="btn-primary" onclick="${btnAction}">${btnText}</button>`;
         }
 
+        // âœ… FIXED TAB SWITCH LOAD
+
         if (tabId === 'service-history' && activePatientData) {
             loadServiceHistory(activePatientData.id);
         }
@@ -660,6 +717,7 @@
             });
     }
 
+    // --- MAIN: Open Modal & Fetch Data ---
     window.openPatientModal = function(id) {
         const modal = document.getElementById('patientDetailModal');
         modal.style.display = 'flex';
@@ -668,6 +726,7 @@
             .then(data => {
                 activePatientData = data;
                 document.getElementById('detInternalId').innerText = data.id;
+
                 const basicTab = document.querySelector('.tab-item:first-child');
                 switchTab({ currentTarget: basicTab }, 'basic-info');
 
@@ -852,14 +911,17 @@
                     document.getElementById('maternal-empty-state')?.remove();
                     if (matCards) matCards.forEach(card => card.style.display = 'block');
                 }
-                
+
+                // Rest of medical history mapping
                 if(!data.screen_bp && !data.screen_bmi) {
                     document.getElementById('medical-history-empty').style.display = 'flex';
                     document.getElementById('medical-history-filled').style.display = 'none';
-                    document.getElementById('btn-start-ncd').href = `/patients/${data.id}/ncd-assessment`;
+                    const btnNcd = document.getElementById('btn-start-ncd');
+                    if (btnNcd) btnNcd.href = `/patients/${data.id}/ncd-assessment`;
                 } else {
                     document.getElementById('medical-history-empty').style.display = 'none';
                     document.getElementById('medical-history-filled').style.display = 'block';
+                    renderMedicalHistory(ncd);
                 }
             })
             .catch(error => console.error('Error loading patient:', error));

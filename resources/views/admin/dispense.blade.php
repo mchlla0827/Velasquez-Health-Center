@@ -578,7 +578,7 @@
             <button class="close-btn" id="closeDispenseModal">&times;</button>
         </div>
         <div class="modal-body">
-            <form method="POST" action="/admin/dispense/save" id="dispenseForm">
+            <form method="POST" action="{{ route($role . '.dispense.save') }}" id="dispenseForm">
                 @csrf
 
                 <!-- SELECT PATIENT SECTION -->

@@ -266,7 +266,7 @@ class PatientController extends Controller
     }
 
     // ==================================================
-    // UPDATE STATUS Ã¢â‚¬â€ Doctor OR PIC
+    // UPDATE STATUS - Doctor OR PIC
     // ==================================================
     public function updateStatus(Request $request, $id)
     {
@@ -368,7 +368,16 @@ class PatientController extends Controller
 
     public function show($id) 
     { 
-        return response()->json(Patient::findOrFail($id)); 
+        $patient = Patient::findOrFail($id);
+        $latestAssessment = NcdAssessment::where('patient_id', $patient->id)
+        ->with('assessedBy:id,name')
+            ->latest()
+            ->first();
+
+        $data = $patient->toArray();
+        $data['latest_ncd_assessment'] = $latestAssessment;
+
+        return response()->json($data);
     }
 
     public function getMedicineHistory($id) 
@@ -424,12 +433,13 @@ class PatientController extends Controller
     }
 
     // ==================================================
-    // Ã¢Å“â€¦ NCD ASSESSMENT Ã¢â‚¬â€ LOAD LATEST (AJAX)
+    // NCD ASSESSMENT - LOAD LATEST (AJAX)
     // ==================================================
     public function getMedicalHistory($patientId)
     {
         $patient = Patient::findOrFail($patientId);
         $ncdAssessment = NcdAssessment::where('patient_id', $patient->id)
+        ->with('assessedBy:id,name')
             ->latest()
             ->first();
 
@@ -440,12 +450,13 @@ class PatientController extends Controller
     }
 
     // ==================================================
-    // Ã¢Å“â€¦ NCD ASSESSMENT Ã¢â‚¬â€ SHOW FORM
+    // NCD ASSESSMENT - SHOW FORM
     // ==================================================
     public function createNcdAssessment($patientId)
     {
         $patient = Patient::findOrFail($patientId);
         $ncdAssessment = NcdAssessment::where('patient_id', $patient->id)
+        ->with('assessedBy:id,name')
             ->latest()
             ->first();
 
@@ -453,7 +464,7 @@ class PatientController extends Controller
     }
 
     // ==================================================
-    // Ã¢Å“â€¦ NCD ASSESSMENT Ã¢â‚¬â€ SAVE FORM
+    // NCD ASSESSMENT - SAVE FORM
     // ==================================================
     public function storeNcdAssessment(Request $request, $patientId)
     {
@@ -477,56 +488,85 @@ class PatientController extends Controller
             'estadocivil' => 'nullable|string|max:50',
             'relihiyon' => 'nullable|string|max:100',
             'educational_attainment' => 'nullable|string|max:255',
-            'is_diabetic' => 'nullable|boolean',
+            'is_diabetic' => 'nullable|string',
             'is_diabetic_year' => 'nullable|string|max:4',
             'is_diabetic_meds' => 'nullable|string',
-            'risk_dm' => 'nullable|boolean',
-            'is_hypertensive' => 'nullable|boolean',
+            'risk_dm' => 'nullable|string',
+            'is_hypertensive' => 'nullable|string',
             'is_hypertensive_year' => 'nullable|string|max:4',
             'is_hypertensive_meds' => 'nullable|string',
-            'risk_hpn' => 'nullable|boolean',
-            'has_copd' => 'nullable|boolean',
+            'risk_hpn' => 'nullable|string',
+            'has_copd' => 'nullable|string',
             'has_copd_year' => 'nullable|string|max:4',
             'has_copd_meds' => 'nullable|string',
-            'risk_copd' => 'nullable|boolean',
-            'has_cancer' => 'nullable|boolean',
+            'risk_copd' => 'nullable|string',
+            'has_cancer' => 'nullable|string',
             'cancer_site_condition' => 'nullable|string',
             'cancer_year' => 'nullable|string|max:4',
             'cancer_meds' => 'nullable|string',
-            'risk_cancer' => 'nullable|boolean',
-            'has_eye_disease' => 'nullable|boolean',
+            'risk_cancer' => 'nullable|string',
+            'has_eye_disease' => 'nullable|string',
             'eye_year' => 'nullable|string|max:4',
             'eye_meds' => 'nullable|string',
-            'cp1','cp2','cp3','cp4','cp5','cp6','cp7','cp8' => 'nullable|string',
-            'r_diet','r_salt' => 'nullable|boolean',
-            'diet_gulay','diet_prutas','diet_isda','diet_karne','diet_processed food' => 'nullable|string',
-            'diet_maalat','diet_matatamis','diet_mamantika' => 'nullable|string',
-            'alc_u','alc_q','amt_b','amt_w','amt_s','alc_f','alc_b' => 'nullable|string',
+            'cp1' => 'nullable|string',
+            'cp2' => 'nullable|string',
+            'cp3' => 'nullable|string',
+            'cp4' => 'nullable|string',
+            'cp5' => 'nullable|string',
+            'cp6' => 'nullable|string',
+            'cp7' => 'nullable|string',
+            'cp8' => 'nullable|string',
+            'r_diet' => 'nullable|string',
+            'r_salt' => 'nullable|string',
+            'diet_gulay' => 'nullable|string',
+            'diet_prutas' => 'nullable|string',
+            'diet_isda' => 'nullable|string',
+            'diet_karne' => 'nullable|string',
+            'diet_processed_food' => 'nullable|string',
+            'diet_maalat' => 'nullable|string',
+            'diet_matatamis' => 'nullable|string',
+            'diet_mamantika' => 'nullable|string',
+            'alc_u' => 'nullable|string',
+            'alc_q' => 'nullable|string',
+            'amt_b' => 'nullable|string',
+            'amt_w' => 'nullable|string',
+            'amt_s' => 'nullable|string',
+            'alc_f' => 'nullable|string',
+            'alc_b' => 'nullable|string',
             'alc_t' => 'nullable|array',
-            'r_binge' => 'nullable|boolean',
+            'r_binge' => 'nullable|string',
             'w' => 'nullable|numeric',
             'h' => 'nullable|numeric',
             'bmi' => 'nullable|numeric',
             'bmi_s' => 'nullable|string',
-            'r_over','r_obese' => 'nullable|boolean',
-            'waist','hip','whr' => 'nullable|numeric',
+            'r_over' => 'nullable|string',
+            'r_obese' => 'nullable|string',
+            'waist' => 'nullable|numeric',
+            'hip' => 'nullable|numeric',
+            'whr' => 'nullable|numeric',
             'whr_s' => 'nullable|string',
-            'r_whr' => 'nullable|boolean',
-            'fbs','vn' => 'nullable|numeric',
+            'r_whr' => 'nullable|string',
+            'fbs' => 'nullable|numeric',
+            'vn' => 'nullable|numeric',
             'fbs_s' => 'nullable|string',
-            'r_predm' => 'nullable|boolean',
+            'r_predm' => 'nullable|string',
             'rbs_s' => 'nullable|string',
-            's_pol','s_wgt','r_dm_f' => 'nullable|boolean',
-            'bp_l','bp_r','bp_b' => 'nullable|string',
+            's_pol' => 'nullable|string',
+            's_wgt' => 'nullable|string',
+            'r_dm_f' => 'nullable|string',
+            'bp_l' => 'nullable|string',
+            'bp_r' => 'nullable|string',
+            'bp_b' => 'nullable|string',
             'bp_s' => 'nullable|string',
-            'r_hpn_f' => 'nullable|boolean',
+            'r_hpn_f' => 'nullable|string',
             'chol' => 'nullable|numeric',
             'ch_s' => 'nullable|string',
-            'r_chol' => 'nullable|boolean',
-            'pro','ket' => 'nullable|string',
-            'r_pro' => 'nullable|boolean',
+            'r_chol' => 'nullable|string',
+            'pro' => 'nullable|string',
+            'ket' => 'nullable|string',
+            'r_pro' => 'nullable|string',
             'rp' => 'nullable|string',
-            'r_30' => 'nullable|boolean',
+            'r_30' => 'nullable|string',
             'cs' => 'nullable|string',
         ]);
 
@@ -546,6 +586,17 @@ class PatientController extends Controller
             $validated[$field] = in_array(strtolower(trim($request->$field)), ['yes','y','1','on']) ? true : false;
         }
 
+        // Convert MM/DD/YYYY strings from the form into MySQL's expected Y-m-d format
+        foreach (['assessment_date', 'birthday'] as $dateField) {
+            if (!empty($validated[$dateField])) {
+                try {
+                    $validated[$dateField] = Carbon::createFromFormat('m/d/Y', $validated[$dateField])->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $validated[$dateField] = null;
+                }
+            }
+        }
+
         // Save new assessment
         NcdAssessment::create([
             'patient_id' => $patient->id,
@@ -553,9 +604,14 @@ class PatientController extends Controller
             ...$validated
         ]);
 
+        $role = strtolower(auth()->user()->role);
+
         return redirect()
-            ->back()
-            ->with('success', 'Ã¢Å“â€¦ NCD Risk Assessment saved successfully!');
+            ->route($role . '.patient-records', [
+                'view_patient' => $patient->id,
+                'tab' => 'medical-history',
+            ])
+            ->with('success', 'NCD Risk Assessment saved successfully.');
     }
 
     // ==================================================
@@ -579,7 +635,7 @@ class PatientController extends Controller
                 'triage_level' => $record->triage_level ?: ($record->risk_level ?: '---'),
                 'status' => $record->status ?: '---',
                 'bp' => $record->bp ?: '---',
-                'temp' => $record->temp !== null ? $record->temp . ' Ã‚Â°C' : '---',
+                'temp' => $record->temp !== null ? $record->temp . ' degC' : '---',
                 'weight' => $record->weight !== null ? $record->weight . ' kg' : '---',
                 'height' => $record->height !== null ? $record->height . ' cm' : '---',
                 'symptoms' => $record->symptoms ?: '---',

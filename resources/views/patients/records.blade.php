@@ -491,6 +491,29 @@ function filterPatients(type) {
         row.style.display = show ? "" : "none";
     });
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
+    const viewPatientId = params.get('view_patient');
+    const tab = params.get('tab') || 'basic-info';
+
+    if (viewPatientId) {
+        openPatientModal(viewPatientId, tab);
+
+        @if (session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Saved!',
+                text: @json(session('success')),
+                timer: 1800,
+                showConfirmButton: false
+            });
+        @endif
+
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+    }
+});
 </script>
 
 </body>
