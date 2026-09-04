@@ -49,7 +49,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/queue', [YourController::class, 'storeQueue']);
 });
     
-    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
+    // FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
     Route::get('/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('patient.medicine.history');
 Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('nurse.patient.medicine.history');
 
@@ -61,7 +61,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
 
     // ==================================================
-    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ADMIN ROUTES - FULL ACCESS
+    // ADMIN ROUTES - FULL ACCESS
     // ==================================================
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         
@@ -73,7 +73,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
         Route::get('/inventory', [MedicineController::class, 'index'])->name('inventory');
         Route::get('/dispense', [MedicineController::class, 'dispenseForm'])->name('dispense');
-        Route::post('/dispense', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
+        Route::post('/dispense/save', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
         Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
         Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
         Route::post('/stockout/store', [StockController::class, 'storeStockOut'])->name('stockout.store');
@@ -142,7 +142,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
 
     // ==================================================
-    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ NURSE ROUTES
+    // NURSE ROUTES
     // ==================================================
     Route::middleware(['role:nurse'])->prefix('nurse')->name('nurse.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -181,7 +181,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
 
     // ==================================================
-    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ DOCTOR ROUTES
+    // DOCTOR ROUTES
     // ==================================================
     Route::middleware(['role:doctor'])->prefix('doctor')->name('doctor.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -212,7 +212,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     });
 
     // ==================================================
-    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ BHW ROUTES
+    // BHW ROUTES
     // ==================================================
     Route::middleware(['role:bhw'])->prefix('bhw')->name('bhw.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -237,7 +237,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     });
 
     // ==================================================
-    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ SHARED ROUTES (ANY LOGGED IN USER)
+    // SHARED ROUTES (ANY LOGGED IN USER)
     // ==================================================
     Route::post('/patients/queue', [PatientController::class, 'addToQueue'])->name('patients.queue.store');
     Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('patients.edit');
@@ -250,7 +250,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     Route::get('/ai-forecast', [ForecastController::class, 'index'])->name('ai.forecast');
     Route::post('/patients/queue/store', [PatientController::class, 'storeQueue'])->name('triage.storeQueue');
 
-    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ STANDARD URL: /triage/update-status/{id}
+    // STANDARD URL: /triage/update-status/{id}
 Route::post('/triage/update-status/{id}', [PatientController::class, 'updateStatus'])->name('triage.update-status');
 Route::get('/triage/live-queue-data', [PatientController::class, 'getLiveQueueData'])->name('triage.liveData');
 

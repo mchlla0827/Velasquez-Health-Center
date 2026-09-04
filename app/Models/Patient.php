@@ -8,7 +8,7 @@ use Carbon\Carbon;
 
 class Patient extends Model
 {
-    // âœ… DAGDAG ITO â€” ITO ANG NAWAWALA
+    // ADD THIS - THIS IS WHAT'S MISSING
     public $timestamps = true; // Ito ang nag-uutos na ilagay ang oras sa created_at / updated_at
     protected $dateFormat = 'Y-m-d H:i:s'; // Siguraduhin na tamang format ng petsa ang ilalagay
 

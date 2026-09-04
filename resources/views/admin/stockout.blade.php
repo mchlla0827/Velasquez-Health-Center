@@ -363,6 +363,23 @@
 
         <div class="header-divider"></div>
 
+        @if (session('success'))
+            <div style="margin: 0 0 20px; padding: 14px 18px; background: #DCFCE7; border: 1px solid #86EFAC; color: #166534; border-radius: 6px; font-size: 14px; font-weight: bold;">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div style="margin: 0 0 20px; padding: 14px 18px; background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; border-radius: 6px; font-size: 14px;">
+                <b>Could not save. Please fix the following:</b>
+                <ul style="margin: 8px 0 0; padding-left: 20px;">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <!-- TITLE + CTAs -->
         <div class="top-actions">
             <h1 class="page-title">Stock-Out Log</h1>
