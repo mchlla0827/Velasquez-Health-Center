@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\DispenseController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\ConsultationController;
 
 
 /*
@@ -45,9 +46,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/patients/store', [PatientController::class, 'store'])->name('patients.store');
     Route::get('/patients/show/{id}', [PatientController::class, 'show']);
     Route::get('/patients/search', [PatientController::class, 'search']);
-    Route::middleware(['auth'])->group(function () {
-    Route::post('/queue', [YourController::class, 'storeQueue']);
-});
+
     
     // FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
     Route::get('/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('patient.medicine.history');
@@ -242,6 +241,11 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     Route::post('/patients/queue', [PatientController::class, 'addToQueue'])->name('patients.queue.store');
     Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('patients.edit');
     Route::put('/patients/{id}', [PatientController::class, 'update'])->name('patients.update');
+   // Consultation History Routes (Medical History tab)
+    Route::get('/patients/{id}/consultations', [ConsultationController::class, 'index'])->name('consultations.index');
+    Route::get('/patients/{id}/consultations/create', [ConsultationController::class, 'create'])->name('consultations.create');
+    Route::post('/patients/{id}/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
+    Route::get('/consultations/{id}', [ConsultationController::class, 'show'])->name('consultations.show');
    // NCD Assessment Routes
     Route::get('/patients/{id}/ncd-assessment', [PatientController::class, 'createNcdAssessment'])->name('ncd.create');
     Route::post('/patients/{id}/ncd-assessment', [PatientController::class, 'storeNcdAssessment'])->name('ncd.store');

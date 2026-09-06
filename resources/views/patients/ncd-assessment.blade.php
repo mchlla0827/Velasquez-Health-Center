@@ -296,6 +296,7 @@
 
 <form action="{{ route('ncd.store', $patient->id) }}" method="POST">
     @csrf
+    <input type="hidden" name="link_consultation" value="{{ request('link_consultation') }}">
 
     @php
         function ynChecked($fieldName, $ncdAssessment, $value) {
