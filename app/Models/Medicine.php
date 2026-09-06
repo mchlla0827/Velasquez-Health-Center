@@ -60,4 +60,20 @@ class Medicine extends Model
     {
         return $this->batches->sum('quantity');
     }
+
+    // In App\Models\Medicine
+public function recalculateStock(): int
+{
+    $totalStock = $this->batches()
+        ->where('quantity', '>', 0)
+        ->whereDate('expiry_date', '>=', today())
+        ->sum('quantity');
+
+    $this->forceFill([
+        'stock' => $totalStock,
+        'current_stock' => $totalStock,
+    ])->save();
+
+    return $totalStock;
+}
 }

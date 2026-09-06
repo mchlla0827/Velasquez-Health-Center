@@ -99,9 +99,7 @@ class StockController extends Controller
      */
     public function stockout()
     {
-        // ==================================================
-        // ✅ 1. ROLE & PERMISSION CHECK
-        // ==================================================
+        // 1. Role & Permission Check
         $role = strtolower(session('admin_role') ?? auth()->user()->role ?? 'bhw');
         $canView = in_array($role, ['admin', 'nurse']);
 
@@ -111,96 +109,50 @@ class StockController extends Controller
             return redirect()->route('login');
         }
 
-        // ==================================================
-        // ✅ 2. DYNAMIC ROLE COLOR ASSIGNMENT
-        // ==================================================
+        // 2. Dynamic Role Color Assignment
         $roleColor = match($role) {
-            'admin' => '#9333EA', // Purple
-            'nurse' => '#10B981', // Emerald Green
-            default => '#6B7280'  // Gray
+            'admin' => '#9333EA',
+            'nurse' => '#10B981',
+            default => '#6B7280'
         };
 
-        // Correlated subquery condition for zero stock
-        $zeroStockCondition = "
-            (
-                (SELECT COALESCE(SUM(quantity),0) FROM stock_transactions 
-                 WHERE medicine_id = stock_transactions.medicine_id AND type = 'IN' AND created_at <= stock_transactions.created_at)
-                -
-                (SELECT COALESCE(SUM(quantity),0) FROM stock_transactions 
-                 WHERE medicine_id = stock_transactions.medicine_id AND type = 'OUT' AND created_at <= stock_transactions.created_at)
-            ) = 0
-        ";
+        // 3. Fetch Stock-Out Records (Optimized Eager Loading)
+        $stockOutRecords = StockTransaction::with('medicine')
+            ->where('type', 'STOCKOUT_INCIDENT')
+            ->orderByDesc('created_at')
+            ->get();
 
-        // ==================================================
-        // ✅ 3. METRIC CALCULATIONS
-        // ==================================================
-        $totalStockOut = StockTransaction::where('type', 'OUT')
-            ->whereRaw($zeroStockCondition)
-            ->count();
+        // 4. Calculate Summary Metrics for Cards
+        $totalStockOut    = $stockOutRecords->count();
+        $patientsAffected = $stockOutRecords->sum('patients_affected');
+        $avgDuration      = $totalStockOut > 0 ? round($stockOutRecords->avg('duration'), 1) : 0;
 
-        $patientsAffected = 0; 
-        $avgDuration = 0;
-
-        // ==================================================
-        // ✅ 4. MOST FREQUENT SHORTAGES (TOP 3)
-        // ==================================================
+        // 5. Top 3 Most Frequent Shortages
         $mostFrequent = Medicine::selectRaw(
-                'medicines.id, medicines.name, 
-                 COUNT(DISTINCT DATE(stock_transactions.created_at)) as count, 
-                 MAX(stock_transactions.created_at) as raw_last_date'
-            )
-            ->join('stock_transactions', 'medicines.id', '=', 'stock_transactions.medicine_id')
-            ->where('stock_transactions.type', 'OUT')
-            ->whereRaw($zeroStockCondition)
-            ->groupBy('medicines.id', 'medicines.name')
-            ->orderByDesc('count')
-            ->take(3)
-            ->get()
-            ->map(function ($item) {
-                $item->last_date = \Carbon\Carbon::parse($item->raw_last_date)->format('M d, Y');
-                return $item;
-            });
+            'medicines.id, medicines.name,
+               COUNT(DISTINCT DATE(stock_transactions.created_at)) as count,
+               MAX(stock_transactions.created_at) as last_date'
+        )
+           ->join('stock_transactions', 'medicines.id', '=', 'stock_transactions.medicine_id')
+           ->where('stock_transactions.type', 'STOCKOUT_INCIDENT')
+        ->groupBy('medicines.id', 'medicines.name')
+        ->orderByDesc('count')
+        ->take(3)
+        ->get();
 
-        // ==================================================
-        // ✅ 5. MONTHLY TREND (PAST 6 MONTHS)
-        // ==================================================
-        $monthlyTrend = DB::table('stock_transactions')
-            ->selectRaw("DATE_FORMAT(created_at, '%b %Y') as month, COUNT(*) as count")
-            ->where('type', 'OUT')
+        // 6. Monthly Trend for Chart.js (Past 6 Months)
+        $monthlyTrend = StockTransaction::selectRaw("DATE_FORMAT(created_at, '%b %Y') as month, COUNT(*) as count")
+            ->where('type', 'STOCKOUT_INCIDENT')
             ->where('created_at', '>=', now()->subMonths(6))
-            ->whereRaw($zeroStockCondition)
             ->groupBy('month')
             ->orderByRaw('MIN(created_at) ASC')
             ->get();
 
-        // ==================================================
-        // ✅ 6. DETAILED RECORDS LIST
-        // ==================================================
-        $stockOutRecords = StockTransaction::with('medicine')
-            ->where('type', 'OUT')
-            ->whereRaw($zeroStockCondition)
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(function ($record) {
-                return (object)[
-                    'id' => $record->id,
-                    'date' => \Carbon\Carbon::parse($record->created_at)->format('Y-m-d'),
-                    'medicine_name' => $record->medicine->name ?? 'Unknown Medicine',
-                    'quantity_needed' => $record->quantity,
-                    'patients_affected' => 0,
-                    'duration' => 1,
-                ];
-            });
-
-        // Fetch medicines list for Modal dropdown
+        // Modal Dropdown Data & User Info
         $medicinesList = Medicine::orderBy('name', 'asc')->get(['id', 'name']);
-
-        // User Metadata
         $userName = Auth::user()->name ?? session('admin_name') ?? session('user_name') ?? ucfirst($role);
 
-        // ==================================================
-        // ✅ 7. RETURN SHARED VIEW ('admin.stockout') FOR BOTH ADMIN & NURSE
-        // ==================================================
+        // 7. Render Blade View
         return view('admin.stockout', compact(
             'role',
             'roleColor',
@@ -220,7 +172,6 @@ class StockController extends Controller
      */
     public function storeStockOut(Request $request)
     {
-        // Validation
         $validated = $request->validate([
             'medicine_id'       => 'required|exists:medicines,id',
             'quantity_needed'   => 'required|integer|min:1',
@@ -231,24 +182,17 @@ class StockController extends Controller
         try {
             DB::beginTransaction();
 
-            // Find medicine record
             $medicine = Medicine::findOrFail($validated['medicine_id']);
 
-            // Create stock-out transaction
             StockTransaction::create([
-                'medicine_id' => $medicine->id,
-                'type'        => 'OUT',
-                'quantity'    => $validated['quantity_needed'],
-                'user_id'     => Auth::id() ?? session('user_id'),
-                'notes'       => "Stock-Out Logged. Duration: {$validated['duration']} days. Patients Affected: {$validated['patients_affected']}",
-                'created_at'  => now(),
+                'medicine_id'       => $medicine->id,
+                'batch_number'      => 'STOCKOUT',
+                'expiry'            => today()->toDateString(),
+                'type'              => 'STOCKOUT_INCIDENT',
+                'quantity'          => $validated['quantity_needed'],
+                'patients_affected' => $validated['patients_affected'],
+                'duration'          => $validated['duration'],
             ]);
-
-            // Update medicine stock if column exists
-            if (isset($medicine->quantity)) {
-                $medicine->quantity = max(0, $medicine->quantity - $validated['quantity_needed']);
-                $medicine->save();
-            }
 
             DB::commit();
 

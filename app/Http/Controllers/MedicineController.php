@@ -15,118 +15,119 @@ use Illuminate\Support\Facades\DB;
 class MedicineController extends Controller
 {
     public function index()
-{
-    $user = Auth::user();
-
-    // Actual system role
-    $role = $this->role();
-
-    // Physician-in-Charge status
-    $is_pic = (int) ($user?->is_physician_in_charge ?? 0);
-
-    // Inventory VIEW permission
-    abort_unless(
-        in_array($role, ['admin', 'nurse', 'bhw'], true)
-        || ($role === 'doctor' && $is_pic === 1),
-        403
-    );
-
-    $medicines = Medicine::with([
-        'batches' => function ($query) {
-            $query
-                ->orderBy('expiry_date')
-                ->orderBy('id');
-        }
-    ])
-        ->orderBy('name')
-        ->get();
-
-    // Batches are the source of truth.
-    // Keep legacy stock columns synchronized.
-    foreach ($medicines as $medicine) {
-        $this->syncMedicineStock($medicine);
-    }
-
-    $expiringBatches = Batch::query()
-        ->join('medicines', 'medicines.id', '=', 'batches.medicine_id')
-        ->where('batches.quantity', '>', 0)
-        ->whereDate('batches.expiry_date', '>=', today())
-        ->whereDate('batches.expiry_date', '<=', today()->addDays(180))
-        ->orderBy('batches.expiry_date')
-        ->orderBy('batches.id')
-        ->get([
-            'batches.id',
-            'batches.medicine_id',
-            'batches.batch_number',
-            'batches.expiry_date',
-            'batches.quantity',
-            'batches.remarks',
-            'batches.created_at',
-            'medicines.name as medicine_name',
-            'medicines.brand as brand_name',
-            'medicines.dosage_strength',
-        ]);
-
-    // Doctor PIC can VIEW inventory but cannot add medicine.
-    $canAddMedicine = in_array(
-        $role,
-        ['admin', 'nurse'],
-        true
-    );
-
-    /*
-     * DISPLAY ROLE
-     *
-     * Doctor + Physician-in-Charge = PIC
-     * Otherwise use the normal role.
-     */
-    $displayRole = (
-        $role === 'doctor' &&
-        $is_pic === 1
-    )
-        ? 'PIC'
-        : strtoupper($role);
-
-    /*
-     * Role badge colors.
-     *
-     * PIC uses the Doctor color because PIC is
-     * still a Doctor in the system.
-     */
-    $roleColors = [
-        'admin'  => '#9333EA', // Purple
-        'nurse'  => '#10B981', // Green
-        'doctor' => '#3B82F6', // Blue
-        'bhw'    => '#6366F1', // Indigo
-        'default' => '#6B7280', // Gray
-    ];
-
-    $roleColor = $roleColors[$role] ?? $roleColors['default'];
-
-    return view('medicine.inventory', [
-        'medicines' => $medicines,
-        'expiringBatches' => $expiringBatches,
-        'userName' => $user?->name
-            ?? session('admin_name')
-            ?? session('user_name')
-            ?? 'Staff',
+    {
+        $user = Auth::user();
 
         // Actual system role
-        'role' => $role,
+        $role = $this->role();
 
-        // PIC status
-        'is_pic' => $is_pic,
+        // Physician-in-Charge status
+        $is_pic = (int) ($user?->is_physician_in_charge ?? 0);
 
-        // Displayed role: ADMIN, NURSE, BHW, DOCTOR, or PIC
-        'displayRole' => $displayRole,
+        // Inventory VIEW permission
+        abort_unless(
+            in_array($role, ['admin', 'nurse', 'bhw'], true)
+            || ($role === 'doctor' && $is_pic === 1),
+            403
+        );
 
-        // Badge color
-        'roleColor' => $roleColor,
+        $medicines = Medicine::with([
+            'batches' => function ($query) {
+                $query
+                    ->orderBy('expiry_date')
+                    ->orderBy('id');
+            }
+        ])
+            ->orderBy('name')
+            ->get();
 
-        // Inventory permissions
-        'canAddMedicine' => $canAddMedicine,
-    ]);
-}
+        // Batches are the source of truth.
+        // Keep legacy stock columns synchronized.
+        foreach ($medicines as $medicine) {
+            $medicine->recalculateStock();
+        }
+
+        $expiringBatches = Batch::query()
+            ->join('medicines', 'medicines.id', '=', 'batches.medicine_id')
+            ->where('batches.quantity', '>', 0)
+            ->whereDate('batches.expiry_date', '>=', today())
+            ->whereDate('batches.expiry_date', '<=', today()->addDays(180))
+            ->orderBy('batches.expiry_date')
+            ->orderBy('batches.id')
+            ->get([
+                'batches.id',
+                'batches.medicine_id',
+                'batches.batch_number',
+                'batches.expiry_date',
+                'batches.quantity',
+                'batches.remarks',
+                'batches.created_at',
+                'medicines.name as medicine_name',
+                'medicines.brand as brand_name',
+                'medicines.dosage_strength',
+            ]);
+
+        // Doctor PIC can VIEW inventory but cannot add medicine.
+        $canAddMedicine = in_array(
+            $role,
+            ['admin', 'nurse'],
+            true
+        );
+
+        /*
+         * DISPLAY ROLE
+         *
+         * Doctor + Physician-in-Charge = PIC
+         * Otherwise use the normal role.
+         */
+        $displayRole = (
+            $role === 'doctor' &&
+            $is_pic === 1
+        )
+            ? 'PIC'
+            : strtoupper($role);
+
+        /*
+         * Role badge colors.
+         *
+         * PIC uses the Doctor color because PIC is
+         * still a Doctor in the system.
+         */
+        $roleColors = [
+            'admin'  => '#9333EA', // Purple
+            'nurse'  => '#10B981', // Green
+            'doctor' => '#3B82F6', // Blue
+            'bhw'    => '#6366F1', // Indigo
+            'default' => '#6B7280', // Gray
+        ];
+
+        $roleColor = $roleColors[$role] ?? $roleColors['default'];
+
+        return view('medicine.inventory', [
+            'medicines' => $medicines,
+            'expiringBatches' => $expiringBatches,
+            'userName' => $user?->name
+                ?? session('admin_name')
+                ?? session('user_name')
+                ?? 'Staff',
+
+            // Actual system role
+            'role' => $role,
+
+            // PIC status
+            'is_pic' => $is_pic,
+
+            // Displayed role: ADMIN, NURSE, BHW, DOCTOR, or PIC
+            'displayRole' => $displayRole,
+
+            // Badge color
+            'roleColor' => $roleColor,
+
+            // Inventory permissions
+            'canAddMedicine' => $canAddMedicine,
+        ]);
+    }
+
     public function dispenseForm()
     {
         $role = $this->role();
@@ -227,6 +228,7 @@ class MedicineController extends Controller
                     'quantity_dispensed' => $validated['quantity'],
                     'unit' => $validated['unit'],
                     'dispensed_by' => $validated['dispensed_by'],
+                    'status' => 'ACTIVE',
                 ]);
 
                 $remaining = (int) $validated['quantity'];
@@ -242,6 +244,7 @@ class MedicineController extends Controller
 
                     StockTransaction::create([
                         'medicine_id' => $medicine->id,
+                        'dispensing_record_id' => $dispensingRecord->id,
                         'batch_number' => $batch->batch_number,
                         'expiry' => $batch->expiry_date,
                         'quantity' => $deducted,
@@ -254,7 +257,7 @@ class MedicineController extends Controller
                     $remaining -= $deducted;
                 }
 
-                $this->syncMedicineStock($medicine);
+                $medicine->recalculateStock();
             }, 3);
 
             $redirectRoute = $role === 'admin'
@@ -314,18 +317,6 @@ class MedicineController extends Controller
             'success' => true,
             'message' => 'Medicine saved successfully.',
         ]);
-    }
-
-    private function syncMedicineStock(Medicine $medicine): int
-    {
-        $realStock = (int) $medicine->batches()->sum('quantity');
-
-        $medicine->forceFill([
-            'stock' => $realStock,
-            'current_stock' => $realStock,
-        ])->save();
-
-        return $realStock;
     }
 
     private function role(): string

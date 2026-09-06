@@ -4,6 +4,7 @@
 <link rel="icon" type="image/png" href="/bhclogo.jpg">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Dispense Medicine | {{ ucfirst($role) }}</title>
 
 <style>
@@ -230,6 +231,17 @@
 
     tbody tr:hover { background-color: #F9FAFB; }
 
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .status-badge.active { background: #DCFCE7; color: #15803D; }
+    .status-badge.voided { background: #FEE2E2; color: #B91C1C; }
+
     /* ================= FORM ELEMENTS ================= */
     label {
         font-size: 12px;
@@ -239,7 +251,7 @@
         margin-bottom: 6px;
     }
 
-    input, select {
+    input, select, textarea {
         width: 100%;
         padding: 10px 14px;
         border: 1px solid #D1D5DB;
@@ -250,9 +262,10 @@
         outline: none;
         box-sizing: border-box;
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        font-family: inherit;
     }
 
-    input:focus, select:focus {
+    input:focus, select:focus, textarea:focus {
         border-color: #1A73E8;
         box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
     }
@@ -499,6 +512,7 @@
                     <th>Medicine</th>
                     <th>Quantity</th>
                     <th>Dispensed By</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -507,12 +521,17 @@
     @foreach($dispensingHistory as $record)
 
         <tr class="dispensing-row"
-            data-date="{{ $record->dispense_date }}"
-            data-patient-ptn="{{ $record->patient_ptn }}"
-            data-patient-name="{{ $record->patient_name }}"
-            data-medicine-id="{{ $record->medicine_id }}"
-            data-medicine-name="{{ $record->medicine->name ?? '' }}"
-            data-staff="{{ $record->dispensed_by }}">
+    data-id="{{ $record->id }}"
+    data-status="{{ $record->status }}"
+    data-date="{{ $record->dispense_date }}"
+    data-patient-ptn="{{ $record->patient_ptn }}"
+    data-patient-name="{{ $record->patient_name }}"
+    data-medicine-id="{{ $record->medicine_id }}"
+    data-medicine-name="{{ $record->medicine->name ?? '' }}"
+    data-quantity="{{ $record->quantity_dispensed }}"
+    data-unit="{{ $record->unit }}"
+    data-diagnosis="{{ $record->diagnosis }}"
+    data-staff="{{ $record->dispensed_by }}">
 
             <td>
                 {{ $record->dispense_date }}
@@ -533,6 +552,14 @@
             <td>
                 {{ $record->dispensed_by }}
             </td>
+
+            <td>
+    @if($record->status === 'VOIDED')
+        <span class="status-badge voided">VOIDED</span>
+    @else
+        <span class="status-badge active">ACTIVE</span>
+    @endif
+</td>
 
             <td>
                 <div class="action-group">
@@ -589,7 +616,7 @@
                         <select id="patient_select" name="patient_id" required>
                             <option value="">-- Select Patient --</option>
                             @foreach($patients as $p)
-                                <option 
+                                <option
                                     value="{{ $p->id }}"
                                     data-ptn="{{ $p->patient_id ?? $p->ptn ?? '' }}"
                                     data-family="{{ $p->family_number ?? $p->family_no ?? '' }}"
@@ -670,8 +697,8 @@
                         <select name="medicine_id" id="medicine_id" required>
                             <option value="">-- Select Medicine --</option>
                             @foreach($medicines as $med)
-                                <option 
-                                    value="{{ $med->id }}" 
+                                <option
+                                    value="{{ $med->id }}"
                                     data-unit="{{ $med->unit ?? 'TABLET' }}"
                                     data-stock="{{ $med->stock ?? 0 }}"
                                 >
@@ -699,7 +726,7 @@
                     <div class="divider"></div>
                     <div class="field" style="max-width: 50%;">
                         <label>Dispensed by (Staff Initials / Name)</label>
-                        <input type="text" name="dispensed_by" id="dispensed_by" value="{{ session('admin_name') ?? 'Admin' }}" readonly required>
+                        <input type="text" name="dispensed_by" id="dispensed_by" value="{{ auth()->user()->name }}" readonly required>
                     </div>
                 </div>
 
@@ -751,11 +778,100 @@
     </div>
 </div>
 
+<!-- ================= EDIT DISPENSING MODAL ================= -->
+<!-- FIX: classes now match the modal-overlay / modal-box system used everywhere else -->
+<div id="editDispenseModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 700px;">
+
+        <div class="modal-header">
+            <h3 class="modal-title">Edit Dispensing Record</h3>
+            <button type="button" id="closeEditDispenseModal" class="close-btn">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <form id="editDispenseForm" method="POST">
+                @csrf
+                @method('PUT')
+
+                <div class="form-section-block">
+                    <div class="grid-2">
+
+                        <div class="field">
+                            <label>Patient</label>
+                            <input type="text" id="edit_patient_name" readonly>
+                        </div>
+
+                        <div class="field">
+                            <label>Patient PTN</label>
+                            <input type="text" id="edit_patient_ptn" readonly>
+                        </div>
+
+                        <div class="field">
+                            <label>Date</label>
+                            <input type="date" name="date" id="edit_date" required>
+                        </div>
+
+                        <div class="field">
+                            <label>Medicine</label>
+                            <select name="medicine_id" id="edit_medicine_id" required>
+                                @foreach($medicines as $medicine)
+                                    <option value="{{ $medicine->id }}" data-unit="{{ $medicine->unit }}">
+                                        {{ $medicine->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Quantity</label>
+                            <input type="number" name="quantity" id="edit_quantity" min="1" required>
+                        </div>
+
+                        <div class="field">
+                            <label>Unit</label>
+                            <input type="text" name="unit" id="edit_unit" readonly required>
+                        </div>
+
+                        <div class="field full">
+                            <label>Diagnosis</label>
+                            <textarea name="diagnosis" id="edit_diagnosis" required></textarea>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button type="button" id="cancelEditDispense" class="clear-btn">Cancel</button>
+                    <button type="submit" class="record-btn">Save Changes</button>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+    // Role-aware route templates — mirrors how the save form uses route($role.'.dispense.save').
+    // We pass BOTH 'role' and 'dispense' params so this works whether your route URI is
+    // "/{role}/dispense/{dispense}" (role consumed as a path segment) or a literal
+    // prefixed URI like "/nurse/dispense/{dispense}" (extra 'role' param is ignored).
+    const dispenseRoutes = {
+        update: "{{ route($role . '.dispense.update', ['role' => $role, 'dispense' => 'ID_PLACEHOLDER']) }}",
+        void:   "{{ route($role . '.dispense.void',   ['role' => $role, 'dispense' => 'ID_PLACEHOLDER']) }}",
+    };
 
-    // MODAL TOGGLES
+    function buildRoute(name, id) {
+        return dispenseRoutes[name].replace('ID_PLACEHOLDER', id);
+    }
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* =========================================================
+       MODALS
+    ========================================================= */
+
     const dispenseModal = document.getElementById('dispenseModal');
     const openDispenseModal = document.getElementById('openDispenseModal');
     const closeDispenseModal = document.getElementById('closeDispenseModal');
@@ -763,11 +879,81 @@ document.addEventListener('DOMContentLoaded', function() {
     const viewModal = document.getElementById('viewModal');
     const closeViewModal = document.getElementById('closeViewModal');
 
-    openDispenseModal.addEventListener('click', () => dispenseModal.classList.add('show'));
-    closeDispenseModal.addEventListener('click', () => dispenseModal.classList.remove('show'));
-    closeViewModal.addEventListener('click', () => viewModal.classList.remove('show'));
+    const editDispenseModal = document.getElementById('editDispenseModal');
+    const closeEditDispenseModal = document.getElementById('closeEditDispenseModal');
+    const cancelEditDispense = document.getElementById('cancelEditDispense');
 
-    // FORM LOGIC
+
+    /* =========================================================
+       DISPENSE MODAL TOGGLE
+    ========================================================= */
+
+    if (openDispenseModal && dispenseModal) {
+        openDispenseModal.addEventListener('click', function () {
+            dispenseModal.classList.add('show');
+        });
+    }
+
+    if (closeDispenseModal && dispenseModal) {
+        closeDispenseModal.addEventListener('click', function () {
+            dispenseModal.classList.remove('show');
+        });
+    }
+
+
+    /* =========================================================
+       VIEW MODAL TOGGLE
+    ========================================================= */
+
+    if (closeViewModal && viewModal) {
+        closeViewModal.addEventListener('click', function () {
+            viewModal.classList.remove('show');
+        });
+    }
+
+
+    /* =========================================================
+       EDIT MODAL TOGGLE
+    ========================================================= */
+
+    if (closeEditDispenseModal && editDispenseModal) {
+        closeEditDispenseModal.addEventListener('click', function () {
+            editDispenseModal.classList.remove('show');
+        });
+    }
+
+    if (cancelEditDispense && editDispenseModal) {
+        cancelEditDispense.addEventListener('click', function () {
+            editDispenseModal.classList.remove('show');
+        });
+    }
+
+
+    /* =========================================================
+       CLOSE MODALS WHEN CLICKING OUTSIDE
+    ========================================================= */
+
+    window.addEventListener('click', function (event) {
+
+        if (dispenseModal && event.target === dispenseModal) {
+            dispenseModal.classList.remove('show');
+        }
+
+        if (viewModal && event.target === viewModal) {
+            viewModal.classList.remove('show');
+        }
+
+        if (editDispenseModal && event.target === editDispenseModal) {
+            editDispenseModal.classList.remove('show');
+        }
+
+    });
+
+
+    /* =========================================================
+       DISPENSE FORM
+    ========================================================= */
+
     const form = document.getElementById('dispenseForm');
     const patientSelect = document.getElementById('patient_select');
     const medicineSelect = document.getElementById('medicine_id');
@@ -776,205 +962,681 @@ document.addEventListener('DOMContentLoaded', function() {
     const clearBtn = document.getElementById('clearBtn');
 
     const requiredIds = [
-        'patient_ptn', 'family_no', 'barangay', 'date', 
-        'patient_name', 'age', 'sex', 'address', 
-        'diagnosis', 'medicine_id', 'quantity', 'unit', 'dispensed_by'
+        'patient_ptn',
+        'family_no',
+        'barangay',
+        'date',
+        'patient_name',
+        'age',
+        'sex',
+        'address',
+        'diagnosis',
+        'medicine_id',
+        'quantity',
+        'unit',
+        'dispensed_by'
     ];
 
+
+    /* =========================================================
+       CLEAR PATIENT FIELDS
+    ========================================================= */
+
     function clearPatientFields() {
-        ['patient_ptn', 'family_no', 'barangay', 'patient_name', 'age', 'sex', 'address', 'philhealth_no'].forEach(id => {
+
+        [
+            'patient_ptn',
+            'family_no',
+            'barangay',
+            'patient_name',
+            'age',
+            'sex',
+            'address',
+            'philhealth_no'
+        ].forEach(function (id) {
+
             const el = document.getElementById(id);
-            if (el) el.value = '';
+
+            if (el) {
+                el.value = '';
+            }
+
         });
+
     }
+
+
+    /* =========================================================
+       CLEAR MEDICINE FIELDS
+    ========================================================= */
 
     function clearMedicineFields() {
-        document.getElementById('unit').value = '';
-        qtyInput.value = '';
-        qtyInput.removeAttribute('max');
-        qtyInput.placeholder = 'e.g. 10';
+
+        const unit = document.getElementById('unit');
+
+        if (unit) {
+            unit.value = '';
+        }
+
+        if (qtyInput) {
+            qtyInput.value = '';
+            qtyInput.removeAttribute('max');
+            qtyInput.placeholder = 'e.g. 10';
+        }
+
     }
 
-    patientSelect.addEventListener('change', function() {
-        const opt = this.selectedOptions[0];
-        if (!opt || !opt.value) {
-            clearPatientFields();
-            checkReady();
-            return;
-        }
 
-        document.getElementById('patient_ptn').value  = opt.dataset.ptn || '';
-        document.getElementById('family_no').value    = opt.dataset.family || '';
-        document.getElementById('barangay').value     = opt.dataset.brgy || '';
-        document.getElementById('patient_name').value = opt.dataset.name || '';
-        document.getElementById('age').value          = opt.dataset.age || '';
-        document.getElementById('sex').value          = opt.dataset.sex || '';
-        document.getElementById('address').value      = opt.dataset.address || '';
-        document.getElementById('philhealth_no').value = opt.dataset.philhealth || '';
+    /* =========================================================
+       PATIENT SELECTION
+    ========================================================= */
 
-        checkReady();
-    });
+    if (patientSelect) {
 
-    medicineSelect.addEventListener('change', function() {
-        const opt = this.selectedOptions[0];
-        if (!opt || !opt.value) {
-            clearMedicineFields();
-            checkReady();
-            return;
-        }
+        patientSelect.addEventListener('change', function () {
 
-        document.getElementById('unit').value = opt.dataset.unit || 'TABLET';
-        const stock = parseInt(opt.dataset.stock) || 0;
-        qtyInput.max = stock;
-        qtyInput.placeholder = `Max: ${stock}`;
+            const opt = this.selectedOptions[0];
 
-        checkReady();
-    });
+            if (!opt || !opt.value) {
 
-    function checkReady() {
-        let isReady = true;
+                clearPatientFields();
+                checkReady();
 
-        requiredIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (!el || el.value === null || el.value.toString().trim() === '') {
-                isReady = false;
+                return;
             }
+
+            const patientPtn = document.getElementById('patient_ptn');
+            const familyNo = document.getElementById('family_no');
+            const barangay = document.getElementById('barangay');
+            const patientName = document.getElementById('patient_name');
+            const age = document.getElementById('age');
+            const sex = document.getElementById('sex');
+            const address = document.getElementById('address');
+            const philhealth = document.getElementById('philhealth_no');
+
+            if (patientPtn) {
+                patientPtn.value = opt.dataset.ptn || '';
+            }
+
+            if (familyNo) {
+                familyNo.value = opt.dataset.family || '';
+            }
+
+            if (barangay) {
+                barangay.value = opt.dataset.brgy || '';
+            }
+
+            if (patientName) {
+                patientName.value = opt.dataset.name || '';
+            }
+
+            if (age) {
+                age.value = opt.dataset.age || '';
+            }
+
+            if (sex) {
+                sex.value = opt.dataset.sex || '';
+            }
+
+            if (address) {
+                address.value = opt.dataset.address || '';
+            }
+
+            if (philhealth) {
+                philhealth.value = opt.dataset.philhealth || '';
+            }
+
+            checkReady();
+
         });
 
-        const val = parseInt(qtyInput.value);
-        const max = parseInt(qtyInput.max);
-        if (isNaN(val) || val <= 0 || (max && val > max)) {
-            isReady = false;
+    }
+
+
+    /* =========================================================
+       MEDICINE SELECTION
+    ========================================================= */
+
+    if (medicineSelect) {
+
+        medicineSelect.addEventListener('change', function () {
+
+            const opt = this.selectedOptions[0];
+
+            if (!opt || !opt.value) {
+
+                clearMedicineFields();
+                checkReady();
+
+                return;
+            }
+
+            const unit = document.getElementById('unit');
+
+            if (unit) {
+                unit.value = opt.dataset.unit || 'TABLET';
+            }
+
+            const stock = parseInt(opt.dataset.stock) || 0;
+
+            if (qtyInput) {
+
+                qtyInput.max = stock;
+                qtyInput.placeholder = `Max: ${stock}`;
+
+            }
+
+            checkReady();
+
+        });
+
+    }
+
+
+    /* =========================================================
+       CHECK DISPENSE FORM
+    ========================================================= */
+
+    function checkReady() {
+
+        if (!form || !recordBtn) {
+            return;
+        }
+
+        let isReady = true;
+
+        requiredIds.forEach(function (id) {
+
+            const el = document.getElementById(id);
+
+            if (
+                !el ||
+                el.value === null ||
+                el.value.toString().trim() === ''
+            ) {
+                isReady = false;
+            }
+
+        });
+
+        if (qtyInput) {
+
+            const val = parseInt(qtyInput.value);
+            const max = parseInt(qtyInput.max);
+
+            if (
+                isNaN(val) ||
+                val <= 0 ||
+                (!isNaN(max) && max > 0 && val > max)
+            ) {
+                isReady = false;
+            }
+
         }
 
         recordBtn.disabled = !isReady;
+
     }
 
-    form.addEventListener('input', checkReady);
-    form.addEventListener('change', checkReady);
-    form.addEventListener('keyup', checkReady);
 
-    clearBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        patientSelect.value = '';
-        medicineSelect.value = '';
-        clearPatientFields();
-        clearMedicineFields();
-        document.getElementById('diagnosis').value = '';
-        checkReady();
-    });
+    /* =========================================================
+       DISPENSE FORM EVENTS
+    ========================================================= */
 
-    // POPULATE VIEW MODAL
-    document.querySelectorAll('.view-record-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            document.getElementById('viewDate').value = this.dataset.date;
-            document.getElementById('viewPatient').value = this.dataset.patient;
-            document.getElementById('viewMedicine').value = this.dataset.medicine;
-            document.getElementById('viewQuantity').value = this.dataset.quantity;
-            document.getElementById('viewDispensedBy').value = this.dataset.dispensedby;
-            document.getElementById('viewDiagnosis').value = this.dataset.diagnosis;
-            viewModal.classList.add('show');
+    if (form) {
+
+        form.addEventListener('input', checkReady);
+        form.addEventListener('change', checkReady);
+        form.addEventListener('keyup', checkReady);
+
+    }
+
+
+    /* =========================================================
+       CLEAR DISPENSE FORM
+    ========================================================= */
+
+    if (clearBtn) {
+
+        clearBtn.addEventListener('click', function (e) {
+
+            e.preventDefault();
+
+            if (patientSelect) {
+                patientSelect.value = '';
+            }
+
+            if (medicineSelect) {
+                medicineSelect.value = '';
+            }
+
+            clearPatientFields();
+            clearMedicineFields();
+
+            const diagnosis = document.getElementById('diagnosis');
+
+            if (diagnosis) {
+                diagnosis.value = '';
+            }
+
+            checkReady();
+
         });
+
+    }
+
+
+    /* =========================================================
+       VIEW DISPENSING RECORD
+    ========================================================= */
+
+    document.querySelectorAll('.view-record-btn').forEach(function (button) {
+
+        button.addEventListener('click', function () {
+
+            const viewDate = document.getElementById('viewDate');
+            const viewPatient = document.getElementById('viewPatient');
+            const viewMedicine = document.getElementById('viewMedicine');
+            const viewQuantity = document.getElementById('viewQuantity');
+            const viewDispensedBy = document.getElementById('viewDispensedBy');
+            const viewDiagnosis = document.getElementById('viewDiagnosis');
+
+            if (viewDate) {
+                viewDate.value = this.dataset.date || '';
+            }
+
+            if (viewPatient) {
+                viewPatient.value = this.dataset.patient || '';
+            }
+
+            if (viewMedicine) {
+                viewMedicine.value = this.dataset.medicine || '';
+            }
+
+            if (viewQuantity) {
+                viewQuantity.value = this.dataset.quantity || '';
+            }
+
+            if (viewDispensedBy) {
+                viewDispensedBy.value = this.dataset.dispensedby || '';
+            }
+
+            if (viewDiagnosis) {
+                viewDiagnosis.value = this.dataset.diagnosis || 'N/A';
+            }
+
+            if (viewModal) {
+                viewModal.classList.add('show');
+            }
+
+        });
+
     });
 
-// ================= FILTER LOGIC =================
 
-const searchInput = document.getElementById('searchInput');
-const dateFilter = document.getElementById('dateFilter');
-const patientFilter = document.getElementById('patientFilter');
-const medicineFilter = document.getElementById('medicineFilter');
-const staffFilter = document.getElementById('staffFilter');
-const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    /* =========================================================
+       EDIT MEDICINE UNIT
+    ========================================================= */
 
-const dispensingRows = document.querySelectorAll('.dispensing-row');
+    const editMedicineSelect =
+        document.getElementById('edit_medicine_id');
 
-function filterRecords() {
-    const searchValue = searchInput.value.toLowerCase().trim();
-    const dateValue = dateFilter.value;
-    const patientValue = patientFilter.value.trim();
-    const medicineValue = medicineFilter.value.trim();
-    const staffValue = staffFilter.value.toLowerCase().trim();
+    const editUnitInput =
+        document.getElementById('edit_unit');
 
-    dispensingRows.forEach(row => {
-        // Get row values safely
-        const rowDate = (row.dataset.date || '').trim();
-        const patientPtn = (row.dataset.patientPtn || '').trim().toLowerCase();
-        const patientName = (row.dataset.patientName || '').trim().toLowerCase();
-        const medicineId = (row.dataset.medicineId || '').trim();
-        const medicineName = (row.dataset.medicineName || '').trim().toLowerCase();
-        const staffName = (row.dataset.staff || '').trim().toLowerCase();
+    if (editMedicineSelect) {
 
-        // SEARCH — matches patient name, PTN, medicine name, or staff
-        const matchesSearch = !searchValue ||
-            patientName.includes(searchValue) ||
-            patientPtn.includes(searchValue) ||
-            medicineName.includes(searchValue) ||
-            staffName.includes(searchValue);
+        editMedicineSelect.addEventListener('change', function () {
 
-        // DATE — exact match
-        const matchesDate = !dateValue || rowDate === dateValue;
+            const selectedOption =
+                this.options[this.selectedIndex];
 
-        // PATIENT — match by PTN/ID exactly
-        const matchesPatient = !patientValue || patientPtn === patientValue.toLowerCase();
+            if (editUnitInput) {
 
-        // MEDICINE — match by ID exactly
-        const matchesMedicine = !medicineValue || medicineId === medicineValue;
+                editUnitInput.value =
+                    selectedOption.dataset.unit || '';
 
-        // STAFF — match by name (contains)
-        const matchesStaff = !staffValue || staffName.includes(staffValue);
+            }
 
-        // SHOW row only if ALL conditions match
-        const isVisible = matchesSearch && matchesDate && matchesPatient && matchesMedicine && matchesStaff;
-        row.style.display = isVisible ? '' : 'none';
-    });
-}
+        });
 
-// Attach events
-searchInput.addEventListener('input', filterRecords);
-dateFilter.addEventListener('change', filterRecords);
-patientFilter.addEventListener('change', filterRecords);
-medicineFilter.addEventListener('change', filterRecords);
-staffFilter.addEventListener('change', filterRecords);
-clearFiltersBtn.addEventListener('click', function() {
-    searchInput.value = '';
-    dateFilter.value = '';
-    patientFilter.value = '';
-    medicineFilter.value = '';
-    staffFilter.value = '';
-    filterRecords();
-});
+    }
+
+
+    /* =========================================================
+       FILTER LOGIC
+    ========================================================= */
+
+    const searchInput = document.getElementById('searchInput');
+    const dateFilter = document.getElementById('dateFilter');
+    const patientFilter = document.getElementById('patientFilter');
+    const medicineFilter = document.getElementById('medicineFilter');
+    const staffFilter = document.getElementById('staffFilter');
+    const clearFiltersBtn =
+        document.getElementById('clearFiltersBtn');
+
+    const dispensingRows =
+        document.querySelectorAll('.dispensing-row');
+
+
+    function filterRecords() {
+
+        const searchValue =
+            searchInput
+                ? searchInput.value.toLowerCase().trim()
+                : '';
+
+        const dateValue =
+            dateFilter
+                ? dateFilter.value
+                : '';
+
+        const patientValue =
+            patientFilter
+                ? patientFilter.value.trim()
+                : '';
+
+        const medicineValue =
+            medicineFilter
+                ? medicineFilter.value.trim()
+                : '';
+
+        const staffValue =
+            staffFilter
+                ? staffFilter.value.toLowerCase().trim()
+                : '';
+
+
+        dispensingRows.forEach(function (row) {
+
+            const rowDate =
+                (row.dataset.date || '').trim();
+
+            const patientPtn =
+                (row.dataset.patientPtn || '')
+                    .trim()
+                    .toLowerCase();
+
+            const patientName =
+                (row.dataset.patientName || '')
+                    .trim()
+                    .toLowerCase();
+
+            const medicineId =
+                (row.dataset.medicineId || '').trim();
+
+            const medicineName =
+                (row.dataset.medicineName || '')
+                    .trim()
+                    .toLowerCase();
+
+            const staffName =
+                (row.dataset.staff || '')
+                    .trim()
+                    .toLowerCase();
+
+
+            /* SEARCH */
+
+            const matchesSearch =
+                !searchValue ||
+                patientName.includes(searchValue) ||
+                patientPtn.includes(searchValue) ||
+                medicineName.includes(searchValue) ||
+                staffName.includes(searchValue);
+
+
+            /* DATE */
+
+            const matchesDate =
+                !dateValue ||
+                rowDate === dateValue;
+
+
+            /* PATIENT */
+
+            const matchesPatient =
+                !patientValue ||
+                patientPtn === patientValue.toLowerCase();
+
+
+            /* MEDICINE */
+
+            const matchesMedicine =
+                !medicineValue ||
+                medicineId === medicineValue;
+
+
+            /* STAFF */
+
+            const matchesStaff =
+                !staffValue ||
+                staffName.includes(staffValue);
+
+
+            /* FINAL RESULT */
+
+            const isVisible =
+                matchesSearch &&
+                matchesDate &&
+                matchesPatient &&
+                matchesMedicine &&
+                matchesStaff;
+
+
+            row.style.display =
+                isVisible ? '' : 'none';
+
+        });
+
+    }
+
+
+    /* =========================================================
+       FILTER EVENTS
+    ========================================================= */
+
+    if (searchInput) {
+        searchInput.addEventListener(
+            'input',
+            filterRecords
+        );
+    }
+
+    if (dateFilter) {
+        dateFilter.addEventListener(
+            'change',
+            filterRecords
+        );
+    }
+
+    if (patientFilter) {
+        patientFilter.addEventListener(
+            'change',
+            filterRecords
+        );
+    }
+
+    if (medicineFilter) {
+        medicineFilter.addEventListener(
+            'change',
+            filterRecords
+        );
+    }
+
+    if (staffFilter) {
+        staffFilter.addEventListener(
+            'change',
+            filterRecords
+        );
+    }
+
+
+    /* =========================================================
+       CLEAR FILTERS
+    ========================================================= */
+
+    if (clearFiltersBtn) {
+
+        clearFiltersBtn.addEventListener('click', function () {
+
+            if (searchInput) {
+                searchInput.value = '';
+            }
+
+            if (dateFilter) {
+                dateFilter.value = '';
+            }
+
+            if (patientFilter) {
+                patientFilter.value = '';
+            }
+
+            if (medicineFilter) {
+                medicineFilter.value = '';
+            }
+
+            if (staffFilter) {
+                staffFilter.value = '';
+            }
+
+            filterRecords();
+
+        });
+
+    }
+
+
+    /* =========================================================
+       INITIAL FORM CHECK
+    ========================================================= */
 
     checkReady();
 
+
+    /* =========================================================
+       SWEETALERT SUCCESS
+    ========================================================= */
+
     @if(session('success'))
-        Swal.fire({ icon: 'success', title: 'Saved!', text: "{{ session('success') }}" });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Saved!',
+            text: @json(session('success'))
+        });
+
     @endif
 
+
+    /* =========================================================
+       SWEETALERT ERROR
+    ========================================================= */
+
     @if(session('error'))
-        Swal.fire({ icon: 'error', title: 'Error!', text: "{{ session('error') }}" });
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: @json(session('error'))
+        });
+
     @endif
 
 });
 
-// ADMIN ACTION HANDLERS
+
+/* =============================================================
+   EDIT DISPENSING RECORD
+============================================================= */
+
+function editRecord(recordId) {
+    const row = document.querySelector(`.dispensing-row[data-id="${recordId}"]`);
+
+    if (!row) {
+        console.error('Dispensing record not found:', recordId);
+        return;
+    }
+
+    if (row.dataset.status === 'VOIDED') {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Record is voided',
+            text: 'A voided dispensing record cannot be edited.'
+        });
+        return;
+    }
+
+    const modal = document.getElementById('editDispenseModal');
+    const form = document.getElementById('editDispenseForm');
+
+    if (!modal || !form) {
+        console.error('Edit modal or form not found.');
+        return;
+    }
+
+    document.getElementById('edit_patient_name').value = row.dataset.patientName || '';
+    document.getElementById('edit_patient_ptn').value = row.dataset.patientPtn || '';
+    document.getElementById('edit_date').value = row.dataset.date || '';
+    document.getElementById('edit_medicine_id').value = row.dataset.medicineId || '';
+    document.getElementById('edit_quantity').value = row.dataset.quantity || '';
+    document.getElementById('edit_unit').value = row.dataset.unit || '';
+    document.getElementById('edit_diagnosis').value = row.dataset.diagnosis || '';
+
+    // Role-aware route instead of a hardcoded URL
+    form.action = buildRoute('update', recordId);
+
+    modal.classList.add('show');
+}
+
+/* =============================================================
+   VOID DISPENSING RECORD
+============================================================= */
+
 function confirmVoid(recordId) {
+    const row = document.querySelector(`.dispensing-row[data-id="${recordId}"]`);
+
+    if (!row) {
+        Swal.fire({ icon: 'error', title: 'Record Not Found', text: 'The dispensing record could not be found.' });
+        return;
+    }
+
+    if (row.dataset.status === 'VOIDED') {
+        Swal.fire({ icon: 'info', title: 'Already Voided', text: 'This dispensing record has already been voided.' });
+        return;
+    }
+
     Swal.fire({
         title: 'Void Dispensing Record?',
-        text: "This action will reverse the stock deduction for this entry.",
+        text: 'This will return the dispensed medicine to inventory. The record will remain in the history as VOIDED.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#EF4444',
         cancelButtonColor: '#6B7280',
-        confirmButtonText: 'Yes, void record'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = `/admin/dispense/void/${recordId}`;
-        }
-    });
-}
+        confirmButtonText: 'Yes, void record',
+        cancelButtonText: 'Cancel'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
 
-function editRecord(recordId) {
-    window.location.href = `/admin/dispense/edit/${recordId}`;
+        const form = document.createElement('form');
+        form.method = 'POST';
+
+        // Role-aware route instead of a hardcoded URL
+        form.action = buildRoute('void', recordId);
+
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = '_token';
+
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        csrf.value = csrfMeta
+            ? csrfMeta.getAttribute('content')
+            : (document.querySelector('input[name="_token"]')?.value || '');
+
+        form.appendChild(csrf);
+        document.body.appendChild(form);
+        form.submit();
+    });
 }
 </script>
 

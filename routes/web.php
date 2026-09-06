@@ -46,7 +46,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/patients/show/{id}', [PatientController::class, 'show']);
     Route::get('/patients/search', [PatientController::class, 'search']);
     Route::middleware(['auth'])->group(function () {
-    Route::post('/queue', [YourController::class, 'storeQueue']);
+    Route::post('/queue', [PatientController::class, 'storeQueue']);
 });
     
     // FIX 1: Universal endpoint for medicine history (Handles both /patient/... and /nurse/patient/...)
@@ -76,7 +76,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::post('/dispense/save', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
         Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
         Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
-        Route::post('/stockout/store', [StockController::class, 'storeStockOut'])->name('stockout.store');
+Route::post('/stockout/store', [StockController::class, 'storeStockOut'])->name('stockout.store');
 
         // REQUEST FORM MODULE
         Route::get('/request', [RequestController::class, 'index'])->name('request');
@@ -105,6 +105,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::get('/reports/api/dispensing', [ReportsController::class, 'apiDispensing'])->name('reports.api.dispensing');
         Route::get('/reports/api/operational', [ReportsController::class, 'apiOperational'])->name('reports.api.operational');
         Route::get('/triage', [PatientController::class, 'triage'])->name('triage');
+        
 
         Route::get('/inventory/index', [InventoryController::class, 'index'])->name('inventory.index');
         Route::get('/inventory/restock/{id}', [InventoryController::class, 'showRestockForm'])->name('restock.form');
@@ -138,6 +139,9 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
         
         Route::delete('/medicine/delete/{id}', [MedicineController::class, 'destroy'])->name('medicine.delete');
+
+        Route::put('/dispense/{dispense}', [DispenseController::class, 'update'])->name('dispense.update');
+    Route::post('/dispense/{dispense}/void', [DispenseController::class, 'void'])->name('dispense.void');
     });
 
 
@@ -151,6 +155,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::post('/dispense/save', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
         Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
         Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
+    Route::post('/stockout/store', [StockController::class, 'storeStockOut'])->name('stockout.store');
         Route::get('/triage', [PatientController::class, 'triage'])->name('triage');
         Route::get('/reports', fn() => view('reports.landing'))->name('reports');
         Route::get('/patient-registration', [PatientController::class, 'create'])->name('patient-registration');
@@ -177,6 +182,9 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::get('/request', [RequestController::class, 'index'])->name('request');
         Route::post('/request/store', [RequestController::class, 'store'])->name('request.store');
         Route::post('/request/update-status', [RequestController::class, 'updateStatus'])->name('request.updateStatus');
+
+        Route::put('/dispense/{dispense}', [DispenseController::class, 'update'])->name('dispense.update');
+    Route::post('/dispense/{dispense}/void', [DispenseController::class, 'void'])->name('dispense.void');
     });
 
 
@@ -256,6 +264,5 @@ Route::get('/triage/live-queue-data', [PatientController::class, 'getLiveQueueDa
 
     Route::get('/patients/{id}/service-history', [PatientController::class, 'serviceHistory'])
     ->name('patients.service-history');
-
 
 });

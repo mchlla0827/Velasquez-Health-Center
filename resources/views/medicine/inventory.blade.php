@@ -1846,12 +1846,18 @@ $criticalItem = $medicines
 </div>
 
     @php
-        $needAttentionCount = $medicines->filter(function ($medicine) {
+    $needAttentionCount = $medicines->filter(function ($medicine) {
 
         $stock = $medicine->total_stock;
 
+        // Only consider batches that are still usable:
+        // still have quantity, and haven't already expired.
         $nearestExpiry = optional(
-            $medicine->batches->sortBy('expiry_date')->first()
+            $medicine->batches
+                ->where('quantity', '>', 0)
+                ->filter(fn($batch) => \Carbon\Carbon::parse($batch->expiry_date)->isFuture())
+                ->sortBy('expiry_date')
+                ->first()
         )->expiry_date;
 
         // STOCK CONDITION
@@ -1864,14 +1870,13 @@ $criticalItem = $medicines
             $daysLeft = \Carbon\Carbon::now()
                 ->diffInDays(\Carbon\Carbon::parse($nearestExpiry), false);
 
-            $isExpiring = $daysLeft <= 180;
+            $isExpiring = $daysLeft <= 180 && $daysLeft > 0;
         }
 
         return $isLowStock || $isExpiring;
 
-     })->count();
-    @endphp
-
+    })->count();
+@endphp
     <div class="priority-card">
         <div class="priority-header">
             <div>

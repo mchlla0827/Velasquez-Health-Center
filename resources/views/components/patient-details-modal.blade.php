@@ -912,8 +912,9 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
                     if (matCards) matCards.forEach(card => card.style.display = 'block');
                 }
 
-                // Rest of medical history mapping
-                if(!data.screen_bp && !data.screen_bmi) {
+                // Render the latest Integrated NCD assessment in Medical History.
+                const ncd = data.latest_ncd_assessment;
+                if (!ncd) {
                     document.getElementById('medical-history-empty').style.display = 'flex';
                     document.getElementById('medical-history-filled').style.display = 'none';
                     const btnNcd = document.getElementById('btn-start-ncd');
@@ -926,6 +927,74 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
             })
             .catch(error => console.error('Error loading patient:', error));
     };
+
+    function escapeMedicalHistoryValue(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatMedicalHistoryValue(value) {
+        if (Array.isArray(value)) return value.join(', ');
+        if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+        if (value === null || value === undefined || value === '') return 'Not recorded';
+        return value;
+    }
+
+    function renderMedicalHistory(ncd) {
+        const container = document.getElementById('mh-render');
+        if (!container) return;
+
+        const sections = [
+            {
+                title: 'Assessment Information',
+                fields: ['health_facility', 'assessment_date', 'family_no', 'first_name', 'middle_name', 'last_name', 'id_no', 'address', 'barangay', 'telepono', 'birthday', 'edad', 'kasarian', 'estadocivil', 'relihiyon', 'educational_attainment']
+            },
+            {
+                title: 'Past Medical History',
+                fields: ['is_diabetic', 'is_diabetic_year', 'is_diabetic_meds', 'risk_dm', 'is_hypertensive', 'is_hypertensive_year', 'is_hypertensive_meds', 'risk_hpn', 'has_copd', 'has_copd_year', 'has_copd_meds', 'risk_copd', 'has_cancer', 'cancer_site_condition', 'cancer_year', 'cancer_meds', 'risk_cancer', 'has_eye_disease', 'eye_year', 'eye_meds']
+            },
+            {
+                title: 'Chest Pain Screening',
+                fields: ['cp1', 'cp2', 'cp3', 'cp4', 'cp5', 'cp6', 'cp7', 'cp8']
+            },
+            {
+                title: 'Risk Factors',
+                fields: ['fam_hypertension', 'fam_heart_disease', 'fam_stroke', 'fam_diabetes', 'fam_cancer', 'fam_lung_disease', 'fam_kidney_disease', 'fam_other', 'has_exercise', 'exercise_type', 'smoke_status', 'smoke_sticks_per_day', 'smoke_quit_duration', 'smoke_100_sticks', 'smoke_exposed', 'stress_frequent', 'stress_cause', 'stress_affects_life', 'risk_activity', 'risk_smoking_history', 'risk_smoker', 'risk_stress']
+            },
+            {
+                title: 'Nutrition and Alcohol',
+                fields: ['r_diet', 'r_salt', 'diet_gulay', 'diet_prutas', 'diet_isda', 'diet_karne', 'diet_processed_food', 'diet_maalat', 'diet_matatamis', 'diet_mamantika', 'alc_u', 'alc_q', 'alc_t', 'amt_b', 'amt_w', 'amt_s', 'alc_f', 'alc_b', 'r_binge']
+            },
+            {
+                title: 'Measurements and Risk Screening',
+                fields: ['w', 'h', 'bmi', 'bmi_s', 'r_over', 'r_obese', 'waist', 'hip', 'whr', 'whr_s', 'r_whr', 'fbs', 'vn', 'fbs_s', 'r_predm', 'rbs_s', 's_pol', 's_wgt', 'r_dm_f', 'bp_l', 'bp_r', 'bp_b', 'bp_s', 'r_hpn_pre', 'r_hpn_f', 'chol', 'ch_s', 'r_chol', 'pro', 'ket', 'r_pro', 'r_ket', 'rp', 'r_30', 'cs']
+            },
+            {
+                title: 'Assessment Sign-off',
+                fields: ['occupation', 'designation', 'sign_date']
+            }
+        ];
+
+        const label = field => field
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, character => character.toUpperCase());
+
+        container.innerHTML = sections.map(section => {
+            const rows = section.fields
+                .filter(field => Object.prototype.hasOwnProperty.call(ncd, field))
+                .map(field => {
+                    const value = escapeMedicalHistoryValue(formatMedicalHistoryValue(ncd[field]));
+                    return `<div class="mh-row"><span class="k">${escapeMedicalHistoryValue(label(field))}</span><span class="val">${value}</span></div>`;
+                })
+                .join('');
+
+            return `<details class="mh-sec" open><summary>${escapeMedicalHistoryValue(section.title)}<span class="mh-sec-right"><span class="mh-chevron"></span></span></summary><div class="mh-body"><div class="mh-rows">${rows || '<div class="mh-row"><span class="val muted">No data recorded</span></div>'}</div></div></details>`;
+        }).join('');
+    }
 
     
     window.editPatient = function(patientId) {

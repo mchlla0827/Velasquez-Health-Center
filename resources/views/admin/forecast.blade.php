@@ -378,58 +378,96 @@
         "Forecast ({{ \Carbon\Carbon::now()->addMonth()->format('F') }})"
     ];
 
+    /*
+     * Returns two separate series instead of one merged array:
+     * - historical: the 3 real, past months of dispensed quantity (4th slot null)
+     * - forecast: null for the first 2 months, then the connecting point
+     *   (month 3's real total) followed by the projected next-month demand
+     *
+     * Keeping these separate lets the chart clearly distinguish
+     * "what actually happened" from "what we're predicting" instead
+     * of plotting both under one misleading "Quantity Dispensed" label.
+     */
     function getOverallData() {
-        let totals = [0,0,0,0];
+        let historical = [0, 0, 0];
+        let forecastTotal = 0;
+
         rawForecastChart.forEach(item => {
-            totals[0] += item.historical[0]||0;
-            totals[1] += item.historical[1]||0;
-            totals[2] += item.historical[2]||0;
-            totals[3] += item.forecast||0;
+            historical[0] += item.historical[0] || 0;
+            historical[1] += item.historical[1] || 0;
+            historical[2] += item.historical[2] || 0;
+            forecastTotal += item.forecast || 0;
         });
-        return totals;
+
+        return {
+            historical: [...historical, null],
+            forecast: [null, null, historical[2], forecastTotal]
+        };
     }
+
+    const overall = getOverallData();
 
     const ctx = document.getElementById('forecastChart').getContext('2d');
     const myChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: monthNames,
-            datasets: [{
-                label: 'Quantity Dispensed',
-                data: getOverallData(),
-                borderColor: '#2563EB',
-                backgroundColor: 'rgba(37,99,235,0.08)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.2,
-                pointRadius: [4,4,4,6],
-                pointBackgroundColor: ['#2563EB','#2563EB','#2563EB','#EF4444'],
-                segment: { borderDash: ctx => ctx.p0DataIndex === 2 ? [6,6] : undefined }
-            }]
+            datasets: [
+                {
+                    label: 'Actual Quantity Dispensed',
+                    data: overall.historical,
+                    borderColor: '#2563EB',
+                    backgroundColor: 'rgba(37,99,235,0.08)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#2563EB'
+                },
+                {
+                    label: 'Forecasted Demand',
+                    data: overall.forecast,
+                    borderColor: '#EF4444',
+                    backgroundColor: 'transparent',
+                    borderWidth: 3,
+                    borderDash: [6, 6],
+                    fill: false,
+                    tension: 0.2,
+                    pointRadius: [0, 0, 0, 6],
+                    pointBackgroundColor: '#EF4444'
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: true } },
             scales: {
-                y: { beginAtZero: true, title: { display:true, text:'Quantity Dispensed' } },
-                x: { title: { display:true, text:'Forecast Period' } }
+                y: { beginAtZero: true, title: { display: true, text: 'Quantity Dispensed' } },
+                x: { title: { display: true, text: 'Forecast Period' } }
             }
         }
     });
 
-    document.getElementById('medicineFilter').addEventListener('change', function(){
+    document.getElementById('medicineFilter').addEventListener('change', function () {
         const id = this.value;
-        if(id === 'all'){
-            myChart.data.datasets[0].data = getOverallData();
+
+        if (id === 'all') {
+            const overall = getOverallData();
+            myChart.data.datasets[0].data = overall.historical;
+            myChart.data.datasets[1].data = overall.forecast;
         } else {
             const item = rawForecastChart.find(i => i.medicine_id == id);
-            if(item) myChart.data.datasets[0].data = [...item.historical, item.forecast];
+            if (item) {
+                myChart.data.datasets[0].data = [...item.historical, null];
+                myChart.data.datasets[1].data = [null, null, item.historical[2], item.forecast];
+            }
         }
+
         myChart.update();
     });
 
-    document.getElementById('tableSearch').addEventListener('keyup', function(){
+    document.getElementById('tableSearch').addEventListener('keyup', function () {
         const q = this.value.toLowerCase();
         document.querySelectorAll('#forecastTableBody tr').forEach(row => {
             row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';

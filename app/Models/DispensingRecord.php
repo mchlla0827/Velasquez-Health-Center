@@ -9,21 +9,24 @@ use App\Models\Medicine;
 class DispensingRecord extends Model
 {
     protected $fillable = [
-        'patient_ptn',
-        'family_no',
-        'barangay',
-        'dispense_date',
-        'patient_name',
-        'age',
-        'sex',
-        'address',
-        'philhealth_no',
-        'diagnosis',
-        'medicine_id',
-        'quantity_dispensed',
-        'unit',
-        'dispensed_by'
-    ];
+    'patient_ptn',
+    'family_no',
+    'barangay',
+    'dispense_date',
+    'patient_name',
+    'age',
+    'sex',
+    'address',
+    'philhealth_no',
+    'diagnosis',
+    'medicine_id',
+    'quantity_dispensed',
+    'unit',
+    'dispensed_by',
+    'status',
+    'voided_at',
+    'voided_by',
+];
 
     public function patient()
     {
@@ -42,4 +45,12 @@ class DispensingRecord extends Model
             'id'
         );
     }
+
+    public function stockTransactions()
+{
+    return $this->hasMany(
+        StockTransaction::class,
+        'dispensing_record_id'
+    );
+}
 }
