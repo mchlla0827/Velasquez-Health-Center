@@ -12,7 +12,7 @@ class AssessmentController extends Controller
     {
         $patient = Patient::findOrFail($id);
         
-        // We pass the patient data so the form shows their name and ID at the top
+        
         return view('patients.ncd-assessment', compact('patient'));    }
 
     // 2. Save the Assessment Form

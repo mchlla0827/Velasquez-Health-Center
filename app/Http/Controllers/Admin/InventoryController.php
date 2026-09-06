@@ -12,15 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
-    /**
-     * Display the inventory.
-     *
-     * Inventory viewing is allowed for:
-     * - Admin
-     * - Nurse
-     * - BHW
-     * - Doctor who is Physician-in-Charge
-     */
+    
     public function index()
     {
         $user = Auth::user();
@@ -29,12 +21,7 @@ class InventoryController extends Controller
 
         $isPic = (int) ($user?->is_physician_in_charge ?? 0);
 
-        /*
-         * Inventory VIEW permission.
-         *
-         * Doctor is only allowed when they are
-         * the designated Physician-in-Charge.
-         */
+        
         abort_unless(
             in_array($role, ['admin', 'nurse', 'bhw', 'doctor'], true)
             || ($role === 'doctor' && $isPic === 1),
@@ -51,9 +38,7 @@ class InventoryController extends Controller
             ->orderBy('name')
             ->get();
 
-        /*
-         * Synchronize medicine stock with actual batch quantities.
-         */
+        
         foreach ($medicines as $medicine) {
             $this->syncMedicineStock($medicine);
         }
@@ -63,12 +48,7 @@ class InventoryController extends Controller
             ?? session('user_name')
             ?? 'Staff Member';
 
-        /*
-         * ACTION PERMISSIONS
-         *
-         * Doctor PIC is intentionally NOT included here.
-         * They can only VIEW inventory.
-         */
+        
         $canDelete = ($role === 'admin');
 
         $canEditOrStock = in_array(
@@ -77,9 +57,7 @@ class InventoryController extends Controller
             true
         );
 
-        /*
-         * Optional explicit permission for Blade.
-         */
+       
         $canViewInventory = true;
 
         return view('admin.inventory', compact(
@@ -92,11 +70,7 @@ class InventoryController extends Controller
         ));
     }
 
-    /**
-     * Display the restock request form.
-     *
-     * Only Admin and Nurse can create restock requests.
-     */
+   
     public function showRestockForm($id)
     {
         $this->requireRole(['admin', 'nurse']);
@@ -105,10 +79,7 @@ class InventoryController extends Controller
 
         $currentStock = $this->syncMedicineStock($medicine);
 
-        /*
-         * A true three-month moving average includes
-         * months with zero dispensing.
-         */
+       
         $currentMonthStart = Carbon::today()->startOfMonth();
 
         $monthlyConsumption = [];
@@ -128,19 +99,13 @@ class InventoryController extends Controller
             array_sum($monthlyConsumption) / 3
         );
 
-        /*
-         * Maintain a three-month supply.
-         * Do not request stock when enough is available.
-         */
+       
         $shortfall = max(
             0,
             ($predictedDemand * 3) - $currentStock
         );
 
-        /*
-         * Keep the existing ordering increment of 50,
-         * but only for an actual shortfall.
-         */
+       
         $recommendedQty = $shortfall === 0
             ? 0
             : max(
@@ -156,11 +121,7 @@ class InventoryController extends Controller
         ));
     }
 
-    /**
-     * Submit a restock request.
-     *
-     * Only Admin and Nurse can submit requests.
-     */
+    
     public function submitRestockRequest(Request $request)
     {
         $this->requireRole(['admin', 'nurse']);
@@ -204,11 +165,7 @@ class InventoryController extends Controller
             );
     }
 
-    /**
-     * Display restock requests awaiting physician approval.
-     *
-     * Admin, Physician, and Doctor can access this dashboard.
-     */
+   
     public function viewForApproval()
     {
         $this->requireRole([
@@ -243,9 +200,7 @@ class InventoryController extends Controller
         );
     }
 
-    /**
-     * Approve or reject a restock request.
-     */
+    
     public function processApproval(Request $request, $id)
     {
         $this->requireRole([
@@ -296,11 +251,7 @@ class InventoryController extends Controller
         );
     }
 
-    /**
-     * Forward an approved request to the LHD.
-     *
-     * Only Admin can perform this action.
-     */
+   
     public function sendToLHD($id)
     {
         $this->requireRole(['admin']);
@@ -327,10 +278,7 @@ class InventoryController extends Controller
         );
     }
 
-    /**
-     * Synchronize medicine stock with the total quantity
-     * stored in its batches.
-     */
+   
     private function syncMedicineStock(Medicine $medicine): int
     {
         $realStock = (int) $medicine
@@ -345,9 +293,6 @@ class InventoryController extends Controller
         return $realStock;
     }
 
-    /**
-     * Require one of the specified roles.
-     */
     private function requireRole(array $roles): void
     {
         abort_unless(
@@ -356,9 +301,7 @@ class InventoryController extends Controller
         );
     }
 
-    /**
-     * Get the authenticated user's normalized role.
-     */
+    
     private function role(): string
     {
         return strtolower(

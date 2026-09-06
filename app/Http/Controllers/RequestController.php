@@ -11,18 +11,17 @@ class RequestController extends Controller
 {
     public function __construct()
     {
-        // âœ… TAMA NA: DITO PA LANG, SINASABI NA NATIN KUNG SINO ANG PWEDE
-        // Admin, Nurse, at Doctor na PIC lang ang papasok
+
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
             $user = Auth::user();
             
-            // âœ… TSEKE AGAD: KUNG DOCTOR SIYA, SIGURADUHIN NA SIYA ANG PIC
+            
             if ($user->role === 'Doctor' && trim((string)$user->is_physician_in_charge) !== '1') {
                 abort(403, 'ACCESS DENIED: YOU ARE NOT THE PHYSICIAN IN CHARGE.');
             }
             
-            // âœ… TSEKE: BAWAL ANG IBANG ROLE
+            
             if (!in_array($user->role, ['admin', 'Nurse', 'Doctor'])) {
                 abort(403, 'Access Denied');
             }
@@ -84,7 +83,7 @@ class RequestController extends Controller
     abort(403, 'Unauthorized');
 }
     // ==================================================
-    // âœ… STORE: PARA SA NURSE LANG
+    // STORE: PARA SA NURSE LANG
     // ==================================================
     public function store(Request $request)
     {
@@ -127,12 +126,12 @@ class RequestController extends Controller
     }
 
     // ==================================================
-    // âœ… UPDATE STATUS: ADMIN at DOCTOR (PIC) LANG
+    // UPDATE STATUS: ADMIN at DOCTOR (PIC) LANG
     // ==================================================
     public function updateStatus(Request $request, $id)
     {
         $user = Auth::user();
-        // âœ… NURSE BAWAL, ADMIN AT PIC LANG PWEDE
+        //NURSE BAWAL, ADMIN AT PIC LANG PWEDE
         if ($user->role === 'Nurse' || ($user->role === 'Doctor' && trim((string)$user->is_physician_in_charge) !== '1')) {
             abort(403, 'Access Denied: Not authorized to change status.');
         }
@@ -148,7 +147,7 @@ class RequestController extends Controller
     }
 
     // ==================================================
-    // âœ… EDIT & UPDATE (NURSE LANG)
+    // EDIT & UPDATE (NURSE LANG)
     // ==================================================
     public function edit($id)
     {
@@ -187,7 +186,7 @@ class RequestController extends Controller
     }
 
     // ==================================================
-    // âœ… DELETE
+    // DELETE
     // ==================================================
     public function destroy($id)
     {

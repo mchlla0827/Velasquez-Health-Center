@@ -26,7 +26,6 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
 
-        // âœ… Record when the user actually logged in so "Active/Offline" status works
         $user->last_login_at = now();
         $user->save();
 

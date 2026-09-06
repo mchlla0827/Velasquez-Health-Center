@@ -6,7 +6,7 @@
             <div>
                 <h3 style="margin: 0; font-size: 18px; color: #111827;">Patient Record Details</h3>
                 <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">
-                    <span id="headerPatientID" style="font-weight: 500;">---</span> â€¢ 
+                    <span id="headerPatientID" style="font-weight: 500;">---</span> 
                     <span id="detInternalId" style="display:none;"></span>
                     <span id="headerPatientName">---</span>
                 </p>
@@ -108,41 +108,24 @@
 
                 <div id="medical-history-filled" style="display: none;">
                     <div id="mh-render"></div>
+                </div>
 
-                    <div class="ch-wrap">
-                        <div class="ch-header">
-                            <div class="ch-title">Consultation History</div>
-                            <div class="ch-desc">All recorded visits and consultations for this patient.</div>
-                        </div>
-
-                        <div class="ch-toolbar">
-                            <a class="ch-new-btn" id="chNewConsultationBtn" href="#">+ New Consultation</a>
-                        </div>
-
-                        <div class="ch-filters">
-                            <input type="text" id="chSearch" placeholder="Search complaint, diagnosis, provider..." oninput="chApplyFilters()">
-                            <select id="chFilterType" onchange="chApplyFilters()">
-                                <option value="">All Types</option>
-                                <option value="general">General Consultation</option>
-                                <option value="ncd_risk_assessment">NCD Risk Assessment</option>
-                                <option value="ncd_followup">NCD Follow-up</option>
-                                <option value="followup_recheck">Follow-up / Re-check</option>
-                            </select>
-                            <select id="chFilterProvider" onchange="chApplyFilters()">
-                                <option value="">All Providers</option>
-                            </select>
-                            <input type="date" id="chFilterFrom" onchange="chApplyFilters()">
-                            <input type="date" id="chFilterTo" onchange="chApplyFilters()">
-                            <button type="button" class="ch-clear-btn" onclick="chClearFilters()">Clear Filters</button>
-                        </div>
-
-                        <div id="ch-empty" class="ch-empty" style="display: none;">
-                            <p>No consultation records yet.</p>
-                            <a class="ch-new-btn" id="chNewConsultationBtnEmpty" href="#">+ New Consultation</a>
-                        </div>
-
-                        <div id="ch-list" class="ch-list" style="display: none;"></div>
+                <div class="ch-wrap">
+                    <div class="ch-header">
+                        <div class="ch-title">Consultation History</div>
+                        <div class="ch-desc">All recorded visits and consultations for this patient.</div>
                     </div>
+
+                    <div class="ch-toolbar">
+                        <a class="ch-new-btn" id="chNewConsultationBtn" href="#">+ New Consultation</a>
+                    </div>
+
+                    <div id="ch-empty" class="ch-empty" style="display: none;">
+                        <p>No consultation records yet.</p>
+                        <a class="ch-new-btn" id="chNewConsultationBtnEmpty" href="#">+ New Consultation</a>
+                    </div>
+
+                    <div id="ch-list" class="ch-list" style="display: none;"></div>
                 </div>
             </div>
 
@@ -181,7 +164,7 @@
                     text-align: center;">
 
             <div style="font-size: 36px; margin-bottom: 10px;">
-                ðŸ©º
+                🩺
             </div>
 
             <h4 style="margin: 0 0 5px; font-size: 15px; color: #111827;">
@@ -226,7 +209,7 @@
                     </div>
                 </div>
                 <div style="margin-top: 16px; padding: 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 12px; color: #6B7280;">
-                    ðŸ“‹ <b>Note:</b> This is a read-only historical record based on inventory dispensing.
+                    📋 <b>Note:</b> This is a read-only historical record based on inventory dispensing.
                 </div>
             </div>
 
@@ -374,117 +357,55 @@
 </div>
 
 <style>
-/* ===== Medical History (NCD) - clean record layout v2 ===== */
-.mh-topbar { display: flex; justify-content: flex-end; margin-bottom: -6px; }
-.mh-view-btn {
-    flex-shrink: 0;
-    display: inline-flex; align-items: center; gap: 6px;
-    background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;
-    font-size: 12.5px; font-weight: 600;
-    padding: 7px 14px; border-radius: 7px;
-    text-decoration: none; transition: background .12s;
+/* ===== Medical History (NCD) - summary + detail layout v3 ===== */
+.mh-summary-card {
+    background: #fff; border: 1px solid #E5E7EB; border-radius: 12px;
+    padding: 20px; margin-bottom: 20px;
 }
-.mh-view-btn:hover { background: #DBEAFE; }
-.mh-view-btn svg { width: 13px; height: 13px; }
-#mh-render {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-    font-size: 13.5px;
-    color: #1F2937;
-    line-height: 1.5;
+.mh-summary-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
 }
-
-/* Top summary strip - simple row, not boxed grid */
-.mh-meta {
-    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
-    padding: 14px 0 18px;
-    border-bottom: 1px solid #E5E7EB;
-    margin-bottom: 16px;
+.mh-summary-title { font-size: 15px; font-weight: 700; color: #111827; margin: 0; }
+.mh-summary-meta { font-size: 12.5px; color: #6B7280; margin: 3px 0 0; }
+.mh-flag-count {
+    font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 20px;
+    white-space: nowrap;
 }
-.mh-meta-fields { display: flex; flex-wrap: wrap; gap: 24px; }
-.mh-meta-item { min-width: 130px; }
-.mh-meta-item .k { font-size: 10.5px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 3px; }
-.mh-meta-item .val { font-size: 14px; font-weight: 600; color: #111827; }
+.mh-flag-count.high { background: #FEF2F2; color: #B91C1C; }
+.mh-flag-count.none { background: #F0FDF4; color: #166534; }
 
-/* Risk flags */
-.mh-flags { margin-bottom: 22px; }
-.mh-flags-title { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #6B7280; margin-bottom: 10px; }
-.mh-flag-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
-.mh-flag {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: #FEF2F2; color: #B91C1C;
-    font-size: 12px; font-weight: 600;
-    padding: 5px 12px; border-radius: 6px;
-    border: 1px solid #FECACA;
+.mh-vitals-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin-bottom: 14px;
 }
-.mh-flag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #DC2626; flex-shrink: 0; }
-.mh-flag.none { background: #F0FDF4; color: #166534; border-color: #BBF7D0; }
-.mh-flag.none::before { background: #16A34A; }
+.mh-vital-box { background: #F9FAFB; border-radius: 8px; padding: 10px 12px; }
+.mh-vital-label { font-size: 11px; color: #6B7280; margin: 0 0 4px; }
+.mh-vital-value { font-size: 17px; font-weight: 700; margin: 0; color: #111827; }
+.mh-vital-value.danger { color: #B91C1C; }
+.mh-vital-value.warning { color: #B45309; }
 
-/* Accordion sections */
-.mh-sec { border: 1px solid #E5E7EB; border-radius: 10px; margin-bottom: 10px; background: #fff; overflow: hidden; }
-.mh-sec > summary {
-    list-style: none; cursor: pointer;
-    padding: 14px 16px;
-    font-size: 13.5px; font-weight: 700; color: #111827;
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    transition: background .12s;
-}
-.mh-sec > summary::-webkit-details-marker { display: none; }
-.mh-sec > summary:hover { background: #FAFAFA; }
-.mh-sec-right { display: flex; align-items: center; gap: 10px; }
-.mh-sec-note { font-size: 12px; font-weight: 500; color: #9CA3AF; white-space: nowrap; }
-.mh-chevron { width: 9px; height: 9px; border-right: 2px solid #9CA3AF; border-bottom: 2px solid #9CA3AF;
-    transform: rotate(-45deg); transition: transform .15s; flex-shrink: 0; }
-.mh-sec[open] .mh-chevron { transform: rotate(45deg); }
-.mh-body { padding: 4px 18px 18px; border-top: 1px solid #F3F4F6; }
-
-/* Label/value row list - replaces cramped grid boxes */
-.mh-rows { }
-.mh-row {
-    display: flex; align-items: baseline; gap: 16px;
-    padding: 9px 0; border-bottom: 1px solid #F3F4F6;
-}
-.mh-row:last-child { border-bottom: none; }
-.mh-row .k { flex: 0 0 220px; font-size: 12.5px; color: #6B7280; }
-.mh-row .val { flex: 1; font-size: 13.5px; color: #111827; font-weight: 500; }
-.mh-row .val.strong { font-weight: 700; }
-.mh-row .val.muted { color: #9CA3AF; font-weight: 400; }
-
-.mh-cols2 .mh-rows { columns: 2; column-gap: 28px; }
-.mh-cols2 .mh-row { break-inside: avoid; }
-
-.mh-sub { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
-    color: #2563EB; margin: 18px 0 4px; }
-.mh-sub:first-child { margin-top: 6px; }
-
-/* Chest pain table */
-table.mh-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
-table.mh-table td { padding: 9px 4px; border-bottom: 1px solid #F3F4F6; }
-table.mh-table tr:last-child td { border-bottom: none; }
-table.mh-table td:first-child { color: #374151; }
-table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700; }
-.mh-yes { color: #DC2626; }
-.mh-no { color: #9CA3AF; font-weight: 400; }
-.mh-tag { display: inline-block; background: #FEE2E2; color: #B91C1C; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
-
-.mh-warn {
-    display: flex; align-items: flex-start; gap: 9px;
+.mh-alert-line {
+    display: flex; align-items: flex-start; gap: 8px;
     background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B;
     font-size: 12.5px; font-weight: 500; line-height: 1.4;
-    padding: 11px 14px; border-radius: 8px; margin-top: 14px;
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 14px;
 }
-.mh-warn::before { content: '!'; flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%;
-    background: #DC2626; color: #fff; font-weight: 800; font-size: 12px;
+.mh-alert-line::before { content: '!'; flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%;
+    background: #DC2626; color: #fff; font-weight: 800; font-size: 11px;
     display: flex; align-items: center; justify-content: center; }
 
-.mh-chiplist { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 2px; }
-.mh-chip { background: #F3F4F6; color: #374151; border-radius: 6px; font-size: 12.5px; padding: 5px 11px; }
+.mh-view-full-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;
+    font-size: 13px; font-weight: 600; padding: 10px 14px; border-radius: 8px;
+    text-decoration: none; transition: background .12s;
+}
+.mh-view-full-btn:hover { background: #DBEAFE; }
 
 @media (max-width: 780px) {
-    .mh-cols2 .mh-rows { columns: 1; }
-    .mh-row .k { flex-basis: 160px; }
+    .mh-vitals-grid { grid-template-columns: repeat(2, 1fr); }
 }
-
 
     .modal-backdrop { display: none; } 
     .tab-item { padding: 14px 20px; font-size: 13px; color: #6B7280; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
@@ -632,7 +553,7 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
     }
 }
 
-/* ===== Consultation History Timeline (Medical History tab, Phase 2) ===== */
+/* ===== Consultation History Timeline (Medical History tab) ===== */
 .ch-wrap { margin-top: 24px; }
 .ch-header { margin-bottom: 4px; }
 .ch-title { font-size: 15px; font-weight: 700; color: #111827; }
@@ -651,23 +572,6 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
 }
 .ch-new-btn:hover { background: #1D4ED8; }
 
-.ch-filters {
-    display: flex; flex-wrap: wrap; gap: 8px;
-    background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 8px;
-    padding: 10px 12px; margin-bottom: 14px;
-}
-.ch-filters input[type="text"], .ch-filters select, .ch-filters input[type="date"] {
-    font-size: 12.5px; padding: 6px 9px; border: 1px solid #D1D5DB; border-radius: 6px;
-    background: #fff; color: #111827; font-family: inherit;
-}
-.ch-filters input[type="text"] { flex: 1 1 180px; min-width: 140px; }
-.ch-clear-btn {
-    font-size: 12px; font-weight: 600; color: #6B7280;
-    background: #fff; border: 1px solid #D1D5DB; border-radius: 6px;
-    padding: 6px 12px; cursor: pointer;
-}
-.ch-clear-btn:hover { background: #F3F4F6; }
-
 .ch-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 40px 20px; background: #F8FAFC; border: 1px dashed #D1D5DB; border-radius: 10px;
@@ -675,30 +579,19 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
 }
 .ch-empty p { font-size: 13px; color: #6B7280; margin: 0 0 12px; }
 
-.ch-list { display: flex; flex-direction: column; gap: 10px; }
-.ch-card { border: 1px solid #E5E7EB; border-radius: 10px; padding: 14px 16px; background: #fff; }
-.ch-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-.ch-card-date { font-size: 11.5px; font-weight: 600; color: #6B7280; }
-.ch-card-type {
-    display: inline-block; margin-left: 8px;
-    font-size: 11px; font-weight: 700; color: #1D4ED8;
-    background: #EFF6FF; padding: 2px 8px; border-radius: 4px;
+.ch-list { display: flex; flex-direction: column; gap: 8px; }
+.ch-card {
+    border: 1px solid #E5E7EB; border-radius: 12px; padding: 12px 14px; background: #fff;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    cursor: pointer; text-decoration: none; transition: background .1s, border-color .1s;
 }
-.ch-card-provider { font-size: 13px; font-weight: 600; color: #111827; margin-top: 6px; }
-.ch-card-summary { font-size: 12.5px; color: #374151; margin-top: 4px; }
-.ch-card-status { font-size: 12px; font-weight: 600; color: #B91C1C; margin-top: 4px; }
-.ch-view-btn {
-    font-size: 12px; font-weight: 600; color: #2563EB;
-    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
-    padding: 5px 12px; cursor: pointer; white-space: nowrap;
-    text-decoration: none;
+.ch-card:hover { background: #F9FAFB; border-color: #D1D5DB; }
+.ch-card-line1 { font-size: 13px; font-weight: 500; color: #111827; margin: 0; }
+.ch-card-line2 { font-size: 13px; color: #6B7280; margin: 2px 0 0; }
+.ch-card-status {
+    font-size: 11.5px; font-weight: 600; color: #B91C1C; margin-top: 3px;
 }
-.ch-view-btn:hover { background: #DBEAFE; }
-
-@media (max-width: 700px) {
-    .ch-filters { flex-direction: column; align-items: stretch; }
-    .ch-card-head { flex-direction: column; }
-}
+.ch-card-chevron { font-size: 18px; color: #9CA3AF; flex-shrink: 0; line-height: 1; }
 </style>
 <script>
     const currentUserRole = "{{ strtolower(session('admin_role') ?? Auth::user()->role ?? 'bhw') }}";
@@ -754,14 +647,15 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
             btnContainer.innerHTML = `<button class="btn-primary" onclick="${btnAction}">${btnText}</button>`;
         }
 
-        // âœ… FIXED TAB SWITCH LOAD
-
         if (tabId === 'service-history' && activePatientData) {
             loadServiceHistory(activePatientData.id);
         }
         if (tabId === 'medicine-history' && activePatientData) {
             const identifier = activePatientData.patient_id || activePatientData.id;
             loadMedicineHistory(identifier);
+        }
+        if (tabId === 'medical-history' && activePatientData) {
+            fetchConsultations(activePatientData.id);
         }
     }
 
@@ -788,7 +682,6 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
             .then(data => {
                 tbody.innerHTML = '';
                 if (!data || data.length === 0) {
-                    // ✅ SAME STYLE — No Records with Icon
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="5" style="text-align:center; padding: 60px 20px; color: #9CA3AF;">
@@ -820,8 +713,9 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
             });
     }
 
-    // ================= CONSULTATION HISTORY TIMELINE (Phase 2) =================
+    // ================= CONSULTATION HISTORY TIMELINE =================
     let chAllConsultations = [];
+    let chLoadedForPatientId = null;
 
     function chEsc(s) {
         return String(s).replace(/[&<>"']/g, m => ({
@@ -837,22 +731,23 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
     }
 
     function fetchConsultations(patientId) {
+        const container = document.getElementById('ch-list');
+        const empty = document.getElementById('ch-empty');
+        if (container) container.innerHTML = '<div style="padding:20px; text-align:center; color:#9CA3AF; font-size:13px;">Loading consultations...</div>';
+        if (container) container.style.display = 'flex';
+        if (empty) empty.style.display = 'none';
+
         fetch(`/patients/${patientId}/consultations`)
             .then(res => res.json())
             .then(data => {
                 chAllConsultations = data.consultations || [];
-                chPopulateProviderFilter();
+                chLoadedForPatientId = patientId;
                 chRenderList(chAllConsultations);
             })
-            .catch(err => console.error('Error loading consultations:', err));
-    }
-
-    function chPopulateProviderFilter() {
-        const sel = document.getElementById('chFilterProvider');
-        if (!sel) return;
-        const providers = [...new Set(chAllConsultations.map(c => c.provider_name).filter(Boolean))];
-        sel.innerHTML = '<option value="">All Providers</option>' +
-            providers.map(p => '<option value="' + chEsc(p) + '">' + chEsc(p) + '</option>').join('');
+            .catch(err => {
+                console.error('Error loading consultations:', err);
+                if (container) container.innerHTML = '<div style="padding:20px; text-align:center; color:#B91C1C; font-size:13px;">Unable to load consultation history.</div>';
+            });
     }
 
     function chRenderList(list) {
@@ -872,56 +767,24 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
             const summaryParts = [];
             if (c.vital_bp) summaryParts.push('BP: ' + chEsc(c.vital_bp));
             if (c.vital_bmi) summaryParts.push('BMI: ' + chEsc(c.vital_bmi));
-            if (!summaryParts.length && c.chief_complaint) summaryParts.push('Chief Complaint: ' + chEsc(c.chief_complaint));
-            if (!summaryParts.length && c.assessment_diagnosis) summaryParts.push('Diagnosis: ' + chEsc(c.assessment_diagnosis));
+            if (!summaryParts.length && c.chief_complaint) summaryParts.push(chEsc(c.chief_complaint));
+            if (!summaryParts.length && c.assessment_diagnosis) summaryParts.push(chEsc(c.assessment_diagnosis));
 
-            return '<div class="ch-card">' +
-                '<div class="ch-card-head">' +
-                    '<div>' +
-                        '<span class="ch-card-date">' + chFormatDate(c.consultation_date) + '</span>' +
-                        '<span class="ch-card-type">' + chEsc(c.type_label) + '</span>' +
-                        '<div class="ch-card-provider">' + chEsc(c.provider_name || 'Unknown Provider') + '</div>' +
-                        '<div class="ch-card-summary">' + (summaryParts.join(' &middot; ') || 'No summary recorded') + '</div>' +
-                        (c.status_classification ? '<div class="ch-card-status">' + chEsc(c.status_classification) + '</div>' : '') +
-                    '</div>' +
-                    '<a class="ch-view-btn" href="/consultations/' + c.id + '">View Details</a>' +
+            const line2 = chEsc(c.provider_name || 'Unknown Provider') +
+                (summaryParts.length ? ' &middot; ' + summaryParts.join(' &middot; ') : '');
+
+            return '<a class="ch-card" href="/consultations/' + c.id + '">' +
+                '<div>' +
+                    '<p class="ch-card-line1">' + chFormatDate(c.consultation_date) + ' &middot; ' + chEsc(c.type_label) + '</p>' +
+                    '<p class="ch-card-line2">' + line2 + '</p>' +
+                    (c.status_classification ? '<p class="ch-card-status">' + chEsc(c.status_classification) + '</p>' : '') +
                 '</div>' +
-            '</div>';
+                '<span class="ch-card-chevron">&rsaquo;</span>' +
+            '</a>';
         }).join('');
     }
 
-    function chApplyFilters() {
-        const q = (document.getElementById('chSearch')?.value || '').toLowerCase();
-        const type = document.getElementById('chFilterType')?.value || '';
-        const provider = document.getElementById('chFilterProvider')?.value || '';
-        const from = document.getElementById('chFilterFrom')?.value || '';
-        const to = document.getElementById('chFilterTo')?.value || '';
-
-        const filtered = chAllConsultations.filter(c => {
-            if (type && c.consultation_type !== type) return false;
-            if (provider && c.provider_name !== provider) return false;
-            if (from && c.consultation_date < from) return false;
-            if (to && c.consultation_date > to) return false;
-            if (q) {
-                const haystack = [c.chief_complaint, c.assessment_diagnosis, c.provider_name, c.type_label]
-                    .filter(Boolean).join(' ').toLowerCase();
-                if (!haystack.includes(q)) return false;
-            }
-            return true;
-        });
-        chRenderList(filtered);
-    }
-
-    function chClearFilters() {
-        document.getElementById('chSearch').value = '';
-        document.getElementById('chFilterType').value = '';
-        document.getElementById('chFilterProvider').value = '';
-        document.getElementById('chFilterFrom').value = '';
-        document.getElementById('chFilterTo').value = '';
-        chRenderList(chAllConsultations);
-    }
-
-    // ================= MEDICAL HISTORY (NCD) RENDERER v2 =================
+    // ================= MEDICAL HISTORY (NCD) SUMMARY CARD =================
     const MH_DASH = '-';
 
     function mhEsc(s) {
@@ -933,45 +796,15 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
         if (x === null || x === undefined || x === '') return MH_DASH;
         return mhEsc(x) + (suffix || '');
     }
-    function mhYN(x) {
-        if (x === 'Yes' || x === 'Oo') return '<span class="mh-yes">Yes</span>';
-        if (x === 'No' || x === 'Hindi') return '<span class="mh-no">No</span>';
-        return '<span class="mh-no">' + MH_DASH + '</span>';
-    }
-    function mhBool(x) {
-        return x ? '<span class="mh-yes">Yes</span>' : '<span class="mh-no">No</span>';
-    }
-    function mhRow(label, value, strong) {
-        return '<div class="mh-row"><div class="k">' + label + '</div>' +
-               '<div class="val' + (strong ? ' strong' : '') + '">' + value + '</div></div>';
-    }
-    function mhSection(title, note, bodyHtml, openByDefault, twoCol) {
-        return '<details class="mh-sec' + (twoCol ? ' mh-cols2' : '') + '"' + (openByDefault ? ' open' : '') + '>' +
-               '<summary><span>' + title + '</span>' +
-               '<span class="mh-sec-right">' +
-               (note ? '<span class="mh-sec-note">' + note + '</span>' : '') +
-               '<span class="mh-chevron"></span></span>' +
-               '</summary><div class="mh-body">' + bodyHtml + '</div></details>';
-    }
 
     function renderMedicalHistory(ncd) {
-        let html = '';
+        const container = document.getElementById('mh-render');
+        if (!container) return;
 
-        // ---------- 1. SUMMARY METADATA ----------
         const assessorName = (ncd.assessed_by_relation && ncd.assessed_by_relation.name)
             || (ncd.assessed_by && ncd.assessed_by.name)
             || MH_DASH;
-        html += '<div class="mh-meta">' +
-            '<div class="mh-meta-fields">' +
-            '<div class="mh-meta-item"><div class="k">Assessment Date</div><div class="val">' + mhVal(ncd.assessment_date) + '</div></div>' +
-            '<div class="mh-meta-item"><div class="k">Health Facility</div><div class="val">' + mhVal(ncd.health_facility) + '</div></div>' +
-            '<div class="mh-meta-item"><div class="k">Assessed By</div><div class="val">' + mhEsc(assessorName) + '</div></div>' +
-            '<div class="mh-meta-item"><div class="k">Designation</div><div class="val">' + mhVal(ncd.designation) + '</div></div>' +
-            '</div>' +
-            '<a class="mh-view-btn" href="/patients/' + ncd.patient_id + '/ncd-assessment"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 4C5.5 4 2 8 2 10s3.5 6 8 6 8-4 8-6-3.5-6-8-6zm0 10a4 4 0 110-8 4 4 0 010 8zm0-6a2 2 0 100 4 2 2 0 000-4z"/></svg>View NCD Assessment</a>' +
-        '</div>';
 
-        // ---------- 2. RISK SUMMARY ----------
         const flagMap = [
             ['risk_dm','Diabetes (DM)'], ['risk_hpn','Hypertension (HPN)'],
             ['risk_copd','COPD'], ['risk_cancer','Cancer'],
@@ -985,216 +818,55 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
             ['r_ket','(+) Urine Ketones'], ['r_30','>=30% Risk Profile']
         ];
         const activeFlags = flagMap.filter(f => ncd[f[0]]);
-        html += '<div class="mh-flags"><div class="mh-flags-title">Risk Flags Detected (' + activeFlags.length + ')</div><div class="mh-flag-wrap">';
-        html += activeFlags.length
-            ? activeFlags.map(f => '<span class="mh-flag">' + f[1] + '</span>').join('')
-            : '<span class="mh-flag none">No risk flags recorded</span>';
-        html += '</div></div>';
+        const flagCountClass = activeFlags.length > 0 ? 'high' : 'none';
+        const flagCountLabel = activeFlags.length > 0 ? (activeFlags.length + ' Risk Flag' + (activeFlags.length > 1 ? 's' : '')) : 'No Risk Flags';
 
-        // ---------- 3. PAST MEDICAL HISTORY ----------
-        const conds = [
-            ['Diabetes', ncd.is_diabetic, ncd.is_diabetic_year, ncd.is_diabetic_meds, ncd.risk_dm, 'DM'],
-            ['Hypertension', ncd.is_hypertensive, ncd.is_hypertensive_year, ncd.is_hypertensive_meds, ncd.risk_hpn, 'HPN'],
-            ['Cancer', ncd.has_cancer, ncd.cancer_year, ncd.cancer_meds, ncd.risk_cancer, 'Cancer'],
-            ['Sakit sa baga (non-communicable)', ncd.has_copd, ncd.has_copd_year, ncd.has_copd_meds, ncd.risk_copd, 'COPD'],
-            ['Sakit sa mata', ncd.has_eye_disease, ncd.eye_year, ncd.eye_meds, false, '']
-        ];
-        const condCount = conds.filter(c => c[1]).length;
-        let pmhBody = '<table class="mh-table">';
-        conds.forEach(c => {
-            const line = c[1]
-                ? mhVal(c[2]) + (c[3] ? ' &middot; ' + mhVal(c[3]) : '')
-                : '<span class="mh-no">Not reported</span>';
-            pmhBody += '<tr><td><b>' + c[0] + '</b> &mdash; ' + line + '</td><td>' +
-                       (c[4] ? '<span class="mh-tag">' + c[5] + '</span>' : '') + '</td></tr>';
-        });
-        pmhBody += '</table>';
-        if (ncd.cancer_site_condition) {
-            pmhBody += '<div class="mh-sub">Cancer Site</div><div class="mh-rows">' +
-                       mhRow('Site / Klase', mhVal(ncd.cancer_site_condition)) + '</div>';
+        // Clinical alert line: chest pain red-flag questions or >=30% risk score
+        const cpDangerFields = ['cp4','cp5','cp6','cp7'];
+        const cpDanger = cpDangerFields.some(f => ncd[f] === 'Yes');
+        const cp8Danger = ncd.cp8 === 'Yes';
+        const alertParts = [];
+        if (cpDanger) alertParts.push('Positive chest pain screening (possible angina)');
+        if (cp8Danger) alertParts.push('Possible stroke symptoms reported (Q2.8)');
+        if (ncd.r_30) alertParts.push('&gt;=30% overall risk profile');
+
+        const bmiClass = (ncd.bmi_s || '').toLowerCase().includes('obese') ? 'danger'
+            : (ncd.bmi_s || '').toLowerCase().includes('over') ? 'warning' : '';
+        const bpClass = (ncd.bp_s || '').toLowerCase().includes('hypertens') || (ncd.bp_s || '').toLowerCase().includes('stage') ? 'danger'
+            : (ncd.bp_s || '').toLowerCase().includes('pre') ? 'warning' : '';
+        const fbsClass = (ncd.fbs_s || '').toLowerCase().includes('diabet') ? 'danger'
+            : (ncd.fbs_s || '').toLowerCase().includes('pre') ? 'warning' : '';
+        const riskClass = ncd.r_30 ? 'danger' : '';
+
+        let html = '<div class="mh-summary-card">';
+
+        html += '<div class="mh-summary-top">' +
+            '<div>' +
+                '<p class="mh-summary-title">NCD Risk Assessment Summary</p>' +
+                '<p class="mh-summary-meta">Assessed ' + mhVal(ncd.assessment_date) + ' &middot; ' + mhEsc(assessorName) +
+                (ncd.health_facility ? ' &middot; ' + mhVal(ncd.health_facility) : '') + '</p>' +
+            '</div>' +
+            '<span class="mh-flag-count ' + flagCountClass + '">' + flagCountLabel + '</span>' +
+        '</div>';
+
+        html += '<div class="mh-vitals-grid">' +
+            '<div class="mh-vital-box"><p class="mh-vital-label">Blood Pressure</p><p class="mh-vital-value ' + bpClass + '">' + mhVal(ncd.bp_b) + '</p></div>' +
+            '<div class="mh-vital-box"><p class="mh-vital-label">BMI</p><p class="mh-vital-value ' + bmiClass + '">' + mhVal(ncd.bmi) + (ncd.bmi_s ? ' &middot; ' + mhVal(ncd.bmi_s) : '') + '</p></div>' +
+            '<div class="mh-vital-box"><p class="mh-vital-label">Blood Sugar (FBS)</p><p class="mh-vital-value ' + fbsClass + '">' + mhVal(ncd.fbs) + '</p></div>' +
+            '<div class="mh-vital-box"><p class="mh-vital-label">Risk Score</p><p class="mh-vital-value ' + riskClass + '">' + mhVal(ncd.rp) + '</p></div>' +
+        '</div>';
+
+        if (alertParts.length) {
+            html += '<div class="mh-alert-line">' + alertParts.map(mhEsc).join(' &middot; ') + '</div>';
         }
-        html += mhSection('Past Medical History', condCount + ' of 5 conditions present', pmhBody, true);
 
-        // ---------- 4. CHEST PAIN / ANGINA ----------
-        const cpQ = [
-            ['cp1','2.1 Nakakaramdam ka ba ng pananakit o kabigatan sa dibdib?'],
-            ['cp2','2.2 Ang sakit ba ay nasa gitna ng dibdib, kaliwang bahagi hanggang sa kaliwang braso?'],
-            ['cp3','2.3 Nararamdaman mo ba ito kung nagmamadali o naglalakad ng mabilis o paakyat?'],
-            ['cp4','2.4 Napapatigil ka ba sa paglalakad kapag sumasakit ang iyong dibdib?'],
-            ['cp5','2.5 Nawawala ba ang sakit kapag hindi ka kumikilos o naglagay ng gamot sa ilalim ng dila?'],
-            ['cp6','2.6 Nawawala ba ng sakit sa loob ng 10 minuto?'],
-            ['cp7','2.7 Nakakaramdam ka ba ng sakit sa dibdib na tumatagal higit sa 30 minuto?'],
-            ['cp8','2.8 Hirap sa pagsasalita, panghihina ng braso/binti, O pamamanhid sa kalahating bahagi ng katawan?']
-        ];
-        const cpYes = cpQ.filter(q => ncd[q[0]] === 'Yes').length;
-        let cpBody = '<table class="mh-table">';
-        cpQ.forEach(q => {
-            cpBody += '<tr><td>' + q[1] + '</td><td>' + mhYN(ncd[q[0]]) + '</td></tr>';
-        });
-        cpBody += '</table>';
-        const cpAlert = ['cp4','cp5','cp6','cp7'].some(f => ncd[f] === 'Yes');
-        if (cpAlert) {
-            cpBody += '<div class="mh-warn">Kung Oo sagot sa Q2.4-2.7, maaring may angina o impending heart attack. Dalhin kaagad sa doktor.</div>';
-        }
-        if (ncd.cp8 === 'Yes') {
-            cpBody += '<div class="mh-warn">Q2.8 is positive. Dalhin agad ang pasyente sa Doktor.</div>';
-        }
-        html += mhSection('Chest Pain / Angina Screening', cpYes + ' of 8 positive', cpBody, cpYes > 0);
+        html += '<a class="mh-view-full-btn" href="/patients/' + ncd.patient_id + '/ncd-assessment/' + ncd.id + '/view">View Full Assessment</a>';
 
-        // ---------- 5. FAMILY HISTORY ----------
-        const famMap = [
-            ['fam_hypertension','Mataas na presyon'], ['fam_heart_disease','Sakit sa puso'],
-            ['fam_stroke','Stroke'], ['fam_diabetes','Diabetes'], ['fam_cancer','Kanser'],
-            ['fam_kidney_disease','Sakit sa bato'], ['fam_lung_disease','Sakit sa baga (non-communicable)']
-        ];
-        const famActive = famMap.filter(f => ncd[f[0]]);
-        let famBody = '<div class="mh-chiplist">';
-        famBody += famActive.length
-            ? famActive.map(f => '<span class="mh-chip">' + f[1] + '</span>').join('')
-            : '<span class="mh-chip">None reported</span>';
-        famBody += '</div>';
-        if (ncd.fam_other) {
-            famBody += '<div class="mh-rows" style="margin-top:12px;">' + mhRow('Iba Pang Sakit', mhVal(ncd.fam_other)) + '</div>';
-        }
-        html += mhSection('Family History (Non-Modifiable Risk Factors)', famActive.length + ' recorded', famBody, false);
+        html += '</div>';
 
-        // ---------- 6. LIFESTYLE ----------
-        let lifeBody = '';
-
-        lifeBody += '<div class="mh-sub">Nutrition</div><div class="mh-rows">' +
-            mhRow('Gulay (daily)', mhYN(ncd.diet_gulay)) +
-            mhRow('Prutas (daily)', mhYN(ncd.diet_prutas)) +
-            mhRow('Isda (daily)', mhYN(ncd.diet_isda)) +
-            mhRow('Karne (daily)', mhYN(ncd.diet_karne)) +
-            mhRow('Processed Food (daily)', mhYN(ncd.diet_processed_food)) +
-            mhRow('Maalat (>2x/week)', mhYN(ncd.diet_maalat)) +
-            mhRow('Matatamis (>2x/week)', mhYN(ncd.diet_matatamis)) +
-            mhRow('Mamantika (>2x/week)', mhYN(ncd.diet_mamantika)) +
-            mhRow('Unhealthy Diet Flag', mhBool(ncd.r_diet), true) +
-            mhRow('High Salt Intake Flag', mhBool(ncd.r_salt), true) +
-        '</div>';
-
-        lifeBody += '<div class="mh-sub">Alcohol</div><div class="mh-rows">';
-        const alcTypes = Array.isArray(ncd.alc_t) ? ncd.alc_t.join(', ') : (ncd.alc_t || '');
-        lifeBody +=
-            mhRow('Umiinom ng Alak', mhVal(ncd.alc_u)) +
-            mhRow('Tagal Tumigil', mhVal(ncd.alc_q)) +
-            mhRow('Klase ng Alak', mhVal(alcTypes)) +
-            mhRow('Dalas kada Linggo', mhVal(ncd.alc_f)) +
-            mhRow('Beer (kada araw)', mhVal(ncd.amt_b)) +
-            mhRow('Wine (kada araw)', mhVal(ncd.amt_w)) +
-            mhRow('Whisky/Gin/Brandy', mhVal(ncd.amt_s)) +
-            mhRow('Bote kada Okasyon', mhVal(ncd.alc_b)) +
-            mhRow('Binge Drinker Flag', mhBool(ncd.r_binge), true) +
-        '</div>';
-
-        lifeBody += '<div class="mh-sub">Exercise</div><div class="mh-rows">' +
-            mhRow('Sapat na Ehersisyo', mhVal(ncd.has_exercise)) +
-            mhRow('Klase ng Ehersisyo', mhVal(ncd.exercise_type)) +
-            mhRow('Insufficient Activity Flag', mhBool(ncd.risk_activity), true) +
-        '</div>';
-
-        lifeBody += '<div class="mh-sub">Smoking</div><div class="mh-rows">';
-        const smokeMap = { current: 'Oo, naninigarilyo', quit: 'Oo, pero tumigil na', never: 'Hindi' };
-        lifeBody +=
-            mhRow('Status', mhVal(smokeMap[ncd.smoke_status] || ncd.smoke_status)) +
-            mhRow('Sticks kada Araw', mhVal(ncd.smoke_sticks_per_day)) +
-            mhRow('Tagal Tumigil', mhVal(ncd.smoke_quit_duration)) +
-            mhRow('Naka-100 Sticks', mhYN(ncd.smoke_100_sticks)) +
-            mhRow('Lantad sa Usok', mhYN(ncd.smoke_exposed)) +
-            mhRow('History of Smoking Flag', mhBool(ncd.risk_smoking_history), true) +
-            mhRow('Smoker Flag', mhBool(ncd.risk_smoker), true) +
-        '</div>';
-
-        lifeBody += '<div class="mh-sub">Stress</div><div class="mh-rows">' +
-            mhRow('Madalas Ma-stress', mhYN(ncd.stress_frequent)) +
-            mhRow('Dahilan', mhVal(ncd.stress_cause)) +
-            mhRow('Naaapektuhan Pamumuhay', mhYN(ncd.stress_affects_life)) +
-            mhRow('Stressed Flag', mhBool(ncd.risk_stress), true) +
-        '</div>';
-
-        html += mhSection('Lifestyle (Modifiable Risk Factors)', '', lifeBody, false, true);
-
-        // ---------- 7. RISK SCREENING ----------
-        let rsBody = '';
-
-        rsBody += '<div class="mh-sub">4.1 Anthropometric Measurement</div><div class="mh-rows">' +
-            mhRow('Weight', mhVal(ncd.w, ' kg')) +
-            mhRow('Height', mhVal(ncd.h, ' cm')) +
-            mhRow('BMI', mhVal(ncd.bmi), true) +
-            mhRow('BMI Status', mhVal(ncd.bmi_s), true) +
-            mhRow('Waist', mhVal(ncd.waist, ' cm')) +
-            mhRow('Hip', mhVal(ncd.hip, ' cm')) +
-            mhRow('W/H Ratio', mhVal(ncd.whr)) +
-            mhRow('W/H Status', mhVal(ncd.whr_s), true) +
-            mhRow('Overweight Flag', mhBool(ncd.r_over)) +
-            mhRow('Obese Flag', mhBool(ncd.r_obese)) +
-            mhRow('At Risk (W/H) Flag', mhBool(ncd.r_whr)) +
-        '</div>';
-
-        rsBody += '<div class="mh-sub">4.2 Blood Sugar</div><div class="mh-rows">' +
-            mhRow('FBS (CBG)', mhVal(ncd.fbs)) +
-            mhRow('FBS Venous', mhVal(ncd.vn)) +
-            mhRow('FBS Status', mhVal(ncd.fbs_s), true) +
-            mhRow('RBS Status', mhVal(ncd.rbs_s), true) +
-            mhRow('Polyuria', mhBool(ncd.s_pol)) +
-            mhRow('Polydipsia', mhBool(ncd.s_pdp)) +
-            mhRow('Polyphagia', mhBool(ncd.s_pph)) +
-            mhRow('Weight Loss', mhBool(ncd.s_wgt)) +
-            mhRow('Pre-Diabetes Flag', mhBool(ncd.r_predm), true) +
-            mhRow('DM Flag', mhBool(ncd.r_dm_f), true) +
-        '</div>';
-
-        rsBody += '<div class="mh-sub">4.3 Blood Pressure</div><div class="mh-rows">' +
-            mhRow('Left Arm Mean BP', mhVal(ncd.bp_l)) +
-            mhRow('Right Arm Mean BP', mhVal(ncd.bp_r)) +
-            mhRow('Baseline BP', mhVal(ncd.bp_b), true) +
-            mhRow('Status', mhVal(ncd.bp_s), true) +
-            mhRow('Pre-HPN Flag', mhBool(ncd.r_hpn_pre)) +
-            mhRow('HPN Flag', mhBool(ncd.r_hpn_f)) +
-        '</div>';
-
-        rsBody += '<div class="mh-sub">4.4 Cholesterol Level</div><div class="mh-rows">' +
-            mhRow('Result', mhVal(ncd.chol)) +
-            mhRow('Status', mhVal(ncd.ch_s), true) +
-            mhRow('High Cholesterol Flag', mhBool(ncd.r_chol), true) +
-        '</div>';
-
-        rsBody += '<div class="mh-sub">4.5 Urine Dipstick Test</div><div class="mh-rows">' +
-            mhRow('Protein', mhVal(ncd.pro)) +
-            mhRow('(+) Protein Flag', mhBool(ncd.r_pro)) +
-            mhRow('Ketones', mhVal(ncd.ket)) +
-            mhRow('(+) Ketones Flag', mhBool(ncd.r_ket)) +
-        '</div>';
-
-        rsBody += '<div class="mh-sub">4.6 Risk Profile (For Doctors Only)</div><div class="mh-rows">' +
-            mhRow('Risk Percentage', mhVal(ncd.rp), true) +
-            mhRow('>=30% Risk Flag', mhBool(ncd.r_30), true) +
-        '</div>';
-
-        rsBody += '<div class="mh-sub">4.7 Cancer Screening</div><div class="mh-rows">' +
-            mhRow('Nai-screen sa Breast/Cervical Cancer', mhVal(ncd.cs)) +
-        '</div>';
-
-        html += mhSection('Risk Screening', '', rsBody, false, true);
-
-        // ---------- 8. ASSESSMENT INFORMATION ----------
-        let infoBody = '<div class="mh-rows">' +
-            mhRow('Interviewed / Assessed By', mhEsc(assessorName)) +
-            mhRow('Designation', mhVal(ncd.designation)) +
-            mhRow('Date Signed', mhVal(ncd.sign_date)) +
-            mhRow('Patient Signature', 'On file (paper copy)') +
-        '</div>';
-        infoBody += '<div class="mh-sub">Record Details</div><div class="mh-rows">' +
-            mhRow('Family No.', mhVal(ncd.family_no)) +
-            mhRow('ID No.', mhVal(ncd.id_no)) +
-            mhRow('Occupation', mhVal(ncd.occupation)) +
-            mhRow('Recorded On', mhVal(ncd.created_at ? String(ncd.created_at).substring(0, 10) : '')) +
-        '</div>';
-        html += mhSection('Assessment Information', '', infoBody, false);
-
-        document.getElementById('mh-render').innerHTML = html;
+        container.innerHTML = html;
     }
+
     // --- MAIN: Open Modal & Fetch Data ---
     window.openPatientModal = function(id) {
         const modal = document.getElementById('patientDetailModal');
@@ -1202,7 +874,7 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
         fetch(`/patients/show/${id}`)
             .then(response => response.json())
             .then(data => {
-                activePatientData = data; // Save patient object
+                activePatientData = data;
                 document.getElementById('detInternalId').innerText = data.id;
 
                 const basicTab = document.querySelector('.tab-item:first-child');
@@ -1269,7 +941,6 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
                 }
                 document.getElementById('detPhilType').innerText = phType;
                 document.getElementById('detPhilNo').innerText = phNo;
-
 
                 const immTab = document.getElementById('tab-immunization');
                 const matTab = document.getElementById('tab-maternal');
@@ -1385,12 +1056,11 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
                         </div>`;
                     matPane?.insertAdjacentHTML('beforeend', emptyHtml);
                 } else {
-                    
                     document.getElementById('maternal-empty-state')?.remove();
                     if (matCards) matCards.forEach(card => card.style.display = 'block');
                 }
 
-                // Render the latest Integrated NCD assessment in Medical History.
+                // Render the latest Integrated NCD assessment summary in Medical History.
                 const ncd = data.latest_ncd_assessment;
                 if (!ncd) {
                     document.getElementById('medical-history-empty').style.display = 'flex';
@@ -1402,79 +1072,17 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
                     document.getElementById('medical-history-filled').style.display = 'block';
                     renderMedicalHistory(ncd);
                 }
+
+                // Consultation history is independent of NCD assessment status.
+                const chNewBtn = document.getElementById('chNewConsultationBtn');
+                const chNewBtnEmpty = document.getElementById('chNewConsultationBtnEmpty');
+                const newConsultUrl = `/patients/${data.id}/consultations/create`;
+                if (chNewBtn) chNewBtn.href = newConsultUrl;
+                if (chNewBtnEmpty) chNewBtnEmpty.href = newConsultUrl;
             })
             .catch(error => console.error('Error loading patient:', error));
     };
 
-    function escapeMedicalHistoryValue(value) {
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    function formatMedicalHistoryValue(value) {
-        if (Array.isArray(value)) return value.join(', ');
-        if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-        if (value === null || value === undefined || value === '') return 'Not recorded';
-        return value;
-    }
-
-    function renderMedicalHistory(ncd) {
-        const container = document.getElementById('mh-render');
-        if (!container) return;
-
-        const sections = [
-            {
-                title: 'Assessment Information',
-                fields: ['health_facility', 'assessment_date', 'family_no', 'first_name', 'middle_name', 'last_name', 'id_no', 'address', 'barangay', 'telepono', 'birthday', 'edad', 'kasarian', 'estadocivil', 'relihiyon', 'educational_attainment']
-            },
-            {
-                title: 'Past Medical History',
-                fields: ['is_diabetic', 'is_diabetic_year', 'is_diabetic_meds', 'risk_dm', 'is_hypertensive', 'is_hypertensive_year', 'is_hypertensive_meds', 'risk_hpn', 'has_copd', 'has_copd_year', 'has_copd_meds', 'risk_copd', 'has_cancer', 'cancer_site_condition', 'cancer_year', 'cancer_meds', 'risk_cancer', 'has_eye_disease', 'eye_year', 'eye_meds']
-            },
-            {
-                title: 'Chest Pain Screening',
-                fields: ['cp1', 'cp2', 'cp3', 'cp4', 'cp5', 'cp6', 'cp7', 'cp8']
-            },
-            {
-                title: 'Risk Factors',
-                fields: ['fam_hypertension', 'fam_heart_disease', 'fam_stroke', 'fam_diabetes', 'fam_cancer', 'fam_lung_disease', 'fam_kidney_disease', 'fam_other', 'has_exercise', 'exercise_type', 'smoke_status', 'smoke_sticks_per_day', 'smoke_quit_duration', 'smoke_100_sticks', 'smoke_exposed', 'stress_frequent', 'stress_cause', 'stress_affects_life', 'risk_activity', 'risk_smoking_history', 'risk_smoker', 'risk_stress']
-            },
-            {
-                title: 'Nutrition and Alcohol',
-                fields: ['r_diet', 'r_salt', 'diet_gulay', 'diet_prutas', 'diet_isda', 'diet_karne', 'diet_processed_food', 'diet_maalat', 'diet_matatamis', 'diet_mamantika', 'alc_u', 'alc_q', 'alc_t', 'amt_b', 'amt_w', 'amt_s', 'alc_f', 'alc_b', 'r_binge']
-            },
-            {
-                title: 'Measurements and Risk Screening',
-                fields: ['w', 'h', 'bmi', 'bmi_s', 'r_over', 'r_obese', 'waist', 'hip', 'whr', 'whr_s', 'r_whr', 'fbs', 'vn', 'fbs_s', 'r_predm', 'rbs_s', 's_pol', 's_wgt', 'r_dm_f', 'bp_l', 'bp_r', 'bp_b', 'bp_s', 'r_hpn_pre', 'r_hpn_f', 'chol', 'ch_s', 'r_chol', 'pro', 'ket', 'r_pro', 'r_ket', 'rp', 'r_30', 'cs']
-            },
-            {
-                title: 'Assessment Sign-off',
-                fields: ['occupation', 'designation', 'sign_date']
-            }
-        ];
-
-        const label = field => field
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, character => character.toUpperCase());
-
-        container.innerHTML = sections.map(section => {
-            const rows = section.fields
-                .filter(field => Object.prototype.hasOwnProperty.call(ncd, field))
-                .map(field => {
-                    const value = escapeMedicalHistoryValue(formatMedicalHistoryValue(ncd[field]));
-                    return `<div class="mh-row"><span class="k">${escapeMedicalHistoryValue(label(field))}</span><span class="val">${value}</span></div>`;
-                })
-                .join('');
-
-            return `<details class="mh-sec" open><summary>${escapeMedicalHistoryValue(section.title)}<span class="mh-sec-right"><span class="mh-chevron"></span></span></summary><div class="mh-body"><div class="mh-rows">${rows || '<div class="mh-row"><span class="val muted">No data recorded</span></div>'}</div></div></details>`;
-        }).join('');
-    }
-
-    
     window.editPatient = function(patientId) {
         if (!patientId) patientId = document.getElementById('detInternalId').innerText;
         Swal.fire({

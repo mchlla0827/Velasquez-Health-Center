@@ -24,11 +24,11 @@ class LoginController extends Controller
      */
     protected function authenticated(Request $request, $user)
     {
-        // ✅ AUTOMATICALLY UPDATE LAST LOGIN TIME — THIS MAKES STATUS WORK
+       
         $user->last_login_at = now();
         $user->save();
 
-        // ✅ YOUR EXISTING SESSION CODE — NOTHING CHANGED HERE
+      
         session([
             'admin_id'     => $user->id,
             'admin_name'   => $user->name,

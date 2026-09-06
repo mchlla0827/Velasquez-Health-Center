@@ -29,7 +29,7 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        // 1. Keep the validation rules matching your form inputs
+        
         $request->validate([
             'first_name'     => ['required', 'string', 'max:255'],
             'last_name'      => ['required', 'string', 'max:255'],
@@ -40,7 +40,7 @@ class RegisteredUserController extends Controller
             'is_pic'         => ['nullable'], 
         ]);
 
-        // 2. Map form data into your EXACT database columns from image_2c6f77.png
+        
         $user = User::create([
             'name' => $request->first_name . ' ' . $request->last_name,
             'email' => trim($request->email),
@@ -48,7 +48,7 @@ class RegisteredUserController extends Controller
             'role' => $request->role,
             'contact_number' => $request->contact_number,
 
-            // ✅ Correct
+           
             'is_physician_in_charge' => $request->boolean('is_physician_in_charge'),
         ]);
 
@@ -72,7 +72,6 @@ class RegisteredUserController extends Controller
 
         $user = User::findOrFail($id);
 
-        // 🔴 FIXED: Maps updates to your real columns
         $user->update([
             'name'                  => $request->first_name . ' ' . $request->last_name,
             'role'                  => $request->role,

@@ -43,9 +43,7 @@ class ForecastController extends Controller
             default => '#6B7280'  // Gray
         };
 
-        // ==================================================
-        // PREPARE DATE BOUNDARIES
-        // ==================================================
+
         $now = Carbon::now();
         $oneMonthAgo = $now->copy()->subMonth();
         $twoMonthsAgo = $now->copy()->subMonths(2);
@@ -84,18 +82,7 @@ class ForecastController extends Controller
                 ->where('dispense_date', '<', $twoMonthsAgo)
                 ->sum('quantity_dispensed');
 
-            /*
-             * FIX: Always divide by the full 3-month window, not just the
-             * number of non-zero periods. A month with zero dispensing is
-             * still a real data point (it means demand was zero that month),
-             * and should pull the average down — not be excluded from it.
-             *
-             * Previously, array_filter() stripped out zero-value periods,
-             * so a medicine dispensed only once in 90 days (e.g. 30 units
-             * in month 3, 0 in months 1 and 2) was averaged as 30 / 1 = 30
-             * instead of the correct 30 / 3 = 10, artificially inflating
-             * the forecasted demand and triggering false shortage alerts.
-             */
+            
             $hasAnyDispensingHistory = ($period1 + $period2 + $period3) > 0;
 
             if ($hasAnyDispensingHistory) {

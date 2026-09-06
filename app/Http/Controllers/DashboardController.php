@@ -7,7 +7,7 @@ use App\Models\Patient;
 use App\Models\Medicine;
 use App\Models\User;
 use App\Models\StockTransaction;
-use App\Models\DispensingRecord; // ✅ ADDED — CORRECT TABLE
+use App\Models\DispensingRecord; 
 use App\Models\TriageRecord;
 use Carbon\Carbon;
 
@@ -15,8 +15,7 @@ class DashboardController extends Controller
 {
 public function index()
 {
-    // ✅ AYOS NA: $patientsToday = LISTAHAN (para sa count() sa card)
-    // ✅ AYOS NA: $patientsTodayCount = BILANG (para sa badge sa recent patients)
+
     $patientsToday = Patient::whereDate('created_at', today())->latest()->get();
     $patientsTodayCount = $patientsToday->count();
 
@@ -28,7 +27,7 @@ public function index()
     ->pluck('patient_id')
     ->toArray();
 
-    // ✅ FIXED: Count & Sum from DispensingRecord (YOUR ACTUAL DATA)
+    
     $medicinesDispensedToday = DispensingRecord::whereDate('dispense_date', today())->sum('quantity_dispensed');
     $dispensedRecordsToday = DispensingRecord::whereDate('dispense_date', today())
         ->join('medicines', 'dispensing_records.medicine_id', '=', 'medicines.id')
@@ -38,7 +37,7 @@ public function index()
             'medicines.brand'
         )
         ->orderBy('dispense_date', 'DESC')
-        ->take(10) // Show last 10 only
+        ->take(10) 
         ->get();
 
     $patientsConsultedToday = TriageRecord::whereDate('created_at', today())->count();
@@ -77,8 +76,8 @@ public function index()
     $forecastData = array_slice($forecastData, 0, 5);
 
     return view('dashboard', compact(
-        'patientsToday',        // ✅ PARA SA CARD (Patients Registered Today)
-        'patientsTodayCount',   // ✅ PARA SA BADGE (Recent Patients X today)
+        'patientsToday',        
+        'patientsTodayCount',   
         'lowStockMedicines', 
         'recentPatients', 
         'highRiskCount',

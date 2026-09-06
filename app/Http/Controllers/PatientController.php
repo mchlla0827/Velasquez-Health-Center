@@ -624,6 +624,20 @@ class PatientController extends Controller
     }
 
     // ==================================================
+    // NCD ASSESSMENT - READ-ONLY VIEW (doctor summary click-through)
+    // ==================================================
+    public function showNcdAssessment($patientId, $assessmentId)
+    {
+        $patient = Patient::findOrFail($patientId);
+
+        $ncdAssessment = NcdAssessment::where('patient_id', $patient->id)
+            ->with('assessedBy:id,name')
+            ->findOrFail($assessmentId);
+
+        return view('patients.ncd-assessment-view', compact('patient', 'ncdAssessment'));
+    }
+
+    // ==================================================
     // SERVICE HISTORY
     // ==================================================
     public function serviceHistory($id)

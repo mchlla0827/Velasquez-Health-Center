@@ -259,6 +259,8 @@ Route::post('/stockout/store', [StockController::class, 'storeStockOut'])->name(
    // NCD Assessment Routes
     Route::get('/patients/{id}/ncd-assessment', [PatientController::class, 'createNcdAssessment'])->name('ncd.create');
     Route::post('/patients/{id}/ncd-assessment', [PatientController::class, 'storeNcdAssessment'])->name('ncd.store');
+    Route::get('/patients/{patient}/ncd-assessment/{assessment}/view', [PatientController::class, 'showNcdAssessment'])
+    ->name('ncd-assessment.view');
     Route::post('/medicine/store', [MedicineController::class, 'store'])->name('medicine.store');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/ai-forecast', [ForecastController::class, 'index'])->name('ai.forecast');
