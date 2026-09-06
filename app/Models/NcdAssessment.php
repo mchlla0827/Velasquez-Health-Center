@@ -30,11 +30,26 @@ class NcdAssessment extends Model
         'bp_l','bp_r','bp_b','bp_s','r_hpn_f',
         'chol','ch_s','r_chol',
         'pro','ket','r_pro',
-        'rp','r_30','cs'
+        'rp','r_30','cs',
+        'occupation', 'designation', 'sign_date',
+        'fam_hypertension', 'fam_heart_disease', 'fam_stroke', 'fam_diabetes',
+        'fam_cancer', 'fam_lung_disease', 'fam_kidney_disease', 'fam_other',
+        'has_exercise', 'exercise_type', 'risk_activity',
+        'smoke_status', 'smoke_sticks_per_day', 'smoke_quit_duration',
+        'smoke_100_sticks', 'smoke_exposed', 'risk_smoking_history', 'risk_smoker',
+        'stress_frequent', 'stress_cause', 'stress_affects_life', 'risk_stress',
+        's_pdp', 's_pph', 'r_ket', 'r_hpn_pre'
     ];
 
     protected $casts = [
         'alc_t' => 'array',
+        'fam_hypertension' => 'boolean', 'fam_heart_disease' => 'boolean',
+        'fam_stroke' => 'boolean', 'fam_diabetes' => 'boolean', 'fam_cancer' => 'boolean',
+        'fam_lung_disease' => 'boolean', 'fam_kidney_disease' => 'boolean',
+        'risk_activity' => 'boolean', 'risk_smoking_history' => 'boolean',
+        'risk_smoker' => 'boolean', 'risk_stress' => 'boolean',
+        's_pdp' => 'boolean', 's_pph' => 'boolean',
+        'r_ket' => 'boolean', 'r_hpn_pre' => 'boolean',
         'is_diabetic' => 'boolean',
         'is_hypertensive' => 'boolean',
         'has_copd' => 'boolean',

@@ -579,8 +579,11 @@ class PatientController extends Controller
         $checkboxFields = [
             'is_diabetic','is_hypertensive','has_copd','has_cancer','has_eye_disease',
             'risk_dm','risk_hpn','risk_copd','risk_cancer','r_diet','r_salt','r_binge',
-            'r_over','r_obese','r_whr','r_predm','s_pol','s_wgt','r_dm_f','r_hpn_f',
-            'r_chol','r_pro','r_30'
+            'r_over','r_obese','r_whr','r_predm','s_pol','s_pdp','s_pph','s_wgt','r_dm_f','r_hpn_f',
+            'r_chol','r_pro','r_ket','r_hpn_pre','r_30',
+            'fam_hypertension','fam_heart_disease','fam_stroke','fam_diabetes','fam_cancer',
+            'fam_kidney_disease','fam_lung_disease',
+            'risk_activity','risk_smoking_history','risk_smoker','risk_stress'
         ];
         foreach ($checkboxFields as $field) {
             $validated[$field] = in_array(strtolower(trim($request->$field)), ['yes','y','1','on']) ? true : false;
@@ -598,11 +601,17 @@ class PatientController extends Controller
         }
 
         // Save new assessment
-        NcdAssessment::create([
+        $newAssessment = NcdAssessment::create([
             'patient_id' => $patient->id,
             'assessed_by' => auth()->id(),
             ...$validated
         ]);
+
+        if ($request->filled('link_consultation')) {
+            \App\Models\Consultation::where('id', $request->link_consultation)
+                ->where('patient_id', $patient->id)
+                ->update(['related_ncd_assessment_id' => $newAssessment->id]);
+        }
 
         $role = strtolower(auth()->user()->role);
 
