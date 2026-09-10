@@ -281,6 +281,22 @@
     }
     .btn-primary:hover { background-color: #1557B0; }
 
+    .btn-secondary {
+        background-color: #fff;
+        color: #374151;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 10px 18px;
+        border: 1px solid #D1D5DB;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.15s ease;
+    }
+    .btn-secondary:hover { background-color: #F3F4F6; }
+
     .action-group {
         display: flex;
         align-items: center;
@@ -539,25 +555,18 @@
 
                     <button type="button"
                             class="action-btn view-btn view-record-btn"
+                            data-id="{{ $record->id }}"
                             data-date="{{ $record->dispense_date }}"
                             data-patient="{{ $record->patient_name }}"
                             data-medicine="{{ $record->medicine->name ?? '' }}"
                             data-quantity="{{ $record->quantity_dispensed }}"
                             data-dispensedby="{{ $record->dispensed_by }}"
-                            data-diagnosis="{{ $record->diagnosis ?? 'N/A' }}">
+                            data-diagnosis="{{ $record->diagnosis ?? 'N/A' }}"
+                            data-status="{{ $record->status ?? 'fully_dispensed' }}"
+                            data-unfulfilled="{{ $record->unfulfilled_quantity ?? 0 }}"
+                            data-prescription-id="{{ $record->prescription_id ?? '' }}"
+                            data-outcome="{{ $record->prescription->fulfillment_outcome ?? '' }}">
                         View
-                    </button>
-
-                    <button type="button"
-                            class="action-btn edit-btn"
-                            onclick="editRecord({{ $record->id }})">
-                        Edit
-                    </button>
-
-                    <button type="button"
-                            class="action-btn void-btn"
-                            onclick="confirmVoid({{ $record->id }})">
-                        Void
                     </button>
                 </div>
             </td>
@@ -651,46 +660,51 @@
                     </div>
                 </div>
 
-                <!-- MEDICAL INFORMATION SECTION -->
+                <!-- PRESCRIPTIONS SECTION (replaces manual medicine/diagnosis entry) -->
                 <div class="form-section-block">
-                    <div class="section-title">Medical Information</div>
+                    <div class="section-title">Active Prescriptions</div>
                     <div class="divider"></div>
-                    <div class="field full">
-                        <label>Diagnosis / Purpose</label>
-                        <input type="text" name="diagnosis" id="diagnosis" placeholder="Enter diagnosis..." required>
+                    <div id="rxNoPatient" style="padding: 14px; color: #9CA3AF; font-size: 13px; text-align: center;">
+                        Select a patient above to see their active prescriptions.
                     </div>
+                    <div id="rxNoneFound" style="display:none; padding: 14px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; border-radius: 6px; font-size: 13px;">
+                        This patient has no active (unfulfilled) prescriptions.
+                    </div>
+                    <div id="rxList" style="display:none; display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
 
-                <!-- MEDICINE INFORMATION SECTION -->
-                <div class="form-section-block">
-                    <div class="section-title">Medicine Information</div>
+                <!-- SELECTED PRESCRIPTION + DISPENSE QUANTITY (hidden until a prescription is chosen) -->
+                <div class="form-section-block" id="rxSelectedBlock" style="display:none;">
+                    <div class="section-title">Dispense This Medicine</div>
                     <div class="divider"></div>
-                    <div class="field full">
-                        <label>Select Medicine</label>
-                        <select name="medicine_id" id="medicine_id" required>
-                            <option value="">-- Select Medicine --</option>
-                            @foreach($medicines as $med)
-                                <option 
-                                    value="{{ $med->id }}" 
-                                    data-unit="{{ $med->unit ?? 'TABLET' }}"
-                                    data-stock="{{ $med->stock ?? 0 }}"
-                                >
-                                    {{ $med->name }} — Stock: {{ $med->stock ?? 0 }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
 
-                    <div class="grid-2" style="margin-top: 16px;">
+                    <input type="hidden" name="prescription_id" id="prescription_id" required>
+                    <input type="hidden" name="medicine_id" id="medicine_id" required>
+                    <input type="hidden" name="diagnosis" id="diagnosis" required>
+
+                    <div class="grid-2">
+                        <div class="field">
+                            <label>Medicine</label>
+                            <input type="text" id="rxMedicineDisplay" readonly>
+                        </div>
+                        <div class="field">
+                            <label>Dosage / Frequency / Duration</label>
+                            <input type="text" id="rxDetailsDisplay" readonly>
+                        </div>
+                        <div class="field full">
+                            <label>Instructions</label>
+                            <input type="text" id="rxInstructionsDisplay" readonly>
+                        </div>
                         <div class="field">
                             <label>Quantity to Dispense</label>
-                            <input type="number" name="quantity" id="quantity" min="1" placeholder="e.g. 10" required>
+                            <input type="number" name="quantity" id="quantity" min="1" required>
                         </div>
                         <div class="field">
                             <label>Unit</label>
                             <input type="text" name="unit" id="unit" readonly required>
                         </div>
                     </div>
+                    <div id="rxStockWarning" style="display:none; margin-top: 10px; padding: 10px 14px; background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; border-radius: 6px; font-size: 12.5px;"></div>
                 </div>
 
                 <!-- CONFIRMATION SECTION -->
@@ -699,7 +713,7 @@
                     <div class="divider"></div>
                     <div class="field" style="max-width: 50%;">
                         <label>Dispensed by (Staff Initials / Name)</label>
-                        <input type="text" name="dispensed_by" id="dispensed_by" value="{{ session('admin_name') ?? 'Admin' }}" readonly required>
+                        <input type="text" name="dispensed_by" id="dispensed_by" value="{{ Auth::user()->name ?? session('admin_name') ?? session('user_name') ?? ucfirst($role) }}" readonly required>
                     </div>
                 </div>
 
@@ -721,6 +735,7 @@
             <button class="close-btn" id="closeViewModal">&times;</button>
         </div>
         <div class="modal-body">
+            <input type="hidden" id="viewRecordId">
             <div class="grid-2">
                 <div class="field">
                     <label>Date</label>
@@ -740,17 +755,36 @@
                 </div>
                 <div class="field">
                     <label>Quantity</label>
-                    <input type="text" id="viewQuantity" readonly>
+                    <input type="number" min="1" id="viewQuantity" readonly>
                 </div>
                 <div class="field full">
                     <label>Diagnosis / Purpose</label>
                     <input type="text" id="viewDiagnosis" readonly>
                 </div>
             </div>
+
+            <div id="viewOutcomeSection" style="display:none; margin-top: 16px; padding: 14px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px;">
+                <div style="font-size: 12.5px; font-weight: 600; color: #92400E; margin-bottom: 4px;">
+                    <span id="viewUnfulfilledText"></span>
+                </div>
+                <label style="font-size: 11.5px; font-weight: 700; color: #6B7280; text-transform: uppercase;">What happens to the remaining quantity?</label>
+                <select id="viewOutcomeSelect" style="width:100%; margin-top: 6px; padding: 8px 10px; border: 1px solid #D1D5DB; border-radius: 6px;">
+                    <option value="awaiting_stock">Awaiting Stock (keep active)</option>
+                    <option value="referred_other_pharmacy">Referred to Other Pharmacy</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                <button type="button" class="btn-primary" style="margin-top: 10px; width: 100%;" onclick="saveOutcome()">Save Outcome</button>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-secondary" id="viewEditBtn" onclick="enableRecordEdit()">Edit</button>
+                <button type="button" class="btn-primary" id="viewSaveBtn" style="display:none;" onclick="saveRecordEdit()">Save Changes</button>
+            </div>
         </div>
     </div>
 </div>
 
+<style>.swal2-container { z-index: 100000 !important; }</style>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -770,15 +804,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // FORM LOGIC
     const form = document.getElementById('dispenseForm');
     const patientSelect = document.getElementById('patient_select');
-    const medicineSelect = document.getElementById('medicine_id');
     const qtyInput = document.getElementById('quantity');
     const recordBtn = document.getElementById('recordBtn');
     const clearBtn = document.getElementById('clearBtn');
 
     const requiredIds = [
-        'patient_ptn', 'family_no', 'barangay', 'date', 
-        'patient_name', 'age', 'sex', 'address', 
-        'diagnosis', 'medicine_id', 'quantity', 'unit', 'dispensed_by'
+        'patient_ptn', 'family_no', 'barangay', 'date',
+        'patient_name', 'age', 'sex', 'address',
+        'diagnosis', 'medicine_id', 'prescription_id', 'quantity', 'unit', 'dispensed_by'
     ];
 
     function clearPatientFields() {
@@ -788,17 +821,92 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function clearPrescriptionSelection() {
+        ['prescription_id', 'medicine_id', 'diagnosis', 'unit', 'quantity'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        document.getElementById('rxSelectedBlock').style.display = 'none';
+        document.getElementById('rxStockWarning').style.display = 'none';
+    }
+
+    function selectPrescription(rx) {
+        document.getElementById('prescription_id').value = rx.id;
+        document.getElementById('medicine_id').value = rx.medicine_id;
+        document.getElementById('diagnosis').value = rx.diagnosis || 'Not recorded';
+        document.getElementById('unit').value = rx.unit || '';
+
+        document.getElementById('rxMedicineDisplay').value = rx.medicine_name;
+        document.getElementById('rxDetailsDisplay').value = [rx.dosage, rx.frequency, rx.duration].filter(Boolean).join(' / ') || '-';
+        document.getElementById('rxInstructionsDisplay').value = rx.instructions || 'None';
+
+        const suggestedQty = rx.remaining_needed;
+        qtyInput.value = suggestedQty > 0 ? suggestedQty : '';
+        qtyInput.max = rx.remaining_needed;
+
+        const warning = document.getElementById('rxStockWarning');
+        if (rx.usable_stock < rx.remaining_needed) {
+            warning.style.display = 'block';
+            warning.textContent = rx.usable_stock <= 0
+                ? `No usable stock available for ${rx.medicine_name}. This will be recorded as a stock-out.`
+                : `Only ${rx.usable_stock} unit(s) available - prescribed amount is ${rx.remaining_needed}. This will be recorded as a partial dispense.`;
+        } else {
+            warning.style.display = 'none';
+        }
+
+        document.getElementById('rxSelectedBlock').style.display = 'block';
+        checkReady();
+    }
+
+    function renderPrescriptionList(prescriptions) {
+        const listEl = document.getElementById('rxList');
+        const noneEl = document.getElementById('rxNoneFound');
+        const noPatientEl = document.getElementById('rxNoPatient');
+
+        noPatientEl.style.display = 'none';
+        clearPrescriptionSelection();
+
+        if (!prescriptions.length) {
+            listEl.style.display = 'none';
+            noneEl.style.display = 'block';
+            return;
+        }
+
+        noneEl.style.display = 'none';
+        listEl.style.display = 'flex';
+        listEl.innerHTML = prescriptions.map((rx, i) => `
+            <div class="rx-option" data-index="${i}" style="border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px 14px; cursor: pointer;">
+                <div style="font-weight: 600; font-size: 13.5px; color: #111827;">${rx.medicine_name}</div>
+                <div style="font-size: 12px; color: #6B7280; margin-top: 3px;">
+                    ${[rx.dosage, rx.frequency, rx.duration].filter(Boolean).join(' / ') || '-'}
+                    &middot; Needed: ${rx.remaining_needed} ${rx.unit || ''}
+                    &middot; Usable stock: ${rx.usable_stock}
+                </div>
+            </div>
+        `).join('');
+
+        listEl.querySelectorAll('.rx-option').forEach((el, i) => {
+            el.addEventListener('click', () => {
+                listEl.querySelectorAll('.rx-option').forEach(o => o.style.cssText = 'border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px 14px; cursor: pointer;');
+                el.style.cssText = 'border: 2px solid #2563EB; background: #EFF6FF; border-radius: 8px; padding: 12px 14px; cursor: pointer;';
+                selectPrescription(prescriptions[i]);
+            });
+        });
+    }
+
     function clearMedicineFields() {
-        document.getElementById('unit').value = '';
-        qtyInput.value = '';
-        qtyInput.removeAttribute('max');
-        qtyInput.placeholder = 'e.g. 10';
+        document.getElementById('rxNoPatient').style.display = 'block';
+        document.getElementById('rxNoneFound').style.display = 'none';
+        document.getElementById('rxList').style.display = 'none';
+        document.getElementById('rxList').innerHTML = '';
+        clearPrescriptionSelection();
     }
 
     patientSelect.addEventListener('change', function() {
         const opt = this.selectedOptions[0];
         if (!opt || !opt.value) {
             clearPatientFields();
+            clearMedicineFields();
             checkReady();
             return;
         }
@@ -812,21 +920,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('address').value      = opt.dataset.address || '';
         document.getElementById('philhealth_no').value = opt.dataset.philhealth || '';
 
-        checkReady();
-    });
-
-    medicineSelect.addEventListener('change', function() {
-        const opt = this.selectedOptions[0];
-        if (!opt || !opt.value) {
-            clearMedicineFields();
-            checkReady();
-            return;
-        }
-
-        document.getElementById('unit').value = opt.dataset.unit || 'TABLET';
-        const stock = parseInt(opt.dataset.stock) || 0;
-        qtyInput.max = stock;
-        qtyInput.placeholder = `Max: ${stock}`;
+        fetch(`/patients/${opt.value}/prescriptions`)
+            .then(res => res.json())
+            .then(data => renderPrescriptionList(data.prescriptions || []))
+            .catch(() => renderPrescriptionList([]));
 
         checkReady();
     });
@@ -867,12 +964,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // POPULATE VIEW MODAL
     document.querySelectorAll('.view-record-btn').forEach(button => {
         button.addEventListener('click', function() {
+            document.getElementById('viewRecordId').value = this.dataset.id;
             document.getElementById('viewDate').value = this.dataset.date;
             document.getElementById('viewPatient').value = this.dataset.patient;
             document.getElementById('viewMedicine').value = this.dataset.medicine;
             document.getElementById('viewQuantity').value = this.dataset.quantity;
+            document.getElementById('viewQuantity').dataset.original = this.dataset.quantity;
             document.getElementById('viewDispensedBy').value = this.dataset.dispensedby;
             document.getElementById('viewDiagnosis').value = this.dataset.diagnosis;
+
+            document.getElementById('viewQuantity').readOnly = true;
+            document.getElementById('viewEditBtn').style.display = 'inline-block';
+            document.getElementById('viewSaveBtn').style.display = 'none';
+
+            const outcomeSection = document.getElementById('viewOutcomeSection');
+            if (this.dataset.status === 'partially_dispensed' && this.dataset.prescriptionId) {
+                outcomeSection.style.display = 'block';
+                outcomeSection.dataset.prescriptionId = this.dataset.prescriptionId;
+                document.getElementById('viewUnfulfilledText').textContent =
+                    `${this.dataset.unfulfilled} unit(s) could not be dispensed due to insufficient stock.`;
+                document.getElementById('viewOutcomeSelect').value = this.dataset.outcome || 'awaiting_stock';
+            } else {
+                outcomeSection.style.display = 'none';
+            }
+
             viewModal.classList.add('show');
         });
     });
@@ -957,24 +1072,94 @@ clearFiltersBtn.addEventListener('click', function() {
 });
 
 // ADMIN ACTION HANDLERS
-function confirmVoid(recordId) {
-    Swal.fire({
-        title: 'Void Dispensing Record?',
-        text: "This action will reverse the stock deduction for this entry.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#EF4444',
-        cancelButtonColor: '#6B7280',
-        confirmButtonText: 'Yes, void record'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = `/admin/dispense/void/${recordId}`;
-        }
-    });
+function enableRecordEdit() {
+    document.getElementById('viewQuantity').readOnly = false;
+    document.getElementById('viewQuantity').focus();
+    document.getElementById('viewEditBtn').style.display = 'none';
+    document.getElementById('viewSaveBtn').style.display = 'inline-block';
 }
 
-function editRecord(recordId) {
-    window.location.href = `/admin/dispense/edit/${recordId}`;
+function saveOutcome() {
+    const section = document.getElementById('viewOutcomeSection');
+    const prescriptionId = section.dataset.prescriptionId;
+    const outcome = document.getElementById('viewOutcomeSelect').value;
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.content
+        || document.querySelector('input[name="_token"]')?.value;
+
+    fetch(`/prescriptions/${prescriptionId}/outcome`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ outcome: outcome })
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            Swal.fire('Saved', 'Outcome updated successfully.', 'success')
+                .then(() => window.location.reload());
+        } else {
+            Swal.fire('Error', data.message || 'Unable to save outcome.', 'error');
+        }
+    })
+    .catch(() => Swal.fire('Error', 'Unable to reach the server.', 'error'));
+}
+
+function saveRecordEdit() {
+    const recordId = document.getElementById('viewRecordId').value;
+    const newQty = parseInt(document.getElementById('viewQuantity').value, 10);
+    const originalQty = parseInt(document.getElementById('viewQuantity').dataset.original, 10);
+
+    if (!newQty || newQty < 1) {
+        Swal.fire('Invalid Quantity', 'Quantity must be at least 1.', 'warning');
+        return;
+    }
+    if (newQty === originalQty) {
+        document.getElementById('viewQuantity').readOnly = true;
+        document.getElementById('viewEditBtn').style.display = 'inline-block';
+        document.getElementById('viewSaveBtn').style.display = 'none';
+        return;
+    }
+
+    const direction = newQty < originalQty ? 'returned to inventory' : 'deducted from inventory';
+    const diff = Math.abs(newQty - originalQty);
+
+    Swal.fire({
+        title: 'Confirm Correction?',
+        html: `Quantity will change from <b>${originalQty}</b> to <b>${newQty}</b>.<br>${diff} unit(s) will be ${direction}.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, save correction',
+        confirmButtonColor: '#1A73E8'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        const token = document.querySelector('meta[name="csrf-token"]')?.content
+            || document.querySelector('input[name="_token"]')?.value;
+
+        fetch(`/dispense/${recordId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ quantity: newQty })
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok && data.success) {
+                Swal.fire('Updated!', data.message || 'Record updated successfully.', 'success')
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Error', data.message || 'Unable to update record.', 'error');
+            }
+        })
+        .catch(() => Swal.fire('Error', 'Unable to reach the server.', 'error'));
+    });
 }
 </script>
 

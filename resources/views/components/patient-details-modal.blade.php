@@ -41,6 +41,7 @@
                         <div class="item"><span>CIVIL STATUS</span><p id="detCivil">---</p></div>
                         <div class="item"><span>RELIGION</span><p id="detReligion">---</p></div>
                         <div class="item"><span>EDUCATIONAL ATTAINMENT</span><p id="detEducation">---</p></div>
+                        <div class="item"><span>PROOF OF RESIDENCY / RESIDENCY ID</span><p><button type="button" class="btn-secondary" style="padding:5px 12px; font-size:12px;" onclick="showResidencyProof()">Show Proof of Residency</button></p></div>
                     </div>
                 </div>
 
@@ -95,7 +96,7 @@
                     <span style="font-size: 40px; margin-bottom: 12px;">[No Records]</span>
                     <h4 style="margin: 0; font-size: 16px; color: #111827;">No Medical History Found</h4>
                     <p style="margin: 4px 0 20px; font-size: 13px; color: #6B7280; text-align: center; max-width: 400px;">This patient has not yet undergone their initial Integrated NCD Risk Assessment.</p>
-                    @if(auth()->user()->role === 'doctor' || auth()->user()->is_physician_in_charge)
+                    @if(strtolower(auth()->user()->role ?? '') === 'doctor' || auth()->user()->is_physician_in_charge)
                         <a id="btn-start-ncd" href="#" class="btn-primary" style="text-decoration: none; display: inline-block;">
                             Conduct NCD Risk Assessment
                         </a>
@@ -106,44 +107,23 @@
                     @endif             
                 </div>
 
-                <div id="medical-history-filled" style="display: none;">
-                    <div id="mh-render"></div>
+               <div id="medical-history-filled" style="display: none;">
+    <div id="mh-render"></div>
 
-                    <div class="ch-wrap">
-                        <div class="ch-header">
-                            <div class="ch-title">Consultation History</div>
-                            <div class="ch-desc">All recorded visits and consultations for this patient.</div>
-                        </div>
+    <div class="ch-wrap">
+        <div class="ch-toolbar">
+            <h4 class="ch-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #111827;">Consultation history</h4>
+            <a class="ch-new-btn" id="chNewConsultationBtn" href="#">+ New consultation</a>
+        </div>
 
-                        <div class="ch-toolbar">
-                            <a class="ch-new-btn" id="chNewConsultationBtn" href="#">+ New Consultation</a>
-                        </div>
+        <div id="ch-empty" class="ch-empty" style="display: none;">
+            <p>No consultation records yet.</p>
+            <a class="ch-new-btn" id="chNewConsultationBtnEmpty" href="#">+ New consultation</a>
+        </div>
 
-                        <div class="ch-filters">
-                            <input type="text" id="chSearch" placeholder="Search complaint, diagnosis, provider..." oninput="chApplyFilters()">
-                            <select id="chFilterType" onchange="chApplyFilters()">
-                                <option value="">All Types</option>
-                                <option value="general">General Consultation</option>
-                                <option value="ncd_risk_assessment">NCD Risk Assessment</option>
-                                <option value="ncd_followup">NCD Follow-up</option>
-                                <option value="followup_recheck">Follow-up / Re-check</option>
-                            </select>
-                            <select id="chFilterProvider" onchange="chApplyFilters()">
-                                <option value="">All Providers</option>
-                            </select>
-                            <input type="date" id="chFilterFrom" onchange="chApplyFilters()">
-                            <input type="date" id="chFilterTo" onchange="chApplyFilters()">
-                            <button type="button" class="ch-clear-btn" onclick="chClearFilters()">Clear Filters</button>
-                        </div>
-
-                        <div id="ch-empty" class="ch-empty" style="display: none;">
-                            <p>No consultation records yet.</p>
-                            <a class="ch-new-btn" id="chNewConsultationBtnEmpty" href="#">+ New Consultation</a>
-                        </div>
-
-                        <div id="ch-list" class="ch-list" style="display: none;"></div>
-                    </div>
-                </div>
+        <div id="ch-list" class="mhx-ch-list" style="display: none;"></div>
+    </div>
+</div>
             </div>
 
                 
@@ -367,6 +347,20 @@
         <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid #E5E7EB; background: white; display: flex; justify-content: flex-end; gap: 12px;">
             <button onclick="closePatientModal()" class="btn-secondary">Close</button>
             <div id="dynamic-action-button"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== PROOF OF RESIDENCY VIEWER MODAL ========== -->
+<div id="residencyProofModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100001; align-items: center; justify-content: center;">
+    <div style="background: #fff; border-radius: 12px; max-width: 90vw; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+        <div style="padding: 14px 18px; border-bottom: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin:0; font-size: 15px; color: #111827;">Proof of Residency</h3>
+            <button type="button" onclick="closeResidencyProof()" style="background:none; border:none; font-size: 22px; cursor: pointer; color:#9CA3AF;">&times;</button>
+        </div>
+        <div style="padding: 16px; overflow: auto; display: flex; align-items: center; justify-content: center;">
+            <img id="residencyProofImg" src="" style="max-width: 80vw; max-height: 70vh; display: none; border-radius: 6px;">
+            <p id="residencyProofEmpty" style="display:none; color:#6B7280; font-size: 13px; padding: 30px;">No proof of residency has been uploaded for this patient.</p>
         </div>
     </div>
 </div>
@@ -697,6 +691,162 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
     .ch-filters { flex-direction: column; align-items: stretch; }
     .ch-card-head { flex-direction: column; }
 }
+
+/* ===== Compact NCD Summary + Consultation List (light redesign) ===== */
+/* ===== 5-Section NCD Summary Layout ===== */
+.mhx-summary-container {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.mhx-summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.mhx-summary-heading {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.mhx-summary-subheading {
+    font-size: 12px;
+    color: #6B7280;
+    margin-top: 3px;
+}
+
+.mhx-pill-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #DC2626;
+    background: #FEF2F2;
+    border: 1px solid #FEE2E2;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+.mhx-pill-badge.none {
+    color: #16A34A;
+    background: #F0FDF4;
+    border-color: #DCFCE7;
+}
+
+/* Sections stack */
+.mhx-section-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.mhx-section-item {
+    background: #F9FAFB;
+    border: 1px solid #F3F4F6;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.mhx-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #6B7280;
+    margin-bottom: 6px;
+}
+
+.mhx-section-body {
+    font-size: 13px;
+    color: #1F2937;
+}
+
+.mhx-metric-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.mhx-metric-grid span b {
+    color: #4B5563;
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.mhx-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.mhx-tag-item {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 500;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #DBEAFE;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+.mhx-tag-item.alert {
+    background: #FEF2F2;
+    color: #B91C1C;
+    border-color: #FECACA;
+}
+
+.mhx-summary-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    padding: 9px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+    text-decoration: none;
+    transition: background 0.12s;
+}
+.mhx-summary-btn:hover {
+    background: #F3F4F6;
+    color: #111827;
+}
+
+/* ===== Consultation Records list styling (was missing) ===== */
+.mhx-ch-list { display: flex; flex-direction: column; gap: 10px; }
+.mhx-ch-item { border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; background: #fff; }
+.mhx-ch-summary { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; }
+.mhx-ch-left .date-type { font-size: 14.5px; font-weight: 700; color: #111827; }
+.mhx-ch-left .date-type .type-tag { color: #2563EB; font-weight: 600; }
+.mhx-ch-left .provider-note { font-size: 13px; color: #6B7280; margin-top: 4px; }
+.mhx-ch-view-link {
+    flex-shrink: 0; margin-left: 14px;
+    font-size: 12.5px; font-weight: 600; color: #2563EB;
+    background: #EFF6FF; border: 1px solid #DBEAFE; border-radius: 6px;
+    padding: 7px 14px; text-decoration: none; white-space: nowrap;
+}
+.mhx-ch-view-link:hover { background: #DBEAFE; }
+
+.mhx-disabled-btn { opacity: 0.5; cursor: not-allowed !important; }
+
+/* ===== Lightweight blocked-action toast (no external library needed) ===== */
+.mhx-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #111827; color: #fff; font-size: 13px; font-weight: 500;
+    padding: 12px 20px; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    z-index: 99999; opacity: 0; transition: opacity .2s ease, transform .2s ease;
+    max-width: 380px; text-align: center; pointer-events: none;
+}
+.mhx-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 
 <script>
@@ -878,24 +1028,21 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
         }
         empty.style.display = 'none';
         container.style.display = 'flex';
+        container.className = 'mhx-ch-list';
 
-        container.innerHTML = list.map(c => {
-            const summaryParts = [];
-            if (c.vital_bp) summaryParts.push('BP: ' + chEsc(c.vital_bp));
-            if (c.vital_bmi) summaryParts.push('BMI: ' + chEsc(c.vital_bmi));
-            if (!summaryParts.length && c.chief_complaint) summaryParts.push('Chief Complaint: ' + chEsc(c.chief_complaint));
-            if (!summaryParts.length && c.assessment_diagnosis) summaryParts.push('Diagnosis: ' + chEsc(c.assessment_diagnosis));
+        container.innerHTML = list.map((c, i) => {
+            const noteParts = [];
+            if (c.chief_complaint) noteParts.push(c.chief_complaint);
+            else if (c.assessment_diagnosis) noteParts.push(c.assessment_diagnosis);
+            const note = noteParts.length ? chEsc(noteParts.join(' &middot; ')) : 'No summary recorded';
 
-            return '<div class="ch-card">' +
-                '<div class="ch-card-head">' +
-                    '<div>' +
-                        '<span class="ch-card-date">' + chFormatDate(c.consultation_date) + '</span>' +
-                        '<span class="ch-card-type">' + chEsc(c.type_label) + '</span>' +
-                        '<div class="ch-card-provider">' + chEsc(c.provider_name || 'Unknown Provider') + '</div>' +
-                        '<div class="ch-card-summary">' + (summaryParts.join(' &middot; ') || 'No summary recorded') + '</div>' +
-                        (c.status_classification ? '<div class="ch-card-status">' + chEsc(c.status_classification) + '</div>' : '') +
+            return '<div class="mhx-ch-item">' +
+                '<div class="mhx-ch-summary">' +
+                    '<div class="mhx-ch-left">' +
+                        '<div class="date-type">' + chFormatDate(c.consultation_date) + ' &middot; <span class="type-tag">' + chEsc(c.type_label) + '</span></div>' +
+                        '<div class="provider-note">' + chEsc(c.provider_name || 'Unknown Provider') + ' &middot; ' + note + '</div>' +
                     '</div>' +
-                    '<a class="ch-view-btn" href="/consultations/' + c.id + '">View Details</a>' +
+                    '<a class="mhx-ch-view-link" href="/consultations/' + c.id + '">View Details</a>' +
                 '</div>' +
             '</div>';
         }).join('');
@@ -965,76 +1112,191 @@ table.mh-table td:last-child { width: 60px; text-align: right; font-weight: 700;
                '</summary><div class="mh-body">' + bodyHtml + '</div></details>';
     }
 
-    function renderMedicalHistory(ncd) {
-        let html = '';
-
-        // ---------- 1. SUMMARY METADATA ----------
+function renderMedicalHistory(ncd) {
         const assessorName = (ncd.assessed_by_relation && ncd.assessed_by_relation.name)
             || (ncd.assessed_by && ncd.assessed_by.name)
             || MH_DASH;
-        html += '<div class="mh-meta">' +
-            '<div class="mh-meta-fields">' +
-            '<div class="mh-meta-item"><div class="k">Assessment Date</div><div class="val">' + mhVal(ncd.assessment_date) + '</div></div>' +
-            '<div class="mh-meta-item"><div class="k">Health Facility</div><div class="val">' + mhVal(ncd.health_facility) + '</div></div>' +
-            '<div class="mh-meta-item"><div class="k">Assessed By</div><div class="val">' + mhEsc(assessorName) + '</div></div>' +
-            '<div class="mh-meta-item"><div class="k">Designation</div><div class="val">' + mhVal(ncd.designation) + '</div></div>' +
-            '</div>' +
-            '<a class="mh-view-btn" href="/patients/' + ncd.patient_id + '/ncd-assessment"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 4C5.5 4 2 8 2 10s3.5 6 8 6 8-4 8-6-3.5-6-8-6zm0 10a4 4 0 110-8 4 4 0 010 8zm0-6a2 2 0 100 4 2 2 0 000-4z"/></svg>View NCD Assessment</a>' +
-        '</div>';
 
-        // ---------- 2. RISK SUMMARY ----------
-        const flagMap = [
-            ['risk_dm','Diabetes (DM)'], ['risk_hpn','Hypertension (HPN)'],
-            ['risk_copd','COPD'], ['risk_cancer','Cancer'],
-            ['r_diet','Unhealthy Diet'], ['r_salt','High Salt Intake'],
-            ['r_binge','Binge Drinker'], ['risk_activity','Insufficient Physical Activity'],
-            ['risk_smoking_history','History of Smoking'], ['risk_smoker','Smoker'],
-            ['risk_stress','Stressed'], ['r_over','Overweight'], ['r_obese','Obese'],
-            ['r_whr','Waist-Hip At Risk'], ['r_predm','Pre-Diabetes'],
-            ['r_dm_f','DM (Blood Sugar)'], ['r_hpn_pre','Pre-HPN'], ['r_hpn_f','HPN (Blood Pressure)'],
-            ['r_chol','High Cholesterol'], ['r_pro','(+) Urine Protein'],
-            ['r_ket','(+) Urine Ketones'], ['r_30','>=30% Risk Profile']
-        ];
-        const activeFlags = flagMap.filter(f => ncd[f[0]]);
-        html += '<div class="mh-flags"><div class="mh-flags-title">Risk Flags Detected (' + activeFlags.length + ')</div><div class="mh-flag-wrap">';
-        html += activeFlags.length
-            ? activeFlags.map(f => '<span class="mh-flag">' + f[1] + '</span>').join('')
-            : '<span class="mh-flag none">No risk flags recorded</span>';
-        html += '</div></div>';
-
-        // ---------- 3. AT-A-GLANCE SUMMARY (full detail via "View NCD Assessment") ----------
+        // 1. Conditions Present
         const conds = [
-            ['Diabetes', ncd.is_diabetic], ['Hypertension', ncd.is_hypertensive],
-            ['Cancer', ncd.has_cancer], ['COPD', ncd.has_copd], ['Eye Disease', ncd.has_eye_disease]
+            ['Diabetes', ncd.is_diabetic],
+            ['Hypertension', ncd.is_hypertensive],
+            ['Cancer', ncd.has_cancer],
+            ['COPD', ncd.has_copd],
+            ['Eye Disease', ncd.has_eye_disease]
         ];
         const condsActive = conds.filter(c => c[1]).map(c => c[0]);
 
+        // 2. Chest Pain Screening
         const cpQFields = ['cp1','cp2','cp3','cp4','cp5','cp6','cp7','cp8'];
         const cpYes = cpQFields.filter(f => ncd[f] === 'Yes').length;
         const cpAlert = ['cp4','cp5','cp6','cp7','cp8'].some(f => ncd[f] === 'Yes');
 
+        // 3. Family History
         const famMap = [
-            ['fam_hypertension','Hypertension'], ['fam_heart_disease','Heart Disease'],
-            ['fam_stroke','Stroke'], ['fam_diabetes','Diabetes'], ['fam_cancer','Cancer'],
-            ['fam_kidney_disease','Kidney Disease'], ['fam_lung_disease','Lung Disease']
+            ['fam_hypertension', 'Hypertension'],
+            ['fam_heart_disease', 'Heart Disease'],
+            ['fam_stroke', 'Stroke'],
+            ['fam_diabetes', 'Diabetes'],
+            ['fam_cancer', 'Cancer'],
+            ['fam_kidney_disease', 'Kidney Disease'],
+            ['fam_lung_disease', 'Lung Disease']
         ];
         const famActive = famMap.filter(f => ncd[f[0]]).map(f => f[1]);
 
-        let sumBody = '<div class="mh-rows">' +
-            mhRow('Vitals', 'Weight: ' + mhVal(ncd.w, ' kg') + ' &middot; Height: ' + mhVal(ncd.h, ' cm') +
-                  ' &middot; BMI: ' + mhVal(ncd.bmi) + (ncd.bmi_s ? ' (' + mhEsc(ncd.bmi_s) + ')' : '') +
-                  ' &middot; BP: ' + mhVal(ncd.bp_b || ncd.bp_l)) +
-            mhRow('Blood Sugar', mhVal(ncd.fbs_s) + (ncd.rbs_s ? ' / RBS: ' + mhVal(ncd.rbs_s) : '')) +
-            mhRow('Conditions Present', condsActive.length ? condsActive.join(', ') : '<span class="mh-no">None reported</span>') +
-            mhRow('Chest Pain Screening', cpYes + ' of 8 positive' + (cpAlert ? ' <span class="mh-yes">(see doctor)</span>' : '')) +
-            mhRow('Family History', famActive.length ? famActive.join(', ') : '<span class="mh-no">None recorded</span>') +
-        '</div>';
+        // Flags Count Calculation
+        const lifestyleFlags = [
+            ['risk_smoker', 'Smoker'],
+            ['risk_binge', 'Binge Drinker'],
+            ['risk_activity', 'Insufficient Activity'],
+            ['risk_stress', 'High Stress']
+        ].filter(f => ncd[f[0]]).map(f => f[1]);
 
-        html += '<div class="mh-sec" open><summary><span>Summary</span><span class="mh-sec-right"><span class="mh-sec-note">Full details in NCD form</span></span></summary><div class="mh-body">' + sumBody + '</div></div>';
+        const allFlagLabels = [...condsActive, ...lifestyleFlags];
+        const flagCount = allFlagLabels.length + (cpAlert ? 1 : 0);
+
+        let html = `
+            <div class="mhx-summary-container">
+                <div class="mhx-summary-top">
+                    <div>
+                        <h4 class="mhx-summary-heading">NCD Risk Assessment Summary</h4>
+                        <div class="mhx-summary-subheading">
+                            Assessed ${mhVal(ncd.assessment_date)} &middot; ${mhEsc(assessorName)}${ncd.health_facility ? ' &middot; ' + mhEsc(ncd.health_facility) : ''}
+                        </div>
+                    </div>
+                    <span class="mhx-pill-badge ${flagCount === 0 ? 'none' : ''}">
+                        ${flagCount === 0 ? 'No flags' : flagCount + ' risk flag' + (flagCount > 1 ? 's' : '')}
+                    </span>
+                </div>
+
+                <div class="mhx-section-list">
+                    <!-- 1. Vitals -->
+                    <div class="mhx-section-item">
+                        <div class="mhx-section-title">Vitals</div>
+                        <div class="mhx-section-body mhx-metric-grid">
+                            <span><b>BP:</b> ${mhVal(ncd.bp_b || ncd.bp_l)}</span>
+                            <span><b>BMI:</b> ${mhVal(ncd.bmi)} ${ncd.bmi_s ? `(${mhEsc(ncd.bmi_s)})` : ''}</span>
+                            <span><b>Risk Score:</b> ${ncd.risk_score ? mhEsc(ncd.risk_score) + '%' : (ncd.r_30 ? '&ge;30%' : '---')}</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Blood Sugar -->
+                    <div class="mhx-section-item">
+                        <div class="mhx-section-title">Blood Sugar</div>
+                        <div class="mhx-section-body mhx-metric-grid">
+                            <span><b>FBS:</b> ${mhVal(ncd.fbs_s, ncd.fbs_s ? ' mg/dL' : '')}</span>
+                            ${ncd.r_dm_f ? '<span class="mhx-tag-item alert">DM Flag Raised</span>' : ''}
+                            ${ncd.r_predm ? '<span class="mhx-tag-item alert">Pre-DM Flag Raised</span>' : ''}
+                        </div>
+                    </div>
+
+                    <!-- 3. Conditions Present -->
+                    <div class="mhx-section-item">
+                        <div class="mhx-section-title">Conditions Present</div>
+                        <div class="mhx-section-body">
+                            ${condsActive.length 
+                                ? `<div class="mhx-tags">${condsActive.map(c => `<span class="mhx-tag-item alert">${mhEsc(c)}</span>`).join('')}</div>`
+                                : '<span style="color: #9CA3AF;">None recorded</span>'}
+                        </div>
+                    </div>
+
+                    <!-- 4. Chest Pain Screening -->
+                    <div class="mhx-section-item">
+                        <div class="mhx-section-title">Chest Pain Screening</div>
+                        <div class="mhx-section-body">
+                            ${cpAlert 
+                                ? `<span class="mhx-tag-item alert">&#9888; Positive screening (${cpYes} of 8 positive)</span>`
+                                : (cpYes > 0 
+                                    ? `<span>${cpYes} of 8 positive (Low risk)</span>`
+                                    : '<span style="color: #166534;">Negative (No symptoms reported)</span>')}
+                        </div>
+                    </div>
+
+                    <!-- 5. Family History -->
+                    <div class="mhx-section-item">
+                        <div class="mhx-section-title">Family History</div>
+                        <div class="mhx-section-body">
+                            ${famActive.length 
+                                ? `<div class="mhx-tags">${famActive.map(f => `<span class="mhx-tag-item">${mhEsc(f)}</span>`).join('')}</div>`
+                                : '<span style="color: #9CA3AF;">None recorded</span>'}
+                        </div>
+                    </div>
+                </div>
+
+                <a class="mhx-summary-btn" href="/patients/${ncd.patient_id}/ncd-assessment">
+                    View Full Assessment &rarr;
+                </a>
+            </div>
+        `;
 
         document.getElementById('mh-render').innerHTML = html;
     }
+    // ========== TRIAGE GATE: block NCD Assessment / New Consultation ==========
+    // unless the patient currently has an active triage record.
+    function showMhxToast(message) {
+        let toast = document.getElementById('mhxToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'mhxToast';
+            toast.className = 'mhx-toast';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toast._hideTimer);
+        toast._hideTimer = setTimeout(function () {
+            toast.classList.remove('show');
+        }, 3200);
+    }
+
+    function applyTriageGate(hasActiveTriage, patientId) {
+        const blockMsg = 'This patient must currently be in the Triage Queue before this can be started.';
+        const btnNcd = document.getElementById('btn-start-ncd');
+        const btnRx1 = document.getElementById('chNewConsultationBtn');
+        const btnRx2 = document.getElementById('chNewConsultationBtnEmpty');
+
+        [btnNcd, btnRx1, btnRx2].forEach(function (btn) {
+            if (!btn) return;
+            if (hasActiveTriage) {
+                btn.classList.remove('mhx-disabled-btn');
+                btn.removeAttribute('title');
+                btn.onclick = null;
+            } else {
+                btn.classList.add('mhx-disabled-btn');
+                btn.title = blockMsg;
+                btn.onclick = function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof showMhxToast === 'function') { showMhxToast(blockMsg); } else { alert(blockMsg); }
+                    return false;
+                };
+            }
+        });
+    }
+
+    
     // --- MAIN: Open Modal & Fetch Data ---
+    function showResidencyProof() {
+        const img = document.getElementById('residencyProofImg');
+        const emptyMsg = document.getElementById('residencyProofEmpty');
+        const url = activePatientData ? activePatientData.residency_proof_url : null;
+
+        if (url) {
+            img.src = url;
+            img.style.display = 'block';
+            emptyMsg.style.display = 'none';
+        } else {
+            img.style.display = 'none';
+            emptyMsg.style.display = 'block';
+        }
+
+        document.getElementById('residencyProofModal').style.display = 'flex';
+    }
+
+    function closeResidencyProof() {
+        document.getElementById('residencyProofModal').style.display = 'none';
+    }
+
     window.openPatientModal = function(id, initialTab = 'basic-info') {
         const modal = document.getElementById('patientDetailModal');
         modal.style.display = 'flex';
@@ -1214,6 +1476,8 @@ console.log("data.patient_id =", data.patient_id);
                     document.getElementById('medical-history-filled').style.display = 'block';
                     renderMedicalHistory(ncd);
                 }
+
+                applyTriageGate(data.has_active_triage_today, data.id);
             })
             .catch(error => console.error('Error loading patient:', error));
     };

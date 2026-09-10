@@ -173,14 +173,15 @@
 
         .btn-primary {
             background: #2563EB;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
+        color: white;
+        padding: 11px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+        transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
         }
 
         .btn-primary:hover { background: #1D4ED8; }
@@ -599,6 +600,11 @@
     </style>
 </head>
 <body>
+@if (session('error'))
+    <div style="margin: 16px 24px 0; padding: 14px 18px; background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; border-radius: 6px; font-size: 13.5px;">
+        {{ session('error') }}
+    </div>
+@endif
 
 <div class="container">
     <x-sidebar />
@@ -649,7 +655,6 @@
         <div class="page-top">
             <div class="page-title">
                 <h2>Patient Triage</h2>
-                <p>Auto-sorted by risk level for priority care</p>
             </div>
             @if(in_array($role, ['bhw', 'nurse', 'admin']))
                 <button class="btn-primary" onclick="toggleModal(true)">+ Add Patient to Queue</button>
@@ -713,8 +718,11 @@
                         </td>
                         <td class="text-muted">{{ $record->service_type ?? 'General Checkup' }}</td>
                         <td class="text-center">
-                            @php $risk = strtolower($record->risk_level ?? 'low'); @endphp
-                            <span class="pill {{ $risk }}">{{ ucfirst($risk) }} Risk</span>
+                            @php
+                                $risk = strtolower($record->risk_level ?? 'low');
+                                $factorsList = is_array($record->risk_factors) ? implode(' | ', $record->risk_factors) : '';
+                            @endphp
+                            <span class="pill {{ $risk }}" title="{{ $factorsList }}">{{ ucfirst($risk) }} Risk{{ $record->risk_score !== null ? ' ('.$record->risk_score.')' : '' }}</span>
                         </td>
                         <td class="text-right">
                             <button class="btn-sm btn-view"
@@ -728,7 +736,7 @@
                                 @if($status === 'waiting' || empty($status))
                                     <button class="btn-sm btn-call" onclick="updateQueueStatus({{ $record->id }}, 'Called')">Call Patient</button>
                                 @elseif($status === 'called')
-                                    <button class="btn-sm btn-session" onclick="updateQueueStatus({{ $record->id }}, 'In Session')">Start Session</button>
+                                    <button class="btn-sm btn-session" onclick="startSession({{ $record->id }}, {{ $record->patient_id }})">Start Session</button>
                                 @elseif($status === 'in session')
                                     <button class="btn-sm btn-done" onclick="updateQueueStatus({{ $record->id }}, 'Done')">Done</button>
                                 @endif
@@ -828,6 +836,86 @@
                     <label class="checkbox-item"><input type="checkbox" name="symptoms[]" value="Headache"> Headache</label>
                     <label class="checkbox-item"><input type="checkbox" name="symptoms[]" value="Body pain"> Body pain</label>
                     <label class="checkbox-item"><input type="checkbox" name="symptoms[]" value="Chest pain"> Chest pain</label>
+                    <label class="checkbox-item"><input type="checkbox" id="othersCheckbox" onchange="toggleOtherSymptom()"> Others, specify:</label>
+                </div>
+                <script>
+                    function toggleOtherSymptom() {
+                        const checked = document.getElementById('othersCheckbox').checked;
+                        const wrap = document.getElementById('otherSymptomWrap');
+                        const textField = document.getElementById('otherSymptomText');
+                        wrap.style.display = checked ? 'block' : 'none';
+                        if (!checked) {
+                            textField.value = '';
+                            document.getElementById('otherSymptomError').style.display = 'none';
+                        }
+                    }
+
+                    document.addEventListener('DOMContentLoaded', function () {
+                        document.querySelectorAll('form').forEach(form => {
+                            form.addEventListener('submit', function (e) {
+                                e.preventDefault();
+
+                                const othersChecked = document.getElementById('othersCheckbox')?.checked;
+                                const textField = document.getElementById('otherSymptomText');
+                                if (othersChecked && textField) {
+                                    const value = textField.value.trim();
+                                    if (!value) {
+                                        document.getElementById('otherSymptomError').style.display = 'block';
+                                        textField.focus();
+                                        return;
+                                    }
+                                }
+
+                                // ===== Instant duplicate-queue check, BEFORE actually submitting =====
+                                const patientIdField = document.getElementById('selectedPatientId');
+                                const patientId = patientIdField ? patientIdField.value : null;
+
+                                if (!patientId) {
+                                    form.submit();
+                                    return;
+                                }
+
+                                fetch(`/patients/${patientId}/check-active-queue`)
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.in_queue) {
+                                            let banner = document.getElementById('duplicateQueueBanner');
+                                            if (!banner) {
+                                                banner = document.createElement('div');
+                                                banner.id = 'duplicateQueueBanner';
+                                                banner.style.cssText = 'margin: 16px auto; padding: 14px 18px; background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; border-radius: 6px; font-size: 13.5px; width: 90%; box-sizing: border-box;';
+                                                form.prepend(banner);
+                                            }
+                                            banner.textContent = 'This patient is already in the Triage Queue.';
+                                            banner.style.display = 'block';
+                                            banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                                            clearTimeout(banner.dismissTimer);
+                                            banner.dismissTimer = setTimeout(() => {
+                                                banner.style.display = 'none';
+                                            }, 2500);
+                                            return;
+                                        }
+
+                                        // Not a duplicate - safe to actually submit now.
+                                        if (othersChecked && textField && textField.value.trim()) {
+                                            const hidden = document.createElement('input');
+                                            hidden.type = 'hidden';
+                                            hidden.name = 'symptoms[]';
+                                            hidden.value = 'Other: ' + textField.value.trim();
+                                            form.appendChild(hidden);
+                                        }
+                                        form.submit();
+                                    })
+                                    .catch(() => form.submit());
+                            });
+                        });
+                    });
+                </script>
+                <div id="otherSymptomWrap" style="display:none; margin-top:8px;">
+                    <input type="text" id="otherSymptomText" name="other_symptom_text" placeholder="Specify other symptom" style="width:100%; max-width:400px; padding:8px 10px; border:1px solid #D1D5DB; border-radius:6px; font-size:13px;">
+                    <div id="otherSymptomError" style="display:none; color:#DC2626; font-size:12px; margin-top:4px;">Please specify the symptom, or uncheck "Others".</div>
+                    <div style="font-size:11px; color:#9CA3AF; margin-top:4px;">Note: this symptom will be recorded but will not affect the automated risk score.</div>
                 </div>
             </div>
 
@@ -934,6 +1022,25 @@
     }
 
     // ========== UPDATE QUEUE STATUS ==========
+    // ========== START SESSION -> open Patient Records modal for that patient ==========
+    // updateQueueStatus() reloads the page on success, which would close
+    // any modal immediately - so we stash which patient to reopen for
+    // and check for it again once the page comes back.
+    function startSession(triageId, patientId) {
+        sessionStorage.setItem('openPatientModalAfterReload', patientId);
+        updateQueueStatus(triageId, 'In Session');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const pendingPatientId = sessionStorage.getItem('openPatientModalAfterReload');
+        if (pendingPatientId) {
+            sessionStorage.removeItem('openPatientModalAfterReload');
+            if (typeof openPatientModal === 'function') {
+                openPatientModal(pendingPatientId, 'medical-history');
+            }
+        }
+    });
+
     function updateQueueStatus(id, status) {
         const token = document.querySelector('meta[name="csrf-token"]').content;
         fetch(`/triage/update-status/${id}`, {
@@ -1017,6 +1124,42 @@
         document.querySelectorAll('input[name="symptoms[]"]').forEach(cb => {
             cb.addEventListener('change', checkFormCompletion);
         });
+
+        // ========== OTHERS, SPECIFY: symptom ==========
+        function toggleOtherSymptom() {
+            const checked = document.getElementById('othersCheckbox').checked;
+            const wrap = document.getElementById('otherSymptomWrap');
+            const textField = document.getElementById('otherSymptomText');
+            wrap.style.display = checked ? 'block' : 'none';
+            if (!checked) {
+                textField.value = '';
+                document.getElementById('otherSymptomError').style.display = 'none';
+            }
+        }
+
+        // Before any form submission, validate + inject the Other symptom
+        // as an additional symptoms[] value so it saves alongside the rest.
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const othersChecked = document.getElementById('othersCheckbox')?.checked;
+                const textField = document.getElementById('otherSymptomText');
+                if (!othersChecked || !textField) return;
+
+                const value = textField.value.trim();
+                if (!value) {
+                    e.preventDefault();
+                    document.getElementById('otherSymptomError').style.display = 'block';
+                    textField.focus();
+                    return;
+                }
+
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'symptoms[]';
+                hidden.value = 'Other: ' + value;
+                form.appendChild(hidden);
+            });
+        });
     });
 
     // ========== FILTER TABLE BY RISK ==========
@@ -1065,6 +1208,8 @@
     });
 
 </script>
+
+<x-patient-details-modal />
 
 </body>
 </html>

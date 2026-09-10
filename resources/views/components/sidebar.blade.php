@@ -147,7 +147,12 @@
     </a>
 
     {{-- INVENTORY --}}
-    @if(in_array($roleLower,['admin','nurse','doctor','bhw']))
+    @if(
+        $roleLower === 'admin' ||
+        $roleLower === 'nurse' ||
+        $roleLower === 'bhw' ||
+        ($roleLower === 'doctor' && $isPIC)
+    )
 
         <div class="group">INVENTORY</div>
 
@@ -243,7 +248,12 @@
            href="/admin/manage-user">
             <img src="/icons/manage-user.png" class="nav-icon">
             Manage Users
-        </a>
+            </a>
+
+            <a class="nav-item" href="{{ route('barangays.index') }}">
+                <img src="/icons/dispense-medicine.png" class="nav-icon">
+                Barangay Management
+            </a>
 
         <a class="nav-item {{ Request::is('admin/logs*') ? 'active' : '' }}"
            href="/admin/logs">

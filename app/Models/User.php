@@ -40,4 +40,14 @@ protected $fillable = [
         'is_physician_in_charge' => 'boolean', // âœ… ADD THIS LINE
 
     ];
+
+    /**
+     * Send the branded Velasquez Health Center password reset
+     * notification instead of Laravel's default one - same secure
+     * token/URL logic, just our own email design.
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
+    }
 }

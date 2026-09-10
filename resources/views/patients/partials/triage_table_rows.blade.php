@@ -1,8 +1,8 @@
 @forelse($triageRecords as $index => $record)
     <tr data-risk="{{ strtolower($record->risk_level) }}" data-status="{{ strtolower($record->status) }}">
         
-        {{-- ✅ SHOW QUEUE NUMBER INSTEAD OF INDEX --}}
-        <td class="id-cell pad-left">#{{ str_pad($record->queue_number, 3, '0', STR_PAD_LEFT) }}</td>
+        {{-- Sequential position in the current active queue (matches the Nurse-side table) --}}
+        <td class="font-bold">#{{ $index + 1 }}</td>
 
         <td class="font-medium">
             {{ $record->patient ? ($record->patient->first_name . ' ' . $record->patient->last_name) : 'Unknown Patient' }}
@@ -10,12 +10,15 @@
         <td class="text-muted">{{ $record->service_type }}</td>
         
         <td class="text-center">
+            @php
+                $factorsList = is_array($record->risk_factors) ? implode(' | ', $record->risk_factors) : '';
+            @endphp
             @if(strtolower($record->risk_level) == 'high')
-                <span class="pill high">High Risk</span>
+                <span class="pill high" title="{{ $factorsList }}">High Risk{{ $record->risk_score !== null ? ' ('.$record->risk_score.')' : '' }}</span>
             @elseif(strtolower($record->risk_level) == 'medium')
-                <span class="pill medium">Medium Risk</span>
+                <span class="pill medium" title="{{ $factorsList }}">Medium Risk{{ $record->risk_score !== null ? ' ('.$record->risk_score.')' : '' }}</span>
             @else
-                <span class="pill low">Low Risk</span>
+                <span class="pill low" title="{{ $factorsList }}">Low Risk{{ $record->risk_score !== null ? ' ('.$record->risk_score.')' : '' }}</span>
             @endif
 
             @if($record->status === 'Called')

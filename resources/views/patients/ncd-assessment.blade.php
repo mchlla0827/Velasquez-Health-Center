@@ -791,11 +791,11 @@
                 </td>
                 <td style="width: 13%;">
                     <span class="cell-label">Weight</span>
-                    <input type="number" step="0.1" name="w" value="{{ old('w', $ncdAssessment?->w) }}" placeholder="kg">
+                    <input type="number" step="0.1" name="w" value="{{ old('w', $ncdAssessment?->w ?? $latestTriage?->weight) }}" placeholder="kg">
                 </td>
                 <td style="width: 13%;">
                     <span class="cell-label">Height</span>
-                    <input type="number" step="0.1" name="h" value="{{ old('h', $ncdAssessment?->h) }}" placeholder="cm">
+                    <input type="number" step="0.1" name="h" value="{{ old('h', $ncdAssessment?->h ?? $latestTriage?->height) }}" placeholder="cm">
                 </td>
                 <td style="width: 13%;">
                     <span class="cell-label">BMI</span>
@@ -894,7 +894,7 @@
                 <td><b>4.3 Blood Pressure</b></td>
                 <td><span class="cell-label">Left arm mean BP</span><input type="text" name="bp_l" value="{{ old('bp_l', $ncdAssessment?->bp_l) }}" placeholder="120/80"></td>
                 <td><span class="cell-label">Right arm mean BP</span><input type="text" name="bp_r" value="{{ old('bp_r', $ncdAssessment?->bp_r) }}" placeholder="120/80"></td>
-                <td><span class="cell-label">Baseline BP</span><input type="text" name="bp_b" value="{{ old('bp_b', $ncdAssessment?->bp_b) }}" placeholder="120/80"></td>
+                <td><span class="cell-label">Baseline BP</span><input type="text" name="bp_b" value="{{ old('bp_b', $ncdAssessment?->bp_b ?? $latestTriage?->bp) }}" placeholder="120/80"></td>
                 <td>
                     <span class="cell-label">Status</span>
                     <select name="bp_s">
@@ -1013,6 +1013,44 @@
         </div>
     </div>
 </form>
+
+<script>
+    // ========== BMI AUTO-CALCULATION ==========
+    // Formula matches the one shown on this form: (Wt(kg)/Ht(cm)/Ht(cm)) x 10,000
+    (function () {
+        const wInput = document.querySelector('[name="w"]');
+        const hInput = document.querySelector('[name="h"]');
+        const bmiInput = document.querySelector('[name="bmi"]');
+        const bmiStatusSelect = document.querySelector('[name="bmi_s"]');
+        if (!wInput || !hInput || !bmiInput) return;
+
+        function calculateBmi() {
+            const w = parseFloat(wInput.value);
+            const h = parseFloat(hInput.value);
+
+            if (!w || !h) {
+                return;
+            }
+
+            const bmi = (w / h / h) * 10000;
+            bmiInput.value = bmi.toFixed(1);
+
+            if (bmiStatusSelect) {
+                let status = '';
+                if (bmi < 18.5) status = 'Underweight';
+                else if (bmi < 23) status = 'Normal';
+                else if (bmi < 25) status = 'Overweight';
+                else status = 'Obese';
+                bmiStatusSelect.value = status;
+            }
+        }
+
+        wInput.addEventListener('input', calculateBmi);
+        hInput.addEventListener('input', calculateBmi);
+
+        calculateBmi();
+    })();
+</script>
 
 </body>
 </html>

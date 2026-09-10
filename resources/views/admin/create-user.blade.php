@@ -19,10 +19,7 @@
 
         /* ================= MAIN LAYOUT ================= */
         .main {
-            margin-left: 250px;
-            width: calc(100% - 260px);
-            padding: 24px;
-            box-sizing: border-box;
+           margin-left: 260px; width: calc(100% - 260px); padding: 24px; box-sizing: border-box;
         }
 
         /* ================= HEADER — STANDARDIZED ================= */
@@ -326,7 +323,7 @@
                         </div>
                         <div class="form-full-width">
                             <label>Contact Number</label>
-                            <input name="contact_number" value="{{ old('contact_number') }}" placeholder="09XX-XXX-XXXX">
+                            <input name="contact_number" value="{{ old('contact_number') }}" placeholder="09XX-XXX-XXXX" required>
                         </div>
                     </div>
                 </div>

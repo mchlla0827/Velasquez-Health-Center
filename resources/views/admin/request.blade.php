@@ -479,9 +479,8 @@
             <div class="page-top">
                 <div class="page-title">
                     <h2>Medicine Request Management</h2>
-                    <p>View, create, and approve all medicine supply requests from staff</p>
                 </div>
-                <button class="btn-primary" onclick="openRequestModal()">+ New Request</button>
+                <button class="btn-primary" onclick="openRequestModal()"> + New Request</button>
             </div>
 
             <!-- KPI STATUS CARDS -->

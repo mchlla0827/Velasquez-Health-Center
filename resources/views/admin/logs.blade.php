@@ -84,10 +84,7 @@ body {
 .nav-item:hover { background: #F3F4F6; }
 
 .main {
-    margin-left: 250px;
-    width: calc(100% - 250px);
-    padding: 24px;
-    box-sizing: border-box;
+    margin-left: 260px; width: calc(100% - 260px); padding: 24px; box-sizing: border-box;
 }
 
 .header {
@@ -122,7 +119,6 @@ body {
 .content-wrapper {
     background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
     border-radius: 18px;
-    padding: 22px;
 }
 
 .top-section {
@@ -133,15 +129,7 @@ body {
 }
 
 .page-title {
-    font-size: 24px;
-    color: #111827;
-    font-weight: bold;
-}
-
-.page-subtitle {
-    font-size: 13px;
-    color: #6B7280;
-    margin-top: 4px;
+    font-size: 24px; font-weight: 700; color: #1e293b; letter-spacing: -0.02em; margin: 0;
 }
 
 .filters {
@@ -356,7 +344,6 @@ td b { color: #111827; }
         <div class="top-section">
             <div>
                 <div class="page-title">Activity Logs</div>
-                <div class="page-subtitle">System audit trail of all user actions</div>
             </div>
 
             <form method="GET" action="/admin/logs" class="filters">

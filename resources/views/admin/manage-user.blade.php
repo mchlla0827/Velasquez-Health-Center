@@ -19,10 +19,7 @@
 
         /* ========== MAIN LAYOUT ========== */
         .main {
-            margin-left: 250px;
-            width: calc(100% - 260px);
-            padding: 24px;
-            box-sizing: border-box;
+            margin-left: 260px; width: calc(100% - 260px); padding: 24px; box-sizing: border-box;
         }
 
         /* ========== HEADER — STANDARDIZED ========== */
@@ -407,8 +404,6 @@
                         <th>Email</th>
                         <th>Contact</th>
                         <th>Role</th>
-                        <th>Status</th>
-                        <th>Last Updated</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -431,21 +426,13 @@
                             @endphp
                             <span class="badge {{ $badgeClass }}">{{ $user->role }}</span>
                         </td>
-                        <td>
-                            @if($user->last_login_at && $user->last_login_at >= now()->subMinutes(30))
-                                <span class="badge active-badge">Active</span>
-                            @else
-                                <span class="badge inactive-badge">Offline</span>
-                            @endif
-                        </td>
-                        <td>{{ $user->updated_at->format('M d, Y | h:i A') }}</td>
+
                         <td>
                             <div class="action-group">
                                 <img src="/icons/edit.png" class="action-img" title="Edit"
                                     onclick="openEditModal({
                                         id: '{{ $user->id }}',
-                                        first: '{{ $user->first_name }}',
-                                        last: '{{ $user->last_name }}',
+                                        name: '{{ addslashes($user->name) }}',
                                         contact: '{{ $user->contact_number ?? '' }}',
                                         email: '{{ $user->email }}',
                                         role: '{{ $user->role }}'
@@ -512,19 +499,7 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Account Status</label>
-                    <select id="editStatus" name="status">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
 
-                <div class="reset-section">
-                    <span class="modal-section-label">Password Reset</span>
-                    <button type="button" onclick="sendResetEmail()" class="btn-reset">📧 Send Password Reset Email</button>
-                    <p class="reset-help">User will receive an email with reset instructions.</p>
-                </div>
             </div>
 
             <div class="modal-footer">
@@ -548,8 +523,11 @@ document.getElementById('userSearch').addEventListener('keyup', function() {
 
 // ========== MODAL ==========
 function openEditModal(userData) {
-    document.getElementById('editFirstName').value = userData.first || '';
-    document.getElementById('editLastName').value = userData.last || '';
+    const nameParts = (userData.name || '').trim().split(' ');
+    const firstName = nameParts.shift() || '';
+    const lastName = nameParts.join(' ');
+    document.getElementById('editFirstName').value = firstName;
+    document.getElementById('editLastName').value = lastName;
     document.getElementById('editContact').value = userData.contact || '';
     document.getElementById('editEmail').value = userData.email || '';
     document.getElementById('editRole').value = userData.role;

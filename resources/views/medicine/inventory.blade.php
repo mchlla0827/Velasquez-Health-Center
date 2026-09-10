@@ -64,7 +64,7 @@ $canDelete = ($role === 'admin');
         margin-bottom: 10px;
     }
 
-    .logo{ width: 40px; height: 40px; border-radius: 50%; }
+    .logo { width: 40px; height: 40px; border-radius: 50%; }
 
     .brand-wrapper { display: flex; flex-direction: column; line-height: 1.2; }
 
@@ -117,10 +117,7 @@ $canDelete = ($role === 'admin');
 
     /* ================= MAIN ================= */
     .main {
-        margin-left: 250px;
-        width: calc(100% - 250px);
-        padding: 24px;
-        box-sizing: border-box;
+        margin-left: 260px; width: calc(100% - 260px); padding: 24px; box-sizing: border-box;
     }
 
     /* ================= HEADER (EXACT COPY FROM DASHBOARD) ================= */
@@ -153,11 +150,7 @@ $canDelete = ($role === 'admin');
     }
 
     .page-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1e293b;
-        letter-spacing: -0.02em;
-        margin: 0;
+        font-size: 22px; font-weight: bold; color: #111827; margin-bottom: 12px;
     }
 
     .page-subtitle{
@@ -203,12 +196,6 @@ $canDelete = ($role === 'admin');
         justify-content: space-between;
         align-items: flex-start;
         gap: 20px;
-    }
-
-    .page-subtitle {
-        font-size: 13px;
-        color: #6B7280;
-        margin-top: 4px;
     }
 
     .add-btn {
@@ -1656,7 +1643,6 @@ function closeEditStockModal() {
     <div class="top-bar">
         <div>
             <div class="page-title">Medicine Inventory</div>
-            <div class="page-subtitle">Track and manage barangay medicine stock levels</div>
         </div>
 
         {{-- ✅ INAYOS: GAMITIN ANG $role PARA SA PWEDE MAG-ADD --}}
@@ -1894,6 +1880,12 @@ $criticalItem = $medicines
             </div>
         @endif
 
+        @if(session('error'))
+            <div style="background:#FEE2E2; color:#991B1B; padding:12px; border-radius:8px; margin: 10px; border: 1px solid #EF4444;">
+                {{ session('error') }}
+            </div>
+        @endif
+
         @if(request()->get('success_stock'))
             <div style="background:#DCFCE7; color:#166534; padding:12px; border-radius:8px; margin: 10px;">
                 Stock added successfully for the medicine!
@@ -1958,13 +1950,15 @@ $criticalItem = $medicines
                                     View Details
                                 </button>
 
-                                <form action="{{ url('/medicine/delete/' . $medicine->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this medicine?')">
+                                @if (strtolower(auth()->user()->role) === 'admin')
+                                <form action="{{ route('admin.medicine.delete', $medicine->id) }}" method="POST" class="delete-medicine-form" data-medicine-name="{{ $medicine->name }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="action-btn delete-btn">
                                         Delete
                                     </button>
                                 </form>
+                                @endif
             
                             </div>
                         </td>
@@ -2199,7 +2193,7 @@ $criticalItem = $medicines
             <div class="close-btn" onclick="closeEditStockModal()" style="font-size: 20px; cursor: pointer; color: #6B7280; line-height: 1;">✕</div>
         </div>
 
-        <form method="POST" action="{{ url('/stock-update') }}" id="editStockForm" style="padding: 26px;">
+        <form method="POST" action="{{ route('stock.update') }}" id="editStockForm" style="padding: 26px;">
             @csrf
 
             {{-- ✅ MGA HIDDEN ID NA KAILANGAN --}}
@@ -2596,6 +2590,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
 document.getElementById('addMedicineForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -2624,6 +2622,31 @@ document.getElementById('addMedicineForm').addEventListener('submit', function(e
     })
     .catch(error => {
         console.error('Submission Error:', error);
+    });
+});
+
+// ---------- Delete medicine: SweetAlert2 confirmation instead of native confirm() ----------
+document.querySelectorAll('.delete-medicine-form').forEach(form => {
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const medicineName = this.dataset.medicineName || 'this medicine';
+        const targetForm = this;
+
+        Swal.fire({
+            title: 'Delete Medicine?',
+            html: `You are about to delete <b>${medicineName}</b>. This cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                targetForm.submit();
+            }
+        });
     });
 });
 

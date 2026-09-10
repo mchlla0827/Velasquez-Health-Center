@@ -22,7 +22,7 @@ class Consultation extends Model
     ];
 
     protected $fillable = [
-        'patient_id', 'attended_by',
+        'patient_id', 'attended_by', 'triage_record_id',
         'consultation_type', 'consultation_date',
         'reason_for_visit', 'chief_complaint',
         'vital_bp', 'vital_temp', 'vital_pulse', 'vital_resp_rate', 'vital_o2sat',
@@ -57,6 +57,16 @@ class Consultation extends Model
     public function relatedConsultation()
     {
         return $this->belongsTo(Consultation::class, 'related_consultation_id');
+    }
+
+    public function triageRecord()
+    {
+        return $this->belongsTo(TriageRecord::class, 'triage_record_id');
+    }
+
+    public function prescriptions()
+    {
+        return $this->hasMany(ConsultationPrescription::class);
     }
 
     public function getTypeLabelAttribute()

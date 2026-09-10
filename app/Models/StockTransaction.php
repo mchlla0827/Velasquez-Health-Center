@@ -17,4 +17,9 @@ class StockTransaction extends Model
     'notes',        // ← Added
     'created_at',   // ← Added
     ];
+
+    public function medicine()
+    {
+        return $this->belongsTo(Medicine::class);
+    }
 }

@@ -22,10 +22,7 @@
 
         /* ================= MAIN CONTENT WRAPPER ================= */
         .main {
-            margin-left: 250px;
-            width: calc(100% - 250px);
-            padding: 24px;
-            box-sizing: border-box;
+            margin-left: 260px; width: calc(100% - 260px); padding: 24px; box-sizing: border-box;
         }
 
         /* ================= DASHBOARD HEADER ================= */
@@ -125,7 +122,7 @@
         /* ================= STATS ROW ================= */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 16px;
             margin-bottom: 24px;
         }
@@ -380,17 +377,20 @@
             </div>
         @endif
 
-        <!-- TITLE + CTAs -->
+                <!-- TITLE -->
         <div class="top-actions">
             <h1 class="page-title">Stock-Out Log</h1>
-            <div class="btn-group">
-                <button class="btn-primary" onclick="openModal()">+ Log Stock Out</button>
-                <button class="btn-secondary">Export Report</button>
+            <div style="font-size: 12.5px; color: #6B7280; font-weight: 500;">
+                Automatically detected from inventory - no manual entry needed
             </div>
         </div>
 
         <!-- STATISTICS METRIC STATS ROW -->
         <div class="stats-row">
+            <div class="stat-card stat-red">
+                <div class="stat-title">Currently Out of Stock</div>
+                <div class="stat-number">{{ number_format($activeCount ?? 0) }}</div>
+            </div>
             <div class="stat-card stat-grey">
                 <div class="stat-title">Total Stock-Out Incidents</div>
                 <div class="stat-number">{{ number_format($totalStockOut ?? 0) }}</div>
@@ -399,44 +399,54 @@
                 <div class="stat-title">Total Patients Affected</div>
                 <div class="stat-number">{{ number_format($patientsAffected ?? 0) }}</div>
             </div>
-            <div class="stat-card stat-red">
+            <div class="stat-card stat-grey">
                 <div class="stat-title">Average Stock-Out Duration</div>
                 <div class="stat-number">{{ number_format($avgDuration ?? 0, 1) }} <span class="stat-unit">days</span></div>
             </div>
         </div>
 
-        <!-- TABULAR RECORDS DATA SECTION -->
-        <div class="table-card">
-            <div class="toolbar-section">
-                <div class="toolbar-title">Stock-Out Records</div>
-                <input type="text" id="tableSearch" class="search-input" placeholder="Search records...">
-            </div>
+        <!-- SO-TABS -->
+        <div class="so-tabs">
+            <button type="button" class="so-tab active" onclick="soSwitchTab('active')" id="soTabActiveBtn">
+                Active Stock-Outs <span class="so-tab-count">{{ $activeStockOuts->count() ?? 0 }}</span>
+            </button>
+            <button type="button" class="so-tab" onclick="soSwitchTab('history')" id="soTabHistoryBtn">
+                Stock-Out History <span class="so-tab-count">{{ $stockOutHistory->count() ?? 0 }}</span>
+            </button>
+        </div>
 
+        <!-- ACTIVE STOCK-OUTS TABLE -->
+        <div class="table-card" id="soActivePanel">
+            <div class="toolbar-section">
+                <div class="toolbar-title">Active Stock-Outs</div>
+            </div>
             <div class="overflow-x-auto">
                 <table>
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Medicine Description</th>
-                            <th>Quantity Needed</th>
+                            <th>Medicine</th>
+                            <th>Current Usable Stock</th>
+                            <th>Stock-Out Date</th>
+                            <th>Days Out of Stock</th>
                             <th>Patients Affected</th>
-                            <th>Duration</th>
-                            <th>Action Taken</th>
+                            <th>Status</th>
+                            <th></th>
                         </tr>
                     </thead>
-                    <tbody id="stockoutTableBody">
-                        @forelse($stockOutRecords ?? [] as $record)
+                    <tbody>
+                        @forelse($activeStockOuts ?? [] as $item)
                             <tr>
-                                <td>{{ \Carbon\Carbon::parse($record->date ?? now())->format('M d, Y') }}</td>
-                                <td class="font-semibold">{{ $record->medicine_name ?? 'N/A' }}</td>
-                                <td>{{ number_format($record->quantity_needed ?? 0) }}</td>
-                                <td>{{ number_format($record->patients_affected ?? 0) }}</td>
-                                <td>{{ $record->duration ?? 0 }} {{ ($record->duration ?? 0) == 1 ? 'day' : 'days' }}</td>
-                                <td><a href="#" class="text-action">View Details</a></td>
+                                <td class="font-semibold">{{ $item->medicine_name }}</td>
+                                <td>{{ $item->usable_stock }}</td>
+                                <td>{{ $item->stockout_date->format('M d, Y h:i A') }}</td>
+                                <td>{{ $item->days_out }} {{ $item->days_out == 1 ? 'day' : 'days' }}</td>
+                                <td>{{ $item->affected_count }}</td>
+                                <td><span class="so-badge so-badge-active">Active</span></td>
+                                <td><a href="#" class="text-action" onclick="soViewDetails({{ $item->id }}); return false;">View Details</a></td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-empty">No stock-out records found</td>
+                                <td colspan="7" class="text-empty">No active stock-outs right now.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -444,155 +454,157 @@
             </div>
         </div>
 
-        <!-- ANALYTICS SECTION GRID -->
-        <div class="analytics-grid">
-            
-            <!-- LEFT COLUMN: MOST FREQUENT SHORTAGES -->
-            <div class="column-box">
-                <div class="info-banner">
-                    <span class="banner-badge badge-top">Top Shortage</span>
-                    <h2>Most Frequently Stocked-Out</h2>
-                    <p>Medicines with recurring shortages. Prioritize these for upcoming procurement plans.</p>
-                </div>
-
-                <div class="summary-grid">
-                    @forelse($mostFrequent ?? [] as $med)
-                        <div class="summary-card">
-                            <div>
-                                <h4>{{ $med->name ?? 'Medicine Name' }}</h4>
-                                <span class="summary-note">Last recorded: {{ $med->last_date ?? 'N/A' }}</span>
-                            </div>
-                            <div class="summary-value">{{ $med->count ?? 0 }} {{ ($med->count ?? 0) == 1 ? 'time' : 'times' }}</div>
-                        </div>
-                    @empty
-                        <div class="summary-card" style="justify-content: center;">
-                            <span style="font-size: 13px; color: #6B7280;">No shortage history recorded</span>
-                        </div>
-                    @endforelse
-                </div>
+        <!-- STOCK-OUT HISTORY TABLE -->
+        <div class="table-card" id="soHistoryPanel" style="display:none;">
+            <div class="toolbar-section">
+                <div class="toolbar-title">Stock-Out History</div>
             </div>
-
-            <!-- RIGHT COLUMN: SHORTAGE TREND & MONTHLY SUMMARY -->
-            <div class="column-box">
-                <div class="info-banner">
-                    <span class="banner-badge badge-trend">6-Month Trend</span>
-                    <h2>Recent Shortage Frequency</h2>
-                    <p>Tracks shortage incidents month-over-month to highlight recurring supply chain issues.</p>
-                </div>
-
-                <div class="trend-container">
-                    <div class="chart-box">
-                        <canvas id="trendChart"></canvas>
-                    </div>
-
-                    <div class="trend-list">
-                        @forelse($monthlyTrend ?? [] as $month)
-                            <div class="trend-item">
-                                <span>{{ $month->month ?? 'Month' }}</span>
-                                <span class="trend-count">{{ $month->count ?? 0 }} {{ ($month->count ?? 0) == 1 ? 'incident' : 'incidents' }}</span>
-                            </div>
+            <div class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Medicine</th>
+                            <th>Stock-Out Date</th>
+                            <th>Resolved Date</th>
+                            <th>Duration</th>
+                            <th>Patients Affected</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($stockOutHistory ?? [] as $item)
+                            <tr>
+                                <td class="font-semibold">{{ $item->medicine_name }}</td>
+                                <td>{{ $item->stockout_date->format('M d, Y h:i A') }}</td>
+                                <td>{{ $item->resolved_date ? $item->resolved_date->format('M d, Y h:i A') : '-' }}</td>
+                                <td>{{ $item->duration_days ?? '-' }} {{ $item->duration_days == 1 ? 'day' : 'days' }}</td>
+                                <td>{{ $item->affected_count }}</td>
+                                <td><span class="so-badge so-badge-resolved">Resolved</span></td>
+                                <td><a href="#" class="text-action" onclick="soViewDetails({{ $item->id }}); return false;">View Details</a></td>
+                            </tr>
                         @empty
-                            <div class="trend-item">
-                                <span>No monthly trend data available</span>
-                            </div>
+                            <tr>
+                                <td colspan="7" class="text-empty">No resolved stock-outs yet.</td>
+                            </tr>
                         @endforelse
-                    </div>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- VIEW DETAILS MODAL -->
+        <div id="soDetailsModal" class="so-modal-backdrop" style="display:none;">
+            <div class="so-modal-box">
+                <div class="so-modal-header">
+                    <h3 id="soDetailsTitle">Stock-Out Details</h3>
+                    <button type="button" class="so-modal-close" onclick="soCloseDetails()">&times;</button>
+                </div>
+                <div class="so-modal-body" id="soDetailsBody">
+                    <div style="text-align:center; padding: 40px; color: #9CA3AF;">Loading...</div>
                 </div>
             </div>
-
         </div>
 
     </div>
+    <!-- /.main -->
 </div>
+<!-- /.container -->
 
-<!-- LOG STOCK OUT MODAL -->
-<div class="modal-overlay" id="stockOutModal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3>Log Stock-Out Incident</h3>
-            <button class="close-btn" onclick="closeModal()">&times;</button>
-        </div>
-        <form action="{{ route('admin.stockout.store') }}" method="POST">
-            @csrf
-            <div class="form-group">
-                <label>Medicine Name</label>
-                <select class="form-control" name="medicine_id" required>
-                    <option value="">Select Medicine</option>
-                    @foreach($medicinesList ?? [] as $medicine)
-                        <option value="{{ $medicine->id }}">{{ $medicine->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Quantity Short / Needed</label>
-                <input type="number" class="form-control" name="quantity_needed" min="1" required>
-            </div>
-            <div class="form-group">
-                <label>Patients Affected</label>
-                <input type="number" class="form-control" name="patients_affected" min="0" required>
-            </div>
-            <div class="form-group">
-                <label>Estimated Stock-Out Duration (Days)</label>
-                <input type="number" class="form-control" name="duration" min="1" required>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
-                <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn-primary">Save Record</button>
-            </div>
-        </form>
-    </div>
-</div>
+<style>
+    .so-tabs { display: flex; gap: 6px; margin: 20px 0 14px; border-bottom: 1px solid #E5E7EB; }
+    .so-tab {
+        background: none; border: none; padding: 10px 18px; font-size: 13.5px; font-weight: 600;
+        color: #6B7280; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .so-tab.active { color: #2563EB; border-bottom-color: #2563EB; }
+    .so-tab-count { background: #F3F4F6; color: #374151; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+    .so-tab.active .so-tab-count { background: #DBEAFE; color: #1D4ED8; }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    .so-badge { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+    .so-badge-active { background: #FEE2E2; color: #B91C1C; }
+    .so-badge-resolved { background: #DCFCE7; color: #166534; }
+
+    .so-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+    .so-modal-box { background: #fff; width: 95%; max-width: 700px; max-height: 85vh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+    .so-modal-header { padding: 18px 22px; border-bottom: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; }
+    .so-modal-header h3 { margin: 0; font-size: 16px; color: #111827; }
+    .so-modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #9CA3AF; }
+    .so-modal-body { padding: 20px 22px; overflow-y: auto; }
+
+    .so-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; margin-bottom: 18px; }
+    .so-info-item .k { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #9CA3AF; }
+    .so-info-item .v { font-size: 13.5px; font-weight: 600; color: #111827; margin-top: 2px; }
+
+    .so-impact-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .so-impact-table th { text-align: left; background: #F9FAFB; color: #6B7280; font-size: 10.5px; text-transform: uppercase; padding: 8px 10px; }
+    .so-impact-table td { padding: 9px 10px; border-top: 1px solid #F1F5F9; }
+    .so-status-pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+    .so-status-pill.partial { background: #FEF3C7; color: #92400E; }
+    .so-status-pill.none { background: #FEE2E2; color: #991B1B; }
+</style>
+
 <script>
-    // JS Table Filter
-    document.getElementById('tableSearch').addEventListener('keyup', function() {
-        let filter = this.value.toLowerCase();
-        let rows = document.querySelectorAll('#stockoutTableBody tr');
+    function soSwitchTab(tab) {
+        document.getElementById('soActivePanel').style.display = tab === 'active' ? 'block' : 'none';
+        document.getElementById('soHistoryPanel').style.display = tab === 'history' ? 'block' : 'none';
+        document.getElementById('soTabActiveBtn').classList.toggle('active', tab === 'active');
+        document.getElementById('soTabHistoryBtn').classList.toggle('active', tab === 'history');
+    }
 
-        rows.forEach(row => {
-            let text = row.textContent.toLowerCase();
-            row.style.display = text.includes(filter) ? '' : 'none';
-        });
-    });
+    function soViewDetails(id) {
+        document.getElementById('soDetailsModal').style.display = 'flex';
+        document.getElementById('soDetailsBody').innerHTML = '<div style="text-align:center; padding: 40px; color: #9CA3AF;">Loading...</div>';
 
-    // Modal Control Functions
-    function openModal() { document.getElementById('stockOutModal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('stockOutModal').style.display = 'none'; }
+        fetch(`/stockout/${id}/details`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('soDetailsTitle').textContent = data.medicine_name + ' - Stock-Out Details';
 
-    // Chart.js Monthly Shortage Trend Integration
-    const trendCtx = document.getElementById('trendChart').getContext('2d');
-    
-    // Extract Trend Data safely from Blade
-    const rawTrend = @json($monthlyTrend ?? []);
-    const labels = rawTrend.length ? rawTrend.map(i => i.month) : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const dataValues = rawTrend.length ? rawTrend.map(i => i.count) : [0, 0, 0, 0, 0, 0];
+                let rows = '';
+                if (data.affected_patients && data.affected_patients.length) {
+                    data.affected_patients.forEach(p => {
+                        const statusClass = p.status === 'not_dispensed_stockout' ? 'none' : 'partial';
+                        const statusLabel = p.status === 'not_dispensed_stockout' ? 'Not Dispensed' : 'Partially Dispensed';
+                        rows += `<tr>
+                            <td>${p.patient_name ?? '-'}</td>
+                            <td>${p.prescribed ?? '-'}</td>
+                            <td>${p.dispensed ?? 0}</td>
+                            <td>${p.unfulfilled ?? 0}</td>
+                            <td><span class="so-status-pill ${statusClass}">${statusLabel}</span></td>
+                            <td>${p.date ?? '-'}</td>
+                        </tr>`;
+                    });
+                } else {
+                    rows = '<tr><td colspan="6" class="text-empty">No affected patients recorded for this stock-out.</td></tr>';
+                }
 
-    new Chart(trendCtx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Shortage Incidents',
-                data: dataValues,
-                borderColor: '#DC2626',
-                backgroundColor: 'rgba(220, 38, 38, 0.08)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointBackgroundColor: '#DC2626'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } },
-                x: { grid: { display: false } }
-            }
-        }
-    });
+                document.getElementById('soDetailsBody').innerHTML = `
+                    <div class="so-info-grid">
+                        <div class="so-info-item"><div class="k">Status</div><div class="v">${data.status === 'active' ? 'Active' : 'Resolved'}</div></div>
+                        <div class="so-info-item"><div class="k">Duration</div><div class="v">${data.duration_days} ${data.duration_days == 1 ? 'day' : 'days'}</div></div>
+                        <div class="so-info-item"><div class="k">Stock-Out Started</div><div class="v">${data.stockout_date}</div></div>
+                        <div class="so-info-item"><div class="k">Resolved</div><div class="v">${data.resolved_date ?? 'Not yet resolved'}</div></div>
+                    </div>
+                    <div class="toolbar-title" style="margin-bottom: 10px;">Patient Impact</div>
+                    <div class="overflow-x-auto">
+                        <table class="so-impact-table">
+                            <thead>
+                                <tr><th>Patient</th><th>Prescribed</th><th>Dispensed</th><th>Unfulfilled</th><th>Status</th><th>Date</th></tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                `;
+            })
+            .catch(() => {
+                document.getElementById('soDetailsBody').innerHTML = '<div style="text-align:center; padding: 40px; color: #DC2626;">Unable to load details.</div>';
+            });
+    }
+
+    function soCloseDetails() {
+        document.getElementById('soDetailsModal').style.display = 'none';
+    }
 </script>
 
 </body>

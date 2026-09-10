@@ -15,6 +15,10 @@ class Medicine extends Model
         'dosage_form',
         'dosage_strength',
         'unit',
+        'threshold',
+        'description',
+        'stock',
+        'current_stock',
     ];
 
     /**
@@ -42,6 +46,16 @@ class Medicine extends Model
     public function getTotalStockAttribute()
     {
         return $this->batches()->sum('quantity');
+    }
+
+    public function getUsableStockAttribute()
+    {
+        return app(\App\Services\InventoryStockService::class)->usableStock($this);
+    }
+
+    public function getExpiredStockAttribute()
+    {
+        return app(\App\Services\InventoryStockService::class)->expiredStock($this);
     }
 
     /**

@@ -36,7 +36,7 @@ class RegisteredUserController extends Controller
             'email'          => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password'       => ['required', 'confirmed', Rules\Password::defaults()],
             'role'           => ['required', 'string'],
-            'contact_number' => ['nullable', 'string', 'max:20'],
+            'contact_number' => ['required', 'string', 'max:20'],
             'is_pic'         => ['nullable'], 
         ]);
 

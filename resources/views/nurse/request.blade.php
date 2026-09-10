@@ -27,7 +27,6 @@
         .right { text-align: right; font-size: 12px; color: #374151; }
         .divider { width: 100%; height: 1px; background: #E5E7EB; margin: 10px 0 20px 0; }
         .page-title { font-size: 22px; font-weight: bold; color: #111827; margin-bottom: 4px; }
-        .page-sub { font-size: 13px; color: #6B7280; margin-bottom: 20px; }
 
         /* ================= PAGE HEADER / CREATE BUTTON ================= */
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; width: 100%; }
@@ -156,7 +155,6 @@
         <div class="page-header">
             <div>
                 <div class="page-title">Medicine Requests</div>
-                <div class="page-sub">Submit a request and track its approval status here.</div>
             </div>
             <button type="button" class="create-btn" onclick="openNewRequestModal()">
                 <i class="bi bi-plus-circle"></i>   &nbsp;New Request

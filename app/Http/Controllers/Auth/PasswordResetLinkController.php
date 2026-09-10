@@ -30,16 +30,23 @@ class PasswordResetLinkController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        // Laravel's password broker verifies the email, generates a
+        // secure token, stores it, and dispatches the reset email if
+        // (and only if) the account actually exists.
+        try {
+            Password::sendResetLink(
+                $request->only('email')
+            );
+        } catch (\Throwable $exception) {
+            \Illuminate\Support\Facades\Log::error('Password reset email failed to send: ' . $exception->getMessage());
 
-        return $status == Password::RESET_LINK_SENT
-                    ? back()->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                        ->withErrors(['email' => __($status)]);
+            if (config('app.debug')) {
+                return back()->withErrors(['email' => 'Mail error: ' . $exception->getMessage()]);
+            }
+        }
+
+        // Always the same generic message, regardless of whether the
+        // email was found - never reveal which emails are registered.
+        return back()->with('status', 'If an account exists with this email address, a password reset link has been sent.');
     }
 }

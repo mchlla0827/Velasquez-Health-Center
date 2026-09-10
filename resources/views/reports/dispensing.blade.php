@@ -28,7 +28,7 @@
 
     <div style="display:flex; gap:8px;">
         <button type="button" class="btn-outline" onclick="window.print()">Print / PDF</button>
-        <button type="button" class="btn-outline" onclick="exportToExcel()">Export Excel</button>
+        <a href="{{ route('reports.export.dispensing', request()->query()) }}" class="btn-outline" style="text-decoration:none; display:inline-block;">Export Excel</a>
     </div>
 </form>
 

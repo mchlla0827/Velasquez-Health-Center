@@ -17,10 +17,7 @@
 
         .container { display: flex; min-height: 100vh; }
         .main {
-            margin-left: 250px;
-            width: calc(100% - 260px);
-            padding: 24px;
-            box-sizing: border-box;
+            margin-left: 260px; width: calc(100% - 260px); padding: 24px; box-sizing: border-box;
         }
 
         /* ========== HEADER — EXACTLY SAME AS TRIAGE ========== */
@@ -75,18 +72,18 @@
             color: #111827;
             margin-bottom: 4px;
         }
-        .page-subtitle {
-            font-size: 13px;
-            color: #6B7280;
-        }
+        
         .export-btn {
-            background: #1D4ED8;
-            color: white;
-            padding: 10px 14px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 8px;
+            background: #2563EB;
+        color: white;
+        padding: 11px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+        transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
         }
 
         /* ========== KPI CARDS — SAME STYLING ========== */
@@ -293,9 +290,11 @@
         <div class="top-bar">
             <div>
                 <div class="page-title">Patient Records</div>
-                <div class="page-subtitle">View and manage registered patient information</div>
             </div>
-            <button class="export-btn" onclick="window.print()">Export List</button>
+            <div style="display:flex; gap:10px;">
+                <a href="{{ route('patients.archived') }}" class="export-btn" style="text-decoration:none; display:inline-flex; align-items:center; font-size:15px;">Archived Patients</a>
+                <button class="export-btn" onclick="window.print()">Export List</button>
+            </div>
         </div>
 
         {{-- ========== KPI CARDS ========== --}}
@@ -375,6 +374,9 @@
                             <a href="javascript:void(0)" class="view-link" onclick="openPatientModal({{ $patient->id }})">
                                 <img src="/icons/view-details.png" width="16" alt="View"> View Details
                             </a>
+                        @if ($patient->isArchiveEligible())
+                            <a href="javascript:void(0)" class="view-link" style="color:#B45309; margin-left:10px;" onclick="confirmArchive({{ $patient->id }}, '{{ addslashes($patient->last_name . ', ' . $patient->first_name) }}')">Archive (Eligible)</a>
+                        @endif
                         </td>
                     </tr>
                     @empty
@@ -499,6 +501,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (viewPatientId) {
         openPatientModal(viewPatientId, tab);
+
+    function confirmArchive(patientId, patientName) {
+        Swal.fire({
+            title: 'Archive Patient?',
+            html: `<b>${patientName}</b> has had no recorded activity for 5+ years.<br>Their complete record and history will be preserved and can be restored later.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Archive',
+            confirmButtonColor: '#B45309'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/patients/${patientId}/archive`;
+                form.innerHTML = `@csrf`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
 
         @if (session('success'))
             Swal.fire({

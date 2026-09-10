@@ -2,11 +2,8 @@
 
 @section('content')
 <div class="page-title">Patient Risk Assessment Report</div>
-<p style="color:#6B7280; margin-bottom:16px; font-size:13px;">System-generated risk assessments based on patient triage records.</p>
 
-<div style="background:#FFFBEB; border:1px solid #FDE68A; color:#92400E; padding:12px 16px; border-radius:8px; font-size:12px; margin-bottom:16px;">
-    <b>Note:</b> This report reflects a rule-based risk assessment intended to assist health personnel in prioritizing care. It does not replace professional medical diagnosis or clinical judgment.
-</div>
+
 
 <form method="GET" class="report-controls">
     <div class="filters">
@@ -32,7 +29,7 @@
 
     <div style="display:flex; gap:8px;">
         <button type="button" class="btn-outline" onclick="window.print()">Print / PDF</button>
-        <button type="button" class="btn-outline" onclick="exportToExcel()">Export Excel</button>
+        <a href="{{ route('reports.export.risk', request()->query()) }}" class="btn-outline" style="text-decoration:none; display:inline-block;">Export Excel</a>
     </div>
 </form>
 

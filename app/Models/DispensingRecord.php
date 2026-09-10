@@ -20,10 +20,18 @@ class DispensingRecord extends Model
         'philhealth_no',
         'diagnosis',
         'medicine_id',
+        'prescription_id',
         'quantity_dispensed',
+        'status',
+        'unfulfilled_quantity',
         'unit',
         'dispensed_by'
     ];
+
+    public function prescription()
+    {
+        return $this->belongsTo(ConsultationPrescription::class, 'prescription_id');
+    }
 
     public function patient()
     {

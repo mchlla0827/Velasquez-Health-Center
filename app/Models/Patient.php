@@ -13,6 +13,10 @@ class Patient extends Model
     protected $dateFormat = 'Y-m-d H:i:s'; // Siguraduhin na tamang format ng petsa ang ilalagay
 
     protected $fillable = [
+        'patient_status',
+        'archived_at',
+        'residency_proof_path',
+        'residency_proof_path',
         'patient_id', 'last_name', 'first_name', 'middle_name',
         'mother_last', 'mother_first', 'mother_middle',
         'father_last', 'father_first', 'father_middle',
@@ -66,4 +70,46 @@ class Patient extends Model
         'patient_id'
     );
 }
+
+    /**
+     * Archiving lifecycle constants.
+     */
+    const STATUS_ACTIVE = 'active';
+    const STATUS_ARCHIVED = 'archived';
+
+    protected $casts = [
+        'archived_at' => 'datetime',
+    ];
+
+    /**
+     * The patient's most recent REAL health-center activity date across
+     * every relevant module - never the registration date. Falls back
+     * to the registration date only if the patient has no activity at
+     * all yet (a brand-new patient shouldn't be immediately eligible
+     * for archiving just because they have no history).
+     */
+    public function latestActivityDate()
+    {
+        $dates = collect([
+            optional(\App\Models\TriageRecord::where('patient_id', $this->id)->latest()->first())->created_at,
+            optional(\App\Models\Consultation::where('patient_id', $this->id)->latest()->first())->created_at,
+            optional(\App\Models\NcdAssessment::where('patient_id', $this->id)->latest()->first())->created_at,
+            optional(\App\Models\DispensingRecord::where('patient_ptn', $this->patient_id)->latest()->first())->created_at,
+        ])->filter();
+
+        return $dates->isNotEmpty() ? $dates->max() : $this->created_at;
+    }
+
+    /**
+     * Eligible for archiving: currently active, and no real activity
+     * for 5+ years (based on latestActivityDate, not registration date).
+     */
+    public function isArchiveEligible(): bool
+    {
+        if ($this->patient_status !== self::STATUS_ACTIVE) {
+            return false;
+        }
+
+        return $this->latestActivityDate() <= now()->subYears(5);
+    }
 }

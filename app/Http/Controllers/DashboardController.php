@@ -49,28 +49,23 @@ public function index()
     $mediumRiskCount = TriageRecord::where('risk_level', 'Medium')->count();
     $lowRiskCount = TriageRecord::where('risk_level', 'Low')->count();
 
-    // AI Forecast Summary
-    $last30Days = Carbon::now()->subDays(30);
-    $usageData = StockTransaction::where('type', 'dispense')
-                    ->where('created_at', '>=', $last30Days)
-                    ->selectRaw('medicine_id, SUM(quantity) as total_used')
-                    ->groupBy('medicine_id')
-                    ->orderBy('total_used', 'DESC')
-                    ->with('medicine:id,name,stock,threshold')
-                    ->get();
+    // AI Forecast Summary - now uses the SAME centralized service as the
+    // main Forecast page, so the two screens can never show different
+    // numbers for the same medicine.
+    $forecastService = new \App\Services\MedicineForecastService(
+        new \App\Services\InventoryStockService()
+    );
 
     $forecastData = [];
-    foreach ($usageData as $data) {
-        if (!$data->medicine) continue;
-        $dailyAvg = $data->total_used / 30;
-        $daysLeft = $data->medicine->stock / ($dailyAvg ?: 1);
+    foreach (\App\Models\Medicine::all() as $med) {
+        $result = $forecastService->evaluate($med);
 
-        if ($daysLeft < 7 || $data->medicine->stock <= $data->medicine->threshold) {
+        if ($result['is_shortage'] || $result['is_low']) {
             $forecastData[] = [
-                'name' => $data->medicine->name,
-                'predicted_shortage' => round($daysLeft) . ' days left',
-                'high_demand' => $data->total_used . ' pcs used (30d)',
-                'recommended_restock' => 'Order ' . round($dailyAvg * 30) . ' pcs'
+                'name' => $med->name,
+                'predicted_shortage' => $result['status'],
+                'high_demand' => 'Est. demand: ' . $result['estimated_demand'] . ' / mo',
+                'recommended_restock' => $result['recommendation'],
             ];
         }
     }

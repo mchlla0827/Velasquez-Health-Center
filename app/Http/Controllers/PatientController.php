@@ -21,7 +21,7 @@ class PatientController extends Controller
 
     public function index()
     {
-        $patients = Patient::orderBy('created_at', 'desc')->get();
+        $patients = Patient::where('patient_status', '!=', 'archived')->orderBy('created_at', 'desc')->get();
         $totalPatientsCount = $patients->count();
         $newPatientsCount = Patient::where('created_at', '>=', now()->startOfMonth())->count();
         $activePatientsCount = Patient::whereHas('triageRecords', function ($query) {
@@ -35,7 +35,8 @@ class PatientController extends Controller
     {
         $lastFamilyNumber = \App\Models\Patient::max(\DB::raw('CAST(family_number AS UNSIGNED)')) ?? 0;
         $nextFamilyId = $lastFamilyNumber + 1; 
-        return view('patients.registration', compact('nextFamilyId'));
+        $activeBarangays = \App\Models\Barangay::where('status', 'active')->orderBy('name')->pluck('name');
+        return view('patients.registration', compact('nextFamilyId', 'activeBarangays'));
     }
 
     public function store(Request $request)
@@ -108,11 +109,13 @@ class PatientController extends Controller
             'ob_g', 'ob_p_t', 'ob_p_p', 'ob_p_a', 'ob_p_l',
             'ob_menarche', 'ob_pmp', 'ob_lmp', 'ob_edc', 'ob_tt_status',
             'ob_td1', 'ob_td2', 'ob_td3', 'ob_td4', 'ob_td5',
+            'residency_proof' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         DB::transaction(function () use ($validated, $request, $patientId, $philhealthNo, $age, $immunizationFields, $maternalFields) {
             Patient::create(array_merge([
                 'patient_id' => $patientId,
+                'residency_proof_path' => $request->hasFile('residency_proof') ? $request->file('residency_proof')->store('residency_proofs', 'public') : null,
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
                 'middle_name' => $validated['middle_initial'] ?? null,
@@ -208,6 +211,7 @@ class PatientController extends Controller
             'ob_g', 'ob_p_t', 'ob_p_p', 'ob_p_a', 'ob_p_l',
             'ob_menarche', 'ob_pmp', 'ob_lmp', 'ob_edc', 'ob_tt_status',
             'ob_td1', 'ob_td2', 'ob_td3', 'ob_td4', 'ob_td5',
+            'residency_proof' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         $patient = Patient::findOrFail($id);
@@ -238,7 +242,8 @@ class PatientController extends Controller
                     ->orWhere('status', '')
                     ->orWhereNotIn('status', ['Done', 'Consulted', 'done', 'consulted']);
             })
-            ->orderBy('created_at', 'desc')
+            ->orderByRaw("FIELD(risk_level, 'High', 'Medium', 'Low')")
+            ->orderBy('created_at', 'asc')
             ->get();
 
         $totalQueueCount = $triageRecords->count();
@@ -308,15 +313,39 @@ class PatientController extends Controller
         ]);
 
         $patient = Patient::findOrFail($request->patient_id);
+
+        // Prevent duplicate active queue entries - server-side, so this
+        // can't be bypassed by submitting the form directly. "Active"
+        // means not yet Done/Consulted, matching the definition used
+        // everywhere else in the triage/consultation workflow.
+        $hasActiveQueueEntry = \App\Models\TriageRecord::where('patient_id', $patient->id)
+            ->whereNotIn('status', ['Done', 'done', 'Consulted', 'consulted'])
+            ->exists();
+
+        if ($hasActiveQueueEntry) {
+            return redirect()->back()->with('error', 'This patient is already in the Triage Queue.');
+        }
         $symptomsArray = $request->input('symptoms', []);
         $lowercaseSymptoms = array_map('strtolower', $symptomsArray);
-        $riskLevel = 'Low';
 
-        if (in_array('difficulty breathing', $lowercaseSymptoms) || in_array('chest pain', $lowercaseSymptoms)) {
-            $riskLevel = 'High';
-        } elseif (in_array('fever', $lowercaseSymptoms) && count($lowercaseSymptoms) >= 2) {
-            $riskLevel = 'Medium';
-        }
+        $latestNcd = NcdAssessment::where('patient_id', $patient->id)
+            ->latest('assessment_date')
+            ->first();
+
+        $riskService = new \App\Services\RiskScoringService();
+        $assessment = $riskService->assess(
+            [
+                'temp' => $request->temp,
+                'bp' => $request->bp,
+                'weight' => $request->weight,
+                'height' => $request->height,
+            ],
+            $lowercaseSymptoms,
+            $patient->age,
+            $latestNcd
+        );
+
+        $riskLevel = $assessment['level'];
 
         $symptomsString = !empty($symptomsArray) ? implode(', ', $symptomsArray) : 'No symptoms reported.';
         $queueNumber = TriageRecord::generateQueueNumber();
@@ -326,6 +355,8 @@ class PatientController extends Controller
             'service_type' => $request->service_type,
             'risk_level' => $riskLevel,
             'triage_level' => $riskLevel,
+            'risk_score' => $assessment['score'],
+            'risk_factors' => $assessment['factors'],
             'registered_by' => auth()->id(),
             'temp' => $request->temp,
             'bp' => $request->bp,
@@ -374,8 +405,14 @@ class PatientController extends Controller
             ->latest()
             ->first();
 
+        $hasActiveTriageToday = TriageRecord::where('patient_id', $patient->id)
+            ->whereNotIn('status', ['Done', 'done', 'Consulted', 'consulted'])
+            ->exists();
+
         $data = $patient->toArray();
         $data['latest_ncd_assessment'] = $latestAssessment;
+        $data['has_active_triage_today'] = $hasActiveTriageToday;
+        $data['residency_proof_url'] = $patient->residency_proof_path ? asset('storage/' . $patient->residency_proof_path) : null;
 
         return response()->json($data);
     }
@@ -394,9 +431,12 @@ class PatientController extends Controller
     {
         $triageRecords = TriageRecord::whereHas('patient')
             ->with('patient')
-            ->whereNotIn('status', ['Done', 'done', 'Consulted', 'consulted'])
-            ->orWhereNull('status')
-            ->orderBy('created_at', 'desc')
+            ->where(function ($query) {
+                $query->whereNotIn('status', ['Done', 'done', 'Consulted', 'consulted'])
+                    ->orWhereNull('status');
+            })
+            ->orderByRaw("FIELD(risk_level, 'High', 'Medium', 'Low')")
+            ->orderBy('created_at', 'asc')
             ->get();
 
         $html = view('patients.partials.triage_table_rows', compact('triageRecords'))->render();
@@ -460,7 +500,12 @@ class PatientController extends Controller
             ->latest()
             ->first();
 
-        return view('patients.ncd-assessment', compact('patient', 'ncdAssessment'));
+        $latestTriage = \App\Models\TriageRecord::where('patient_id', $patient->id)
+            ->whereNotIn('status', ['Done', 'done', 'Consulted', 'consulted'])
+            ->latest()
+            ->first();
+
+        return view('patients.ncd-assessment', compact('patient', 'ncdAssessment', 'latestTriage'));
     }
 
     // ==================================================
@@ -656,5 +701,88 @@ class PatientController extends Controller
                     : '---',
             ];
         }));
+    }
+
+    /**
+     * Archived Patients list - separate from the normal active list.
+     */
+    public function archivedPatients()
+    {
+        $patients = \App\Models\Patient::where('patient_status', \App\Models\Patient::STATUS_ARCHIVED)
+            ->orderByDesc('archived_at')
+            ->get();
+
+        $role = strtolower(auth()->user()->role ?? 'bhw');
+
+        return view('patients.archived', compact('patients', 'role'));
+    }
+
+    /**
+     * Archive a patient. Only allowed if currently active - prevents
+     * duplicate archive actions on an already-archived patient. Does
+     * NOT delete any data, only flips the status flag.
+     */
+    public function archivePatient($id)
+    {
+        $patient = \App\Models\Patient::findOrFail($id);
+
+        abort_unless(
+            in_array(strtolower(auth()->user()->role ?? ''), ['admin', 'nurse', 'doctor'], true),
+            403
+        );
+
+        if ($patient->patient_status === \App\Models\Patient::STATUS_ARCHIVED) {
+            return redirect()->back()->with('error', 'This patient is already archived.');
+        }
+
+        $patient->update([
+            'patient_status' => \App\Models\Patient::STATUS_ARCHIVED,
+            'archived_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Patient archived successfully. Their complete record and history remain intact.');
+    }
+
+    /**
+     * Reactivate an archived patient. Only allowed if currently
+     * archived - prevents duplicate/invalid reactivation. Restores the
+     * SAME existing record, never creates a new one. History, triage,
+     * consultations, NCD assessments, dispensing records, and the
+     * residency proof are all untouched.
+     */
+    public function reactivatePatient($id)
+    {
+        $patient = \App\Models\Patient::findOrFail($id);
+
+        abort_unless(
+            in_array(strtolower(auth()->user()->role ?? ''), ['admin', 'nurse', 'doctor'], true),
+            403
+        );
+
+        if ($patient->patient_status !== \App\Models\Patient::STATUS_ARCHIVED) {
+            return redirect()->back()->with('error', 'This patient is not archived.');
+        }
+
+        $patient->update([
+            'patient_status' => \App\Models\Patient::STATUS_ACTIVE,
+            'archived_at' => null,
+        ]);
+
+        return redirect()->back()->with('success', 'Patient reactivated successfully. Their complete history has been preserved.');
+    }
+
+    /**
+     * Lightweight check used by the Add to Queue form BEFORE submission,
+     * so the duplicate-queue block happens instantly instead of after
+     * a full form submit round-trip. The actual store still validates
+     * this server-side too (storeQueue) - this is purely for fast UX.
+     */
+    public function checkActiveQueue($patientId)
+    {
+        $inQueue = \App\Models\TriageRecord::where('patient_id', $patientId)
+            ->whereNotIn('status', ['Done', 'done', 'Consulted', 'consulted'])
+            ->exists();
+
+        return response()->json(['in_queue' => $inQueue]);
     }
 }

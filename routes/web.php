@@ -8,11 +8,12 @@ use App\Models\ActivityLog;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PatientController;
-use App\Http\Controllers\TriageController; 
+use App\Http\Controllers\BarangayController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForecastController;
-use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\DispenseController;
 use App\Http\Controllers\ReportsController;
@@ -29,6 +30,13 @@ Route::get('/', function () {
 });
 
 Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login')->middleware('guest');
+
+Route::middleware('guest')->group(function () {
+    Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
+});
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('guest');
 
 /*
@@ -57,6 +65,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     })->name('check.batch');
 
     Route::post('/stock-in', [StockController::class, 'storeIn'])->name('stock.in.store');
+    Route::post('/stock-update', [StockController::class, 'updateStock'])->name('stock.update');
 
 
     // ==================================================
@@ -75,7 +84,6 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::post('/dispense/save', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
         Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
         Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
-        Route::post('/stockout/store', [StockController::class, 'storeStockOut'])->name('stockout.store');
 
         // REQUEST FORM MODULE
         Route::get('/request', [RequestController::class, 'index'])->name('request');
@@ -105,12 +113,6 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::get('/reports/api/operational', [ReportsController::class, 'apiOperational'])->name('reports.api.operational');
         Route::get('/triage', [PatientController::class, 'triage'])->name('triage');
 
-        Route::get('/inventory/index', [InventoryController::class, 'index'])->name('inventory.index');
-        Route::get('/inventory/restock/{id}', [InventoryController::class, 'showRestockForm'])->name('restock.form');
-        Route::post('/inventory/restock/submit', [InventoryController::class, 'submitRestockRequest'])->name('restock.submit');
-        Route::get('/inventory/approval-queue', [InventoryController::class, 'viewForApproval'])->name('restock.approval');
-        Route::post('/inventory/process/{id}', [InventoryController::class, 'processApproval'])->name('restock.process');
-        Route::post('/inventory/send-lhd/{id}', [InventoryController::class, 'sendToLHD'])->name('restock.sendlhd');
 
         Route::post('/medicines/store', [MedicineController::class, 'store'])->name('medicines.store');
         Route::get('/patient-registration', [PatientController::class, 'create'])->name('patient-registration');
@@ -238,9 +240,33 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     // ==================================================
     // SHARED ROUTES (ANY LOGGED IN USER)
     // ==================================================
-    Route::post('/patients/queue', [PatientController::class, 'addToQueue'])->name('patients.queue.store');
     Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('patients.edit');
     Route::put('/patients/{id}', [PatientController::class, 'update'])->name('patients.update');
+    Route::put('/dispense/{id}', [MedicineController::class, 'updateDispense'])->name('dispense.update');
+    Route::get('/stockout/{id}/details', [StockController::class, 'stockoutDetails'])->name('stockout.details');
+    Route::get('/reports/export/patient', [ReportsController::class, 'exportPatient'])->name('reports.export.patient');
+    Route::get('/reports/export/risk', [ReportsController::class, 'exportRisk'])->name('reports.export.risk');
+    Route::get('/reports/export/medicine', [ReportsController::class, 'exportMedicine'])->name('reports.export.medicine');
+    Route::get('/reports/export/dispensing', [ReportsController::class, 'exportDispensing'])->name('reports.export.dispensing');
+    Route::get('/reports/export/operational', [ReportsController::class, 'exportOperational'])->name('reports.export.operational');
+    Route::get('/reports/export/inventory-status', [ReportsController::class, 'exportInventoryStatus'])->name('reports.export.inventory-status');
+    Route::get('/reports/export/stock-out', [ReportsController::class, 'exportStockOut'])->name('reports.export.stock-out');
+    Route::get('/reports/export/patient-demographic', [ReportsController::class, 'exportPatientDemographic'])->name('reports.export.patient-demographic');
+    Route::get('/reports/export/patient-registration', [ReportsController::class, 'exportPatientRegistration'])->name('reports.export.patient-registration');
+    Route::get('/reports/export/daily-service', [ReportsController::class, 'exportDailyService'])->name('reports.export.daily-service');
+    Route::get('/reports/export/morbidity', [ReportsController::class, 'exportMorbidity'])->name('reports.export.morbidity');
+    Route::get('/reports/export/medicine-request', [ReportsController::class, 'exportMedicineRequest'])->name('reports.export.medicine-request');
+    Route::get('/patients/{id}/prescriptions', [MedicineController::class, 'patientPrescriptions'])->name('patients.prescriptions');
+    Route::get('/patients/{id}/check-active-queue', [PatientController::class, 'checkActiveQueue'])->name('patients.check-active-queue');
+    Route::get('/barangays', [BarangayController::class, 'index'])->name('barangays.index');
+    Route::get('/forecast/insights', [ForecastController::class, 'insights'])->name('forecast.insights');
+    Route::post('/barangays', [BarangayController::class, 'store'])->name('barangays.store');
+    Route::put('/barangays/{id}', [BarangayController::class, 'update'])->name('barangays.update');
+    Route::put('/barangays/{id}/toggle', [BarangayController::class, 'toggleStatus'])->name('barangays.toggle');
+    Route::get('/patients-archived', [PatientController::class, 'archivedPatients'])->name('patients.archived');
+    Route::post('/patients/{id}/archive', [PatientController::class, 'archivePatient'])->name('patients.archive');
+    Route::post('/patients/{id}/reactivate', [PatientController::class, 'reactivatePatient'])->name('patients.reactivate');
+    Route::put('/prescriptions/{id}/outcome', [MedicineController::class, 'setPrescriptionOutcome'])->name('prescriptions.outcome');
    // Consultation History Routes (Medical History tab)
     Route::get('/patients/{id}/consultations', [ConsultationController::class, 'index'])->name('consultations.index');
     Route::get('/patients/{id}/consultations/create', [ConsultationController::class, 'create'])->name('consultations.create');

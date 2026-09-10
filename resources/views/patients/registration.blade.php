@@ -10,7 +10,7 @@
     .container { display: flex; }
 
     /* Sidebar logic handled by component */
-    .main { margin-left: 250px; width: calc(100% - 260px); padding: 24px; box-sizing: border-box; }
+    .main { margin-left: 260px; width: calc(100% - 260px); padding: 24px; box-sizing: border-box; }
 
     /* ================= HEADER ================= */
     .header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -25,7 +25,10 @@
 
     .right { text-align: right; font-size: 12px; color: #374151; }
     .header-divider { width: 100%; height: 1px; background: #E5E7EB; margin: 16px 0; }
-    .page-title { font-size: 22px; font-weight: bold; color: #111827; margin-bottom: 16px; margin-left: 1.2% }
+    .page-title { font-size: 22px;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 4px; }
 
     /* ================= PATIENT FORM ================= */
 .form-card {
@@ -140,6 +143,33 @@
     .immun-table th, .immun-table td { border: 1px solid #E5E7EB; padding: 8px; font-size: 12px; }
 
     .error-msg { color: #EF4444; font-size: 11px; margin-top: 4px; display: none; font-weight: normal; }
+    /* Custom File Upload Styling */
+input[type="file"].custom-file-input {
+    height: 48px;
+    padding: 6px 10px;
+    background: #ffffff;
+    cursor: pointer;
+    line-height: 34px;
+    color: #4B5563;
+}
+
+input[type="file"].custom-file-input::file-selector-button {
+    margin-right: 12px;
+    border: none;
+    background: #EFF6FF;
+    color: #1A73E8;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+input[type="file"].custom-file-input::file-selector-button:hover {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
 </style>
 </head>
 
@@ -173,8 +203,10 @@
 
     <form id="registrationForm" 
       action="{{ isset($patient) ? route('patients.update', $patient->id) : route('patients.store') }}" 
-      method="POST">
+      method="POST" enctype="multipart/form-data">
     @csrf
+
+
     @if(isset($patient))
         @method('PUT')
     @endif
@@ -187,6 +219,7 @@
 
             <label>Patient Information</label>
             <div class="form-grid-3">
+
                 <div class="req-field">
                     <input name="last_name" placeholder=" " required pattern="[A-Za-z\s]+" title="Letters only" 
                         oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')">
@@ -251,11 +284,20 @@
                 </div>
             </div>
 
-            <div class="form-full req-field">
-                <label>Address <span class="required">*</span></label>
-                <input name="address" placeholder=" " required>
-                <span class="floating-label">Address <span class="req-star">*</span></span>
-                <span class="error-msg">Address is required.</span>
+            <div class="form-grid-2">
+                <div class="req-field">
+                    <label>Address <span class="required">*</span></label>
+                    <input name="address" placeholder="Address" required>
+                    <span class="error-msg">Address is required.</span>
+                </div>
+            <div class="req-field">
+                <label>Proof of Residency / Residency ID <span class="required">*</span></label>
+                <input type="file" name="residency_proof" id="residency_proof" class="custom-file-input" accept="image/jpeg,image/jpg,image/png" required>
+                <span style="display:block; font-size: 11px; color: #9CA3AF; margin-top: 5px;">Accepted formats: JPG, JPEG, PNG</span>
+                @error('residency_proof')
+                    <span class="error-msg" style="display:block;">{{ $message }}</span>
+                @enderror
+            </div>
             </div>
 
             <div class="form-grid-3">
@@ -263,14 +305,9 @@
                     <label>Barangay <span class="required">*</span></label>
                     <select name="barangay" required>
                         <option value="" disabled selected></option>
-                        <option value="Barangay 91">Barangay 91</option>
-                        <option value="Barangay 92">Barangay 92</option>
-                        <option value="Barangay 93">Barangay 93</option>
-                        <option value="Barangay 94">Barangay 94</option>
-                        <option value="Barangay 95">Barangay 95</option>
-                        <option value="Barangay 97">Barangay 97</option>
-                        <option value="Barangay 103">Barangay 103</option>
-                        <option value="Barangay 104">Barangay 104</option>
+                        @foreach($activeBarangays ?? [] as $barangayName)
+                            <option value="{{ $barangayName }}" {{ old('barangay') === $barangayName ? 'selected' : '' }}>{{ $barangayName }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="opt-field">
@@ -917,5 +954,27 @@
         });
     </script>
 @endif
+<script>
+    // ========== AUTO-CAPITALIZATION for name/place/text fields ==========
+    // Excludes: email, passwords, numeric fields, dates, dropdowns (already
+    // properly-cased options) - only applied to free-text name/place fields.
+    document.addEventListener('DOMContentLoaded', function () {
+        const capitalizeFields = [
+            'last_name', 'first_name', 'mother_last', 'mother_first', 'mother_middle',
+            'father_last', 'father_first', 'father_middle', 'address', 'pob',
+            'religion', 'philhealth_member_name', 'mat_nbs_result', 'mat_hearing_result'
+        ];
+        capitalizeFields.forEach(function (name) {
+            const el = document.querySelector('[name="' + name + '"]');
+            if (!el) return;
+            el.addEventListener('input', function () {
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+                this.setSelectionRange(start, end);
+            });
+        });
+    });
+</script>
 </body>
 </html>

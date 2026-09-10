@@ -11,13 +11,20 @@ class TriageRecord extends Model
         'service_type',
         'risk_level',
         'triage_level',
+        'risk_score',
+        'risk_factors',
         'registered_by',
         'status',
         'temp',
         'bp',
         'weight',
         'height',
-        'symptoms'
+        'symptoms',
+        'queue_number'
+    ];
+
+    protected $casts = [
+        'risk_factors' => 'array',
     ];
 
     // Patient who received the triage

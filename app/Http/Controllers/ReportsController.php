@@ -729,4 +729,376 @@ class ReportsController extends Controller
             'total' => $total,
         ], $this->filterViewData($request)));
     }
+
+    // ==================================================
+    // EXCEL EXPORTS - real .xlsx files via ExcelExportService,
+    // reusing the exact same query logic as each report page above.
+    // ==================================================
+
+    public function exportPatient(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $dispensingQuery = DispensingRecord::query();
+        if ($start && $end) {
+            $dispensingQuery->whereBetween('dispense_date', [$start, $end]);
+        }
+
+        $rows = (clone $dispensingQuery)->select(
+                'patient_name as full_name', 'age', 'sex as gender', 'barangay', 'diagnosis', 'dispense_date as date_visited'
+            )
+            ->orderByDesc('dispense_date')->take(500)->get()
+            ->map(fn($r) => [
+                $r->full_name, $r->age, $r->gender, $r->barangay,
+                $r->diagnosis ?: '-',
+                $r->date_visited ? Carbon::parse($r->date_visited)->format('M d, Y') : '-',
+            ]);
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Patient Records Report',
+            ['Full Name', 'Age', 'Gender', 'Barangay', 'Diagnosis', 'Date Visited'],
+            $rows, null, 'patient-records-report'
+        );
+    }
+
+    public function exportRisk(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $base = TriageRecord::whereNotNull('risk_level');
+        if ($start && $end) {
+            $base->whereBetween('created_at', [$start, $end]);
+        }
+        $labelMap = ['high' => 'High', 'medium' => 'Moderate', 'low' => 'Low'];
+        $recommendationMap = [
+            'high' => 'Needs Immediate Attention', 'medium' => 'Monitor Patient', 'low' => 'Stable - Routine Follow-up',
+        ];
+
+        $rows = (clone $base)->with('patient')->latest()->take(500)->get()
+            ->map(function ($record) use ($labelMap, $recommendationMap) {
+                $key = strtolower($record->risk_level);
+                $patient = $record->patient;
+                return [
+                    $patient->patient_id ?? '-',
+                    $patient ? trim($patient->first_name . ' ' . $patient->last_name) : 'Unknown',
+                    $patient->age ?? '-',
+                    $record->created_at ? $record->created_at->format('M d, Y') : '-',
+                    $labelMap[$key] ?? $record->risk_level,
+                    $record->symptoms ?: 'No findings recorded',
+                    $recommendationMap[$key] ?? 'Review needed',
+                ];
+            });
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Risk-Scoring Report',
+            ['Patient ID', 'Full Name', 'Age', 'Assessment Date', 'Risk Level', 'Assessment Result', 'Recommendation'],
+            $rows, null, 'risk-scoring-report'
+        );
+    }
+
+    public function exportMedicine(Request $request)
+    {
+        $medicinesWithStock = Medicine::withSum('batches', 'quantity')
+            ->with(['batches' => fn($q) => $q->orderBy('expiry_date')])->get();
+
+        $rows = $medicinesWithStock->map(function ($m) {
+            $nearestExpiry = $m->batches->first()?->expiry_date;
+            return [
+                $m->name,
+                $m->batches_sum_quantity ?? 0,
+                $nearestExpiry ? Carbon::parse($nearestExpiry)->format('M d, Y') : 'N/A',
+                'Normal',
+            ];
+        });
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Medicine Inventory Report',
+            ['Medicine Name', 'Current Stock', 'Nearest Expiry', 'Usage Level'],
+            $rows, null, 'medicine-inventory-report'
+        );
+    }
+
+    public function exportDispensing(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $base = DispensingRecord::query();
+        if ($start && $end) {
+            $base->whereBetween('dispense_date', [$start, $end]);
+        }
+
+        $rows = (clone $base)->with('medicine')->orderByDesc('dispense_date')->take(500)->get()
+            ->map(fn($d) => [
+                $d->patient_ptn ?: '-',
+                $d->patient_name,
+                optional($d->medicine)->name ?? '-',
+                $d->quantity_dispensed,
+                $d->dispense_date ? Carbon::parse($d->dispense_date)->format('M d, Y') : '-',
+                $d->dispensed_by ?: '-',
+            ]);
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Dispensing of Medicine Report',
+            ['Patient ID', 'Patient Name', 'Medicine', 'Quantity', 'Date Dispensed', 'Dispensed By'],
+            $rows, null, 'dispensing-report'
+        );
+    }
+
+    public function exportOperational(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $logQuery = ActivityLog::query();
+        if ($start && $end) {
+            $logQuery->whereBetween('created_at', [$start, $end]);
+        }
+
+        $rows = (clone $logQuery)->latest()->take(500)->get()
+            ->map(fn($log) => [
+                $log->created_at ? $log->created_at->format('M d, Y h:i A') : '-',
+                $log->action ?: '-',
+                $log->user_name ?: '-',
+                $log->type ?: '-',
+                'Logged',
+            ]);
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Operational Report',
+            ['Date', 'Activity', 'User', 'Module', 'Status'],
+            $rows, 'Status', 'operational-report'
+        );
+    }
+
+    public function exportInventoryStatus(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $medicines = Medicine::orderBy('name')->get();
+
+        $rows = $medicines->map(function ($med) use ($start, $end) {
+            $totalIn = StockTransaction::where('medicine_id', $med->id)->where('type', 'IN')->sum('quantity');
+            $totalOut = StockTransaction::where('medicine_id', $med->id)->where('type', 'OUT')->sum('quantity');
+            $currentStock = $totalIn - $totalOut;
+
+            $beginningStock = 0;
+            if ($start) {
+                $inBefore = StockTransaction::where('medicine_id', $med->id)->where('type', 'IN')->where('created_at', '<', $start)->sum('quantity');
+                $outBefore = StockTransaction::where('medicine_id', $med->id)->where('type', 'OUT')->where('created_at', '<', $start)->sum('quantity');
+                $beginningStock = $inBefore - $outBefore;
+            }
+
+            $receivedQ = StockTransaction::where('medicine_id', $med->id)->where('type', 'IN');
+            $dispensedQ = StockTransaction::where('medicine_id', $med->id)->where('type', 'OUT');
+            if ($start && $end) {
+                $receivedQ->whereBetween('created_at', [$start, $end]);
+                $dispensedQ->whereBetween('created_at', [$start, $end]);
+            }
+
+            $nearestBatch = Batch::where('medicine_id', $med->id)->where('quantity', '>', 0)->orderBy('expiry_date')->first();
+            $nearestExpiry = $nearestBatch?->expiry_date;
+            $reorderLevel = 10;
+
+            if ($currentStock <= 0) $status = 'Out of Stock';
+            elseif ($currentStock <= $reorderLevel) $status = 'Low Stock';
+            else $status = 'Sufficient Stock';
+
+            $expiryStatus = 'OK';
+            if ($nearestExpiry) {
+                $exp = Carbon::parse($nearestExpiry);
+                if ($exp->isPast()) $expiryStatus = 'Expired';
+                elseif ($exp->diffInDays(now()) <= 30) $expiryStatus = 'Near Expiry';
+            }
+
+            return [
+                $med->name, $beginningStock, $receivedQ->sum('quantity'), $dispensedQ->sum('quantity'),
+                $currentStock, $reorderLevel, $status,
+                $nearestExpiry ? Carbon::parse($nearestExpiry)->format('M d, Y') : '-',
+                $expiryStatus,
+            ];
+        });
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Medicine Inventory Status Report',
+            ['Medicine', 'Beginning Stock', 'Stock Received', 'Qty Dispensed', 'Current Stock', 'Reorder Level', 'Status', 'Nearest Expiry', 'Expiry Status'],
+            $rows, 'Status', 'inventory-status-report'
+        );
+    }
+
+    public function exportStockOut(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $medicines = Medicine::orderBy('name')->get();
+        $incidents = collect();
+
+        foreach ($medicines as $med) {
+            $transactions = StockTransaction::where('medicine_id', $med->id)->orderBy('created_at')->get();
+            if ($transactions->isEmpty()) continue;
+
+            $balance = 0;
+            $currentStockoutStart = null;
+
+            foreach ($transactions as $t) {
+                $balance += ($t->type === 'IN') ? $t->quantity : -$t->quantity;
+                if ($balance <= 0 && $currentStockoutStart === null) {
+                    $currentStockoutStart = $t->created_at;
+                } elseif ($balance > 0 && $currentStockoutStart !== null) {
+                    $incidents->push((object)[
+                        'medicine_name' => $med->name, 'date_started' => $currentStockoutStart,
+                        'date_restocked' => $t->created_at,
+                        'duration' => Carbon::parse($currentStockoutStart)->diffInDays($t->created_at) ?: 1,
+                        'reason' => $t->remarks ?: 'Stock replenished', 'status' => 'Resolved',
+                    ]);
+                    $currentStockoutStart = null;
+                }
+            }
+            if ($currentStockoutStart !== null) {
+                $incidents->push((object)[
+                    'medicine_name' => $med->name, 'date_started' => $currentStockoutStart, 'date_restocked' => null,
+                    'duration' => Carbon::parse($currentStockoutStart)->diffInDays(now()) ?: 1,
+                    'reason' => 'Awaiting restock', 'status' => 'Ongoing',
+                ]);
+            }
+        }
+
+        if ($start && $end) {
+            $incidents = $incidents->filter(fn($i) => $i->date_started >= $start && $i->date_started <= $end);
+        }
+
+        $rows = $incidents->sortByDesc('date_started')->values()->map(fn($i) => [
+            $i->medicine_name,
+            Carbon::parse($i->date_started)->format('M d, Y'),
+            $i->date_restocked ? Carbon::parse($i->date_restocked)->format('M d, Y') : '-',
+            $i->duration . ' day' . ($i->duration === 1 ? '' : 's'),
+            $i->reason, $i->status,
+        ]);
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Stock-Out Report',
+            ['Medicine', 'Date Started', 'Date Restocked', 'Duration', 'Reason', 'Status'],
+            $rows, 'Status', 'stock-out-report'
+        );
+    }
+
+    public function exportPatientDemographic(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $baseQuery = Patient::query();
+        if ($start && $end) {
+            $baseQuery->whereBetween('created_at', [$start, $end]);
+        }
+
+        $rows = (clone $baseQuery)->select('barangay')
+            ->selectRaw("SUM(CASE WHEN LOWER(gender) = 'male' THEN 1 ELSE 0 END) as male_count")
+            ->selectRaw("SUM(CASE WHEN LOWER(gender) = 'female' THEN 1 ELSE 0 END) as female_count")
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('barangay')->orderByDesc('total')->get()
+            ->map(fn($r) => [$r->barangay ?: '-', $r->male_count, $r->female_count, $r->total]);
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Patient Demographic Report',
+            ['Barangay', 'Male', 'Female', 'Total'],
+            $rows, null, 'patient-demographic-report'
+        );
+    }
+
+    public function exportPatientRegistration(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $query = Patient::query();
+        if ($start && $end) {
+            $query->whereBetween('created_at', [$start, $end]);
+        }
+
+        $rows = (clone $query)->orderByDesc('created_at')->take(500)->get()
+            ->map(function ($p) {
+                $hasRecentTriage = TriageRecord::where('patient_id', $p->id)->where('created_at', '>=', now()->subMonths(6))->exists();
+                $hasRecentDispense = DispensingRecord::where('patient_ptn', $p->patient_id)->where('dispense_date', '>=', now()->subMonths(6))->exists();
+                $status = ($hasRecentTriage || $hasRecentDispense) ? 'Active' : 'Inactive';
+
+                return [
+                    $p->patient_id,
+                    trim("{$p->first_name} {$p->middle_name} {$p->last_name}"),
+                    $p->age, $p->gender,
+                    $p->created_at ? $p->created_at->format('M d, Y') : '-',
+                    $status,
+                ];
+            });
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Patient Registration Report',
+            ['Patient ID', 'Name', 'Age', 'Sex', 'Registration Date', 'Status'],
+            $rows, 'Status', 'patient-registration-report'
+        );
+    }
+
+    public function exportDailyService(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        if (!$start) {
+            $start = now()->subDays(30)->startOfDay();
+            $end = now()->endOfDay();
+        }
+
+        $registrations = Patient::whereBetween('created_at', [$start, $end])->selectRaw('DATE(created_at) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+        $visits = TriageRecord::whereBetween('created_at', [$start, $end])->selectRaw('DATE(created_at) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+        $assessments = TriageRecord::whereNotNull('risk_level')->whereBetween('created_at', [$start, $end])->selectRaw('DATE(created_at) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+        $dispensing = DispensingRecord::whereBetween('dispense_date', [$start, $end])->selectRaw('DATE(dispense_date) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+        $medReqs = \App\Models\MedicineRequest::whereBetween('created_at', [$start, $end])->selectRaw('DATE(created_at) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+        $activities = ActivityLog::whereBetween('created_at', [$start, $end])->selectRaw('DATE(created_at) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+
+        $allDates = collect()->merge($registrations->keys())->merge($visits->keys())->merge($dispensing->keys())
+            ->merge($medReqs->keys())->merge($activities->keys())->unique()->sortDesc()->take(60);
+
+        $rows = $allDates->map(fn($d) => [
+            Carbon::parse($d)->format('M d, Y'),
+            $registrations[$d] ?? 0, $visits[$d] ?? 0, $assessments[$d] ?? 0,
+            $dispensing[$d] ?? 0, $medReqs[$d] ?? 0, $activities[$d] ?? 0,
+        ]);
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Daily Service Report',
+            ['Date', 'Registrations', 'Visits', 'Assessments', 'Dispensing', 'Med Requests', 'Activities'],
+            $rows, null, 'daily-service-report'
+        );
+    }
+
+    public function exportMorbidity(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $base = DispensingRecord::whereNotNull('diagnosis')->where('diagnosis', '!=', '');
+        if ($start && $end) {
+            $base->whereBetween('dispense_date', [$start, $end]);
+        }
+
+        $rows = (clone $base)->select('diagnosis')
+            ->selectRaw("SUM(CASE WHEN sex = 'Male' THEN 1 ELSE 0 END) as male_count")
+            ->selectRaw("SUM(CASE WHEN sex = 'Female' THEN 1 ELSE 0 END) as female_count")
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('diagnosis')->orderByDesc('total')->take(100)->get()
+            ->map(fn($r) => [$r->diagnosis, $r->male_count, $r->female_count, $r->total]);
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Morbidity Report',
+            ['Diagnosis/Condition', 'Male', 'Female', 'Total Cases'],
+            $rows, null, 'morbidity-report'
+        );
+    }
+
+    public function exportMedicineRequest(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+        $base = \App\Models\MedicineRequest::query();
+        if ($start && $end) {
+            $base->whereBetween('created_at', [$start, $end]);
+        }
+
+        $rows = (clone $base)->with(['medicine', 'requester'])->latest()->take(500)->get()
+            ->map(fn($r) => [
+                $r->id, optional($r->medicine)->name ?? '-', $r->quantity_requested,
+                $r->created_at ? $r->created_at->format('M d, Y') : '-',
+                optional($r->requester)->name ?? '-',
+                $r->status ?? 'Pending Physician',
+            ]);
+
+        return app(\App\Services\ExcelExportService::class)->download(
+            'Medicine Request Report',
+            ['Request ID', 'Medicine', 'Qty Requested', 'Request Date', 'Requested By', 'Status'],
+            $rows, 'Status', 'medicine-request-report'
+        );
+    }
 }
