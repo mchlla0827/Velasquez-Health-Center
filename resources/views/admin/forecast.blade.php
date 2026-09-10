@@ -130,36 +130,50 @@
 </head>
 <body>
 
-<!-- ========== AI INSIGHTS SECTION (replaces the old Recommendation text) ========== -->
-<div id="aiInsightsSection" style="max-width: 1100px; margin: 24px auto; padding: 0 24px;">
-    <style>
-        .ai-insights-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; }
-        .ai-insights-header { padding: 18px 20px 14px; border-bottom: 1px solid #F1F5F9; }
-        .ai-insights-title { font-size: 17px; font-weight: 700; color: #111827; margin: 0; }
-        .ai-insights-subtitle { font-size: 12px; color: #6B7280; margin-top: 3px; }
-        .ai-filter-tabs { display: flex; gap: 8px; padding: 14px 20px; flex-wrap: wrap; }
-        .ai-filter-tab { padding: 7px 14px; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; color: #4B5563; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-        .ai-filter-tab.active { background: #111827; color: #fff; border-color: #111827; }
-        .ai-insight-item { border-left: 4px solid #E5E7EB; padding: 14px 20px; border-bottom: 1px solid #F8FAFC; }
-        .ai-insight-item.sev-critical { border-left-color: #DC2626; background: #FEF2F2; }
-        .ai-insight-item.sev-warning { border-left-color: #D97706; background: #FFFBEB; }
-        .ai-insight-item.sev-info { border-left-color: #2563EB; background: #F0F9FF; }
-        .ai-insight-item.sev-positive { border-left-color: #16A34A; background: #F0FDF4; }
-        .ai-sev-badge { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; padding: 3px 9px; border-radius: 4px; margin-bottom: 6px; }
-        .ai-sev-badge.sev-critical { background: #FEE2E2; color: #991B1B; }
-        .ai-sev-badge.sev-warning { background: #FEF3C7; color: #92400E; }
-        .ai-sev-badge.sev-info { background: #DBEAFE; color: #1E40AF; }
-        .ai-sev-badge.sev-positive { background: #DCFCE7; color: #166534; }
-        .ai-insight-title-text { font-size: 14px; font-weight: 700; color: #111827; margin: 0 0 4px; }
-        .ai-insight-detail { font-size: 12.5px; color: #4B5563; line-height: 1.55; margin: 0; }
-        .ai-insights-empty { padding: 40px 20px; text-align: center; color: #9CA3AF; font-size: 13px; }
-        .ai-insights-footnote { padding: 12px 20px; font-size: 11px; color: #9CA3AF; border-top: 1px solid #F1F5F9; }
-    </style>
 
-    <div class="ai-insights-card">
-        <div class="ai-insights-header">
-            <h2 class="ai-insights-title">AI Insights</h2>
-            <div class="ai-insights-subtitle">Automatically generated observations from the existing forecast and inventory data. Decision-support only - final ordering decisions remain with authorized staff.</div>
+<div class="container">
+    <x-sidebar />
+
+    <div class="main">
+
+<style>
+    #aiForecastFlexRow { display: flex; align-items: flex-start; gap: 20px; }
+    #aiForecastFlexRow > .ai-metrics-col { flex: 0 0 66%; max-width: 66%; }
+    #aiForecastFlexRow > .ai-insights-col { flex: 1; min-width: 0; }
+    @media (max-width: 900px) {
+        #aiForecastFlexRow { flex-direction: column; }
+        #aiForecastFlexRow > .ai-metrics-col, #aiForecastFlexRow > .ai-insights-col { flex: 1 1 100%; max-width: 100%; }
+    }
+
+    .ai-insights-panel { background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; height: 100%; display: flex; flex-direction: column; }
+    .ai-insights-panel-header { padding: 16px 18px 12px; border-bottom: 1px solid #F1F5F9; }
+    .ai-insights-panel-title { font-size: 15px; font-weight: 700; color: #111827; margin: 0; }
+    .ai-insights-panel-subtitle { font-size: 11px; color: #6B7280; margin-top: 3px; line-height: 1.4; }
+    .ai-filter-tabs { display: flex; gap: 6px; padding: 12px 16px; flex-wrap: wrap; border-bottom: 1px solid #F1F5F9; }
+    .ai-filter-tab { padding: 5px 11px; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; color: #4B5563; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .ai-filter-tab.active { background: #111827; color: #fff; border-color: #111827; }
+    .ai-insights-panel-body { overflow-y: auto; flex: 1; max-height: 520px; }
+    .ai-insight-item { border-left: 4px solid #E5E7EB; padding: 12px 16px; border-bottom: 1px solid #F8FAFC; }
+    .ai-insight-item.sev-critical { border-left-color: #DC2626; background: #FEF2F2; }
+    .ai-insight-item.sev-warning { border-left-color: #D97706; background: #FFFBEB; }
+    .ai-insight-item.sev-info { border-left-color: #2563EB; background: #F0F9FF; }
+    .ai-insight-item.sev-positive { border-left-color: #16A34A; background: #F0FDF4; }
+    .ai-sev-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; margin-bottom: 5px; }
+    .ai-sev-badge.sev-critical { background: #FEE2E2; color: #991B1B; }
+    .ai-sev-badge.sev-warning { background: #FEF3C7; color: #92400E; }
+    .ai-sev-badge.sev-info { background: #DBEAFE; color: #1E40AF; }
+    .ai-sev-badge.sev-positive { background: #DCFCE7; color: #166534; }
+    .ai-insight-title-text { font-size: 13px; font-weight: 700; color: #111827; margin: 0 0 3px; line-height: 1.3; }
+    .ai-insight-detail { font-size: 11.5px; color: #4B5563; line-height: 1.5; margin: 0; }
+    .ai-insights-empty { padding: 30px 16px; text-align: center; color: #9CA3AF; font-size: 12px; }
+    .ai-insights-panel-footnote { padding: 10px 16px; font-size: 10px; color: #9CA3AF; border-top: 1px solid #F1F5F9; }
+</style>
+
+<div id="aiInsightsPanelTemplate" style="display:none;">
+    <div class="ai-insights-panel">
+        <div class="ai-insights-panel-header">
+            <h2 class="ai-insights-panel-title">AI Insights</h2>
+            <div class="ai-insights-panel-subtitle">Automatically generated from existing forecast &amp; inventory data. Decision-support only.</div>
         </div>
         <div class="ai-filter-tabs" id="aiFilterTabs">
             <button type="button" class="ai-filter-tab active" data-filter="all">All</button>
@@ -168,8 +182,8 @@
             <button type="button" class="ai-filter-tab" data-filter="info">Info</button>
             <button type="button" class="ai-filter-tab" data-filter="positive">Positive</button>
         </div>
-        <div id="aiInsightsList"></div>
-        <div class="ai-insights-footnote">Insights are generated from the same 3-month moving-average forecast used elsewhere in the system. Verify before ordering.</div>
+        <div class="ai-insights-panel-body" id="aiInsightsList"></div>
+        <div class="ai-insights-panel-footnote">Based on the same 3-month moving-average forecast used elsewhere. Verify before ordering.</div>
     </div>
 </div>
 
@@ -179,6 +193,7 @@
 
         function renderInsights(filter) {
             const list = document.getElementById('aiInsightsList');
+            if (!list) return;
             const filtered = filter === 'all' ? allInsights : allInsights.filter(i => i.severity === filter);
 
             if (filtered.length === 0) {
@@ -195,28 +210,74 @@
             `).join('');
         }
 
-        document.getElementById('aiFilterTabs').addEventListener('click', function (e) {
-            if (!e.target.classList.contains('ai-filter-tab')) return;
-            document.querySelectorAll('.ai-filter-tab').forEach(t => t.classList.remove('active'));
-            e.target.classList.add('active');
-            renderInsights(e.target.dataset.filter);
-        });
+        document.addEventListener('DOMContentLoaded', function () {
+            // Find the element containing "Predictive Forecast Metrics" and
+            // locate its nearest reasonable section/card wrapper.
+            const allEls = document.querySelectorAll('body *');
+            let headingEl = null;
+            for (const el of allEls) {
+                if (el.children.length === 0 && el.textContent.trim() === 'Predictive Forecast Metrics') {
+                    headingEl = el;
+                    break;
+                }
+            }
+            if (!headingEl) {
+                for (const el of allEls) {
+                    if (el.children.length === 0 && el.textContent.includes('Predictive Forecast Metrics')) {
+                        headingEl = el;
+                        break;
+                    }
+                }
+            }
 
-        fetch('/forecast/insights')
-            .then(res => res.json())
-            .then(data => {
-                allInsights = data.insights || [];
-                renderInsights('all');
-            })
-            .catch(() => {
-                document.getElementById('aiInsightsList').innerHTML = '<div class="ai-insights-empty">Unable to load insights right now.</div>';
+            if (!headingEl) return; // fail safe - don't break the page if not found
+
+            // Walk up to find a reasonably-sized block-level container to treat as "the metrics section"
+            let metricsSection = headingEl;
+            let parent = headingEl.parentElement;
+            while (parent && parent.tagName !== 'BODY') {
+                const rect = parent.getBoundingClientRect();
+                if (rect.width > 400) { metricsSection = parent; break; }
+                parent = parent.parentElement;
+            }
+
+            const flexRow = document.createElement('div');
+            flexRow.id = 'aiForecastFlexRow';
+
+            const metricsCol = document.createElement('div');
+            metricsCol.className = 'ai-metrics-col';
+
+            const insightsCol = document.createElement('div');
+            insightsCol.className = 'ai-insights-col';
+
+            metricsSection.parentNode.insertBefore(flexRow, metricsSection);
+            metricsCol.appendChild(metricsSection);
+            flexRow.appendChild(metricsCol);
+            flexRow.appendChild(insightsCol);
+
+            const template = document.getElementById('aiInsightsPanelTemplate');
+            insightsCol.innerHTML = template.innerHTML;
+            template.remove();
+
+            document.getElementById('aiFilterTabs').addEventListener('click', function (e) {
+                if (!e.target.classList.contains('ai-filter-tab')) return;
+                document.querySelectorAll('.ai-filter-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                renderInsights(e.target.dataset.filter);
             });
+
+            fetch('/forecast/insights')
+                .then(res => res.json())
+                .then(data => {
+                    allInsights = data.insights || [];
+                    renderInsights('all');
+                })
+                .catch(() => {
+                    document.getElementById('aiInsightsList').innerHTML = '<div class="ai-insights-empty">Unable to load insights right now.</div>';
+                });
+        });
     })();
 </script>
-<div class="container">
-    <x-sidebar />
-
-    <div class="main">
         <div class="header">
             <div>
                 <div class="welcome-text">Welcome back,</div>
@@ -235,7 +296,7 @@
         <div class="header-divider"></div>
 
         <div class="page-title-row">
-            <h2 class="page-title">AI-Assisted Medicine Inventory Forecasting</h2>
+            <h2 class="page-title">AI-Assisted Medicine Inventory Forecasting
         </div>
 
         <div class="method-strip">

@@ -918,19 +918,7 @@ input[type="file"].custom-file-input::file-selector-button:hover {
                         confirmButtonColor: '#1A73E8'
                     });
                 } else {
-                    Swal.fire({
-                        title: 'Register Patient?',
-                        text: "Are you sure you want to save this patient's record?",
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonColor: '#1A73E8',
-                        cancelButtonColor: '#6B7280',
-                        confirmButtonText: 'Yes, register'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            form.submit(); 
-                        }
-                    });
+                    openReviewModal();
                 }
             });
         }
@@ -975,6 +963,129 @@ input[type="file"].custom-file-input::file-selector-button:hover {
             });
         });
     });
+</script>
+<style>
+    .review-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 3000; align-items: center; justify-content: center; padding: 20px; }
+    .review-modal-backdrop.show { display: flex; }
+    .review-modal-box { background: #fff; width: 100%; max-width: 780px; max-height: 90vh; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 48px rgba(0,0,0,0.22); }
+    .review-modal-header { padding: 24px 32px 18px; border-bottom: 1px solid #E5E7EB; }
+    .review-modal-title { font-size: 19px; font-weight: 700; color: #111827; margin: 0; }
+    .review-modal-subtitle { font-size: 12.5px; color: #6B7280; margin-top: 5px; line-height: 1.5; }
+    .review-modal-body { overflow-y: auto; flex: 1; padding: 26px 32px; background: #F9FAFB; }
+    .review-section { background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; padding: 20px 22px; margin-bottom: 18px; }
+    .review-section:last-child { margin-bottom: 0; }
+    .review-section-title { font-size: 12px; font-weight: 700; color: #1A73E8; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid #EEF2F6; }
+    .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; }
+    .review-item { display: flex; flex-direction: column; }
+    .review-item.full-width { grid-column: 1 / -1; }
+    .review-label { font-size: 10.5px; color: #9CA3AF; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+    .review-value { font-size: 14px; color: #111827; font-weight: 500; word-break: break-word; line-height: 1.4; }
+    .review-value.empty { color: #C4C9D1; font-style: italic; font-weight: 400; }
+    .review-modal-footer { padding: 16px 26px; border-top: 1px solid #E5E7EB; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    .review-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13.5px; cursor: pointer; border: none; }
+    .review-btn-cancel { background: #fff; color: #6B7280; border: 1px solid #D1D5DB; }
+    .review-btn-cancel:hover { background: #F3F4F6; }
+    .review-btn-edit { background: #F3F4F6; color: #374151; }
+    .review-btn-edit:hover { background: #E5E7EB; }
+    .review-btn-confirm { background: #1A73E8; color: #fff; }
+    .review-btn-confirm:hover { background: #1557B0; }
+    @media (max-width: 600px) { .review-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div id="reviewConfirmModal" class="review-modal-backdrop">
+    <div class="review-modal-box">
+        <div class="review-modal-header">
+            <h3 class="review-modal-title">Review &amp; Confirm Patient Information</h3>
+            <div class="review-modal-subtitle">Please review all details below before saving. The patient will only be registered after you click Confirm &amp; Register.</div>
+        </div>
+        <div class="review-modal-body" id="reviewModalBody"></div>
+        <div class="review-modal-footer">
+            <button type="button" class="review-btn review-btn-cancel" onclick="closeReviewModal()">Back / Cancel</button>
+            <button type="button" class="review-btn review-btn-edit" onclick="closeReviewModal()">Edit</button>
+            <button type="button" class="review-btn review-btn-confirm" onclick="confirmAndRegister()">Confirm & Register</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const REVIEW_SECTIONS = [
+        {
+            title: 'Personal Information',
+            fields: [
+                ['last_name', 'Last Name'], ['first_name', 'First Name'], ['middle_initial', 'Middle Initial'],
+                ['dob', 'Date of Birth'], ['gender', 'Gender'], ['civil_status', 'Civil Status'],
+                ['pob', 'Place of Birth'], ['religion', 'Religion'], ['educational_attainment', 'Educational Attainment'],
+                ['osca_pwd_no', 'OSCA/PWD No.'], ['four_ps_no', '4Ps No.'],
+            ]
+        },
+        {
+            title: 'Contact & Address',
+            fields: [
+                ['address', 'Address'], ['barangay', 'Barangay'], ['contact_number', 'Contact Number'], ['email', 'Email'],
+            ]
+        },
+        {
+            title: 'Family Information',
+            fields: [
+                ['family_number', 'Family No.'],
+                ['mother_first', "Mother's First Name"], ['mother_middle', "Mother's Middle Name"], ['mother_last', "Mother's Last Name"],
+                ['father_first', "Father's First Name"], ['father_middle', "Father's Middle Name"], ['father_last', "Father's Last Name"],
+            ]
+        },
+        {
+            title: 'PhilHealth Information',
+            fields: [
+                ['philhealth_type', 'PhilHealth Type'], ['philhealth_no_member', 'PhilHealth No. (Member)'],
+                ['philhealth_no_dep', 'PhilHealth No. (Dependent)'], ['philhealth_member_name', 'PhilHealth Member Name'],
+            ]
+        },
+    ];
+
+    function getFieldValue(name) {
+        const el = document.querySelector(`[name="${name}"]`);
+        if (!el) return null;
+        if (el.tagName === 'SELECT') {
+            const opt = el.options[el.selectedIndex];
+            return opt ? opt.textContent.trim() : el.value;
+        }
+        return el.value ? el.value.trim() : '';
+    }
+
+    function openReviewModal() {
+        const body = document.getElementById('reviewModalBody');
+        let html = '';
+
+        REVIEW_SECTIONS.forEach(section => {
+            const items = section.fields.map(([name, label]) => {
+                const value = getFieldValue(name);
+                if (value === null) return '';
+                const display = value ? value : '<span class="review-value empty">Not provided</span>';
+                return `
+                    <div class="review-item">
+                        <span class="review-label">${label}</span>
+                        <span class="review-value">${value ? value : ''}${value ? '' : display}</span>
+                    </div>`;
+            }).join('');
+
+            html += `
+                <div class="review-section">
+                    <div class="review-section-title">${section.title}</div>
+                    <div class="review-grid">${items}</div>
+                </div>`;
+        });
+
+        body.innerHTML = html;
+        document.getElementById('reviewConfirmModal').classList.add('show');
+    }
+
+    function closeReviewModal() {
+        document.getElementById('reviewConfirmModal').classList.remove('show');
+    }
+
+    function confirmAndRegister() {
+        closeReviewModal();
+        document.getElementById('registrationForm').submit();
+    }
 </script>
 </body>
 </html>

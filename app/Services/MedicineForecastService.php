@@ -35,6 +35,15 @@ class MedicineForecastService
      *  enough to cover the forecast period, no extra buffer. */
     const SAFETY_MULTIPLIER = 1.0;
 
+    /**
+     * Dynamic Reorder Level = Average Monthly Demand x Lead Time + Safety Stock.
+     * These are reasonable barangay-health-center defaults since the
+     * system doesn't currently track a real per-supplier lead time.
+     * LEAD_TIME_MONTHS = 0.5 (~15 days), SAFETY_STOCK_UNITS = 20.
+     */
+    const LEAD_TIME_MONTHS = 0.5;
+    const SAFETY_STOCK_UNITS = 20;
+
     public function __construct(
         private InventoryStockService $stockService
     ) {
@@ -164,7 +173,11 @@ class MedicineForecastService
         $estDemand = $demand['estimated_demand'];
         $usableStock = $this->stockService->usableStock($medicine);
         $expiredStock = $this->stockService->expiredStock($medicine);
-        $threshold = (int) ($medicine->threshold ?? 10);
+        // Dynamic Reorder Level = Average Monthly Demand x Lead Time + Safety Stock.
+        // Uses the existing 3-month moving average as demand, so it
+        // automatically recalculates whenever usage data changes -
+        // replaces the old static threshold-of-10 for every medicine.
+        $threshold = (int) round(($estDemand * self::LEAD_TIME_MONTHS) + self::SAFETY_STOCK_UNITS);
 
         // Insufficient data: don't fabricate a forecast for a medicine
         // that hasn't existed long enough to have real history.

@@ -364,7 +364,7 @@ class ReportsController extends Controller
                 ->first();
             $nearestExpiry = $nearestBatch?->expiry_date;
 
-            $reorderLevel = 10;
+            $reorderLevel = app(\App\Services\MedicineForecastService::class)->evaluate($med)['threshold'];
             if ($currentStock <= 0) {
                 $status = 'Stock Out';
             } elseif ($currentStock <= $reorderLevel) {
@@ -891,7 +891,7 @@ class ReportsController extends Controller
 
             $nearestBatch = Batch::where('medicine_id', $med->id)->where('quantity', '>', 0)->orderBy('expiry_date')->first();
             $nearestExpiry = $nearestBatch?->expiry_date;
-            $reorderLevel = 10;
+            $reorderLevel = app(\App\Services\MedicineForecastService::class)->evaluate($med)['threshold'];
 
             if ($currentStock <= 0) $status = 'Out of Stock';
             elseif ($currentStock <= $reorderLevel) $status = 'Low Stock';
