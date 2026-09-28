@@ -132,6 +132,13 @@ class StockController extends Controller
 
                 app(\App\Services\InventoryStockService::class)->syncLegacyColumns($medicine);
 
+                \App\Services\ActivityLogger::log(
+                    'Medicine/batch updated',
+                    'Inventory',
+                    (auth()->user()->name ?? 'Staff') . ' added ' . $request->quantity . ' units to ' . $medicine->name . ', Batch ' . $request->batch_number . '.',
+                    'UPDATE'
+                );
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Stock added successfully! Inventory updated.'
@@ -279,5 +286,33 @@ class StockController extends Controller
         }
 
         return $query->get();
+    }
+
+    /**
+     * Expired batches, for display/tracking on the Stock-Out page.
+     * Purely a traceability list - does NOT affect FEFO, dispensing,
+     * or the medicine-level Stock-Out shortage log, which are based
+     * on TOTAL usable stock across all of a medicine's batches.
+     */
+    public function expiredBatches()
+    {
+        $batches = \App\Models\Batch::with('medicine')
+            ->where('expiry_date', '<', now()->toDateString())
+            ->orderByDesc('expiry_date')
+            ->get()
+            ->map(function ($batch) {
+                return [
+                    'id' => $batch->id,
+                    'medicine_id' => $batch->medicine_id,
+                    'medicine_name' => optional($batch->medicine)->name ?? 'Unknown',
+                    'batch_number' => $batch->batch_number ?? ('#' . $batch->id),
+                    'expiry_date' => \Carbon\Carbon::parse($batch->expiry_date)->format('M d, Y'),
+                    'quantity' => $batch->quantity,
+                    'remarks' => $batch->remarks ?? '',
+                    'created_at' => $batch->created_at,
+                ];
+            });
+
+        return response()->json(['batches' => $batches]);
     }
 }

@@ -456,7 +456,7 @@
                 <div class="patient-meta-grid">
                     <div class="meta-item">
                         <span class="meta-label">Age</span>
-                        <span class="meta-value">{{ $patient->age }} years old</span>
+                        <span class="meta-value">{{ $patient->age_display }}</span>
                     </div>
                     <div class="meta-item">
                         <span class="meta-label">Gender</span>

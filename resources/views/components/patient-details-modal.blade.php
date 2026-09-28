@@ -1353,7 +1353,7 @@ console.log("data.patient_id =", data.patient_id);
                 // General Basic Info
                 document.getElementById('detSex').innerText = data.gender || '---';
                 document.getElementById('detDOB').innerText = data.dob || '---';
-                document.getElementById('detAge').innerText = data.age || '---';
+                document.getElementById('detAge').innerText = data.age_display || '---';
                 document.getElementById('detPOB').innerText = data.pob || '---';
                 document.getElementById('detCivil').innerText = data.civil_status || '---';
                 document.getElementById('detAddress').innerText = data.address || '---';

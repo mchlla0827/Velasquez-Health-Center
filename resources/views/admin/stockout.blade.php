@@ -381,7 +381,6 @@
         <div class="top-actions">
             <h1 class="page-title">Stock-Out Log</h1>
             <div style="font-size: 12.5px; color: #6B7280; font-weight: 500;">
-                Automatically detected from inventory - no manual entry needed
             </div>
         </div>
 
@@ -607,5 +606,237 @@
     }
 </script>
 
+<style>
+    #expiredBatchesSection { margin: 24px 0 0; }
+    .exp-batches-card { background: #fff; border: 1px solid #D1D5DB; border-radius: 10px; overflow: hidden; }
+    .exp-batches-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; }
+    .exp-batches-header { padding: 16px 20px; border-bottom: 1px solid #F1F5F9; }
+    .exp-batches-title { font-size: 15px; font-weight: 700; color: #111827; margin: 0; }
+    .exp-batches-subtitle { font-size: 11.5px; color: #6B7280; margin-top: 3px; }
+    #expiredBatchesTable { width: 100%; border-collapse: collapse; }
+    #expiredBatchesTable th { text-align: left; font-size: 11px; color: #6B7280; padding: 10px 16px; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; text-transform: uppercase; }
+    #expiredBatchesTable td { padding: 12px 16px; border-bottom: 1px solid #F8FAFC; font-size: 12.5px; color: #374151; }
+    #expiredBatchesTable tr:last-child td { border-bottom: none; }
+    .exp-batch-status { display: inline-block; background: #FEE2E2; color: #991B1B; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+    .exp-batches-empty { padding: 30px; text-align: center; color: #9CA3AF; font-size: 12.5px; }
+    .exp-batch-view-btn { color: #1A73E8; font-size: 12.5px; font-weight: 600; text-decoration: none; }
+    .exp-batch-view-btn:hover { text-decoration: underline; }
+</style>
+
+<div id="expiredBatchesSection">
+    <div class="exp-batches-card">
+        <div class="exp-batches-header">
+            <h2 class="exp-batches-title">Expired Batches</h2>
+        </div>
+        <table id="expiredBatchesTable">
+            <thead>
+                <tr>
+                    <th>Medicine</th>
+                    <th>Batch Number</th>
+                    <th>Expiration Date</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="expiredBatchesBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    fetch('/stockout/expired-batches')
+        .then(res => res.json())
+        .then(data => {
+            const body = document.getElementById('expiredBatchesBody');
+            const batches = data.batches || [];
+
+            if (batches.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="exp-batches-empty">No expired batches recorded.</td></tr>';
+                return;
+            }
+
+            window.currentExpiredBatches = batches;
+            body.innerHTML = batches.map((b, idx) => `
+                <tr>
+                    <td style="font-weight:600; color:#111827;">${b.medicine_name}</td>
+                    <td>${b.batch_number}</td>
+                    <td>${b.expiry_date}</td>
+                    <td>${b.quantity}</td>
+                    <td><span class="exp-batch-status">Expired</span></td>
+                    <td><a href="javascript:void(0)" class="exp-batch-view-btn" data-index="${idx}" onclick="handleExpiredViewDetails(this)">View Details</a></td>
+                </tr>
+            `).join('');
+        })
+        .catch(() => {
+            document.getElementById('expiredBatchesBody').innerHTML = '<tr><td colspan="5" class="exp-batches-empty">Unable to load expired batches.</td></tr>';
+        });
+</script>
+<script>
+    // ========== FORCE EXACT WIDTH/ALIGNMENT MATCH with Active Stock-Outs card ==========
+    // Finds the Active Stock-Outs card by its heading text, then copies its
+    // exact rendered width, left position, and horizontal margins onto the
+    // Expired Batches card - guarantees pixel-perfect alignment regardless
+    // of whatever CSS classes/containers are actually in use on this page.
+    function matchExpiredCardWidth() {
+        const expiredCard = document.querySelector('.exp-batches-card');
+        const expiredSection = document.getElementById('expiredBatchesSection');
+        if (!expiredCard || !expiredSection) return;
+
+        // Find the "Active Stock-Outs" heading, then its nearest large-width ancestor card
+        const allEls = document.querySelectorAll('body *');
+        let activeHeading = null;
+        for (const el of allEls) {
+            if (el.children.length === 0 && el.textContent.trim() === 'Active Stock-Outs') {
+                activeHeading = el;
+                break;
+            }
+        }
+        if (!activeHeading) return;
+
+        let activeCard = activeHeading;
+        let parent = activeHeading.parentElement;
+        while (parent && parent.tagName !== 'BODY') {
+            const rect = parent.getBoundingClientRect();
+            if (rect.width > 400) { activeCard = parent; break; }
+            parent = parent.parentElement;
+        }
+
+        const rect = activeCard.getBoundingClientRect();
+        const parentRect = expiredSection.parentElement.getBoundingClientRect();
+
+        expiredSection.style.width = rect.width + 'px';
+        expiredSection.style.marginLeft = (rect.left - parentRect.left) + 'px';
+        expiredSection.style.marginTop = '20px';
+        expiredSection.style.maxWidth = 'none';
+    }
+
+    window.addEventListener('load', matchExpiredCardWidth);
+    window.addEventListener('resize', matchExpiredCardWidth);
+</script>
+<style>
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999; opacity: 0; transition: opacity 0.2s ease; }
+    .modal-overlay.show { display: flex; opacity: 1; }
+    .modal { background: white; border-radius: 12px; width: 90%; max-width: 900px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .stock-card-modal { max-height: calc(100vh - 32px); padding: 0; border: 1px solid #E5E7EB; border-radius: 12px; box-shadow: 0 20px 35px rgba(15,23,42,0.16); overflow-y: auto; margin: auto; }
+    .stock-card-modal .modal-header { padding: 20px 24px; border-bottom: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: flex-start; }
+    .stock-card-modal .modal-title { font-size: 18px; font-weight: 700; color: #111827; }
+    .stock-card-modal .modal-subtitle { font-size: 13px; color: #64748B; }
+    .stock-card-modal .close-btn { cursor: pointer; font-size: 22px; color: #64748B; line-height: 1; }
+    .stock-card-modal .close-btn:hover { color: #111827; background: #F1F5F9; border-radius: 6px; }
+    .stock-card-content { padding: 18px 24px; }
+    .stock-card-heading { text-align: center; margin-bottom: 14px; }
+    .stock-card-heading .gov-sub-title { font-size: 11px; color: #64748B; letter-spacing: 0.08em; font-weight: 600; text-transform: uppercase; }
+    .stock-card-heading .gov-main-title { font-size: 15px; color: #111827; font-weight: 700; margin-top: 5px; text-transform: uppercase; }
+    .stock-card-metadata { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px 24px; padding: 14px 16px; background: #FAFAFA; border: 1px solid #E5E7EB; border-radius: 8px; }
+    .stock-card-metadata .meta-row { display: flex; align-items: center; gap: 9px; padding-bottom: 7px; border-bottom: 1px solid #E5E7EB; }
+    .stock-card-metadata .meta-row:nth-last-child(-n+2) { border-bottom: 0; padding-bottom: 0; }
+    .stock-card-metadata .meta-icon { width: 16px; height: 16px; flex: 0 0 auto; color: #2563EB; }
+    .stock-card-metadata .meta-label { color: #64748B; font-weight: 600; }
+    .stock-card-metadata .meta-value { margin-left: auto; color: #111827; font-weight: 600; text-align: right; }
+    .stock-card-table-wrap { margin-top: 16px; overflow-x: auto; border: 1px solid #E5E7EB; border-radius: 8px; }
+    .stock-card-table { width: 100%; min-width: 560px; border-collapse: collapse; table-layout: fixed; }
+    .stock-card-table th, .stock-card-table td { padding: 10px 12px; border-bottom: 1px solid #E5E7EB; }
+    .stock-card-table th { background: #FFFFFF; color: #475569; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; text-align: left; }
+    .stock-card-table td { color: #334155; font-size: 13px; }
+    .stock-card-table tbody tr:last-child td { border-bottom: 0; }
+    .stock-card-table .received-value { color: #16A34A; font-weight: 700; }
+    .stock-card-table .issued-value { color: #DC2626; font-weight: 700; }
+    .stock-card-table .balance-value { color: #2563EB; font-weight: 700; }
+    .stock-card-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
+    .stock-card-actions .print-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #CBD5E1; border-radius: 7px; padding: 9px 14px; background: #FFFFFF; color: #334155; font-weight: 600; cursor: pointer; }
+    .stock-card-actions .print-btn:hover { background: #F8FAFC; border-color: #94A3B8; }
+    .stock-card-actions .print-icon { width: 16px; height: 16px; color: #2563EB; }
+    .btn-close { background-color: #E5E7EB; color: #374151; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-close:hover { background: rgb(182,182,182); }
+</style>
+
+<!-- ========== THE ACTUAL EXISTING STOCK CARD MODAL (copied verbatim from Medicine Inventory) ========== -->
+<div class="modal-overlay" id="stockCardModal">
+    <div class="modal stock-card-modal">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title" id="sc-title">Stock Card —</div>
+                <div class="modal-subtitle" id="sc-batch">Batch: —</div>
+            </div>
+            <div class="close-btn" onclick="closeStockCard()">&times;</div>
+        </div>
+        <div class="stock-card-content">
+            <div class="stock-card-heading">
+                <div class="gov-sub-title">Republic of the Philippines</div>
+                <div class="gov-main-title">Barangay Health Center — Stock Card</div>
+            </div>
+            <div class="stock-card-metadata">
+                <div class="meta-row"><span class="meta-label">Item Description</span><span class="meta-value" id="sc-item">—</span></div>
+                <div class="meta-row"><span class="meta-label">Expiration Date</span><span class="meta-value" id="sc-expiry">—</span></div>
+                <div class="meta-row"><span class="meta-label">Batch Number</span><span class="meta-value" id="sc-batchnum">—</span></div>
+                <div class="meta-row"><span class="meta-label">Entity Name</span><span class="meta-value">Velasquez Health Center</span></div>
+                <div class="meta-row"><span class="meta-label">Mode</span><span class="meta-value mode-val">—</span></div>
+            </div>
+            <div class="stock-card-table-wrap">
+                <table class="stock-card-table">
+                    <thead>
+                        <tr>
+                            <th>DATE</th>
+                            <th style="color:#16A34A;">RECEIVED</th>
+                            <th style="color:#DC2626;">ISSUED</th>
+                            <th style="color:#2563EB;">BALANCE</th>
+                            <th>REMARKS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sc-table-body"></tbody>
+                </table>
+            </div>
+            <div class="stock-card-actions">
+                <button type="button" class="print-btn" onclick="window.print()">Print</button>
+                <button type="button" class="btn-close" onclick="closeStockCard()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== REAL Stock Card functions, copied verbatim from Medicine Inventory ==========
+    function viewBatch(medicineName, batchString) {
+        let batch;
+        try { batch = JSON.parse(batchString); }
+        catch (e) { batch = batchString; }
+
+        const modal = document.getElementById("stockCardModal");
+        if (!modal) return;
+        modal.style.display = "flex";
+        setTimeout(() => modal.classList.add("show"), 10);
+
+        document.getElementById("sc-title").innerText = "Stock Card - " + medicineName;
+        document.getElementById("sc-batch").innerText = "Batch: " + batch.batch_number;
+        document.getElementById("sc-item").innerText = medicineName;
+        document.getElementById("sc-expiry").innerText = batch.expiry_date || "Not Set";
+        document.getElementById("sc-batchnum").innerText = batch.batch_number;
+        document.querySelector('#stockCardModal .mode-val').innerText = batch.remarks || "Not Specified";
+
+        document.getElementById("sc-table-body").innerHTML = `
+            <tr>
+                <td>${new Date(batch.created_at).toLocaleDateString()}</td>
+                <td class="received-value">${batch.quantity}</td>
+                <td class="issued-value">0</td>
+                <td class="balance-value">${batch.quantity}</td>
+                <td>${batch.remarks || 'Initial Stock Entry'}</td>
+            </tr>
+        `;
+    }
+
+    function handleExpiredViewDetails(el) {
+        const idx = parseInt(el.getAttribute('data-index'), 10);
+        const batch = window.currentExpiredBatches[idx];
+        if (!batch) return;
+        viewBatch(batch.medicine_name, JSON.stringify(batch));
+    }
+
+    function closeStockCard() {
+        const modal = document.getElementById("stockCardModal");
+        modal.classList.remove("show");
+        setTimeout(() => modal.style.display = "none", 200);
+    }
+</script>
 </body>
 </html>

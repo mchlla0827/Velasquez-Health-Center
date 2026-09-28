@@ -383,8 +383,10 @@ td b { color: #111827; }
                     <tr>
                         <th>DATE & TIME</th>
                         <th>USER</th>
+                        <th>ROLE</th>
                         <th>ACTION</th>
-                        <th>DETAILS</th>
+                        <th>MODULE</th>
+                        <th>DESCRIPTION</th>
                         <th>TYPE</th>
                     </tr>
                 </thead>
@@ -394,7 +396,9 @@ td b { color: #111827; }
                         <tr>
                             <td>{{ $log->created_at->format('Y-m-d h:i A') }}</td>
                             <td><b>{{ $log->user_name }}</b></td>
+                            <td>{{ $log->role ? ucfirst($log->role) : '-' }}</td>
                             <td>{{ $log->action }}</td>
+                            <td>{{ $log->module ?? '-' }}</td>
                             <td>{{ $log->details }}</td>
                             <td>
                                 <span class="badge {{ strtolower($log->type) }}">

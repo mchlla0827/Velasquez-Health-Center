@@ -61,7 +61,7 @@
                 <tr>
                     <td>{{ $row->patient_id }}</td>
                     <td>{{ $row->name }}</td>
-                    <td>{{ $row->age }}</td>
+                    <td>{{ $row->age_display }}</td>
                     <td>{{ $row->sex }}</td>
                     <td>{{ $row->registration_date }}</td>
                     <td>

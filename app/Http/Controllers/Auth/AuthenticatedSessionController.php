@@ -30,6 +30,8 @@ class AuthenticatedSessionController extends Controller
         $user->last_login_at = now();
         $user->save();
 
+        \App\Services\ActivityLogger::log('Logged in', 'Authentication', $user->name . ' logged into the system.', 'LOGIN');
+
         $this->setSessionData($user);
 
         return $this->redirectBasedOnRole($user);
@@ -69,13 +71,9 @@ class AuthenticatedSessionController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
-        if (session('is_admin_logged_in')) {
-            ActivityLog::create([
-                'user_name' => session('admin_name'),
-                'action'    => 'Logged out',
-                'details'   => 'User logged out of the system',
-                'type'      => 'LOGOUT',
-            ]);
+        $currentUser = Auth::user();
+        if ($currentUser) {
+            \App\Services\ActivityLogger::log('Logged out', 'Authentication', $currentUser->name . ' logged out of the system.', 'LOGOUT');
         }
 
         Auth::guard('web')->logout();

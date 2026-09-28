@@ -156,7 +156,7 @@
         </a>
 
         <a href="{{ $__baseUrl }}/risk" class="action-card">
-            <img src="/icons/AI-forecast.png" width="30">
+            <img src="/icons/AI-Forecast.png" width="30">
             <div>
                 <span>Patient Risk Reports</span>
             </div>

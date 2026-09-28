@@ -576,6 +576,7 @@ class ReportsController extends Controller
                 'patient_id' => $p->patient_id,
                 'name' => trim("{$p->first_name} {$p->middle_name} {$p->last_name}"),
                 'age' => $p->age,
+                'age_display' => $p->age_display,
                 'sex' => $p->gender,
                 'registration_date' => $p->created_at ? $p->created_at->format('M d, Y') : '-',
                 'status' => $status,

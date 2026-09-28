@@ -374,9 +374,6 @@
                             <a href="javascript:void(0)" class="view-link" onclick="openPatientModal({{ $patient->id }})">
                                 <img src="/icons/view-details.png" width="16" alt="View"> View Details
                             </a>
-                        @if ($patient->isArchiveEligible())
-                            <a href="javascript:void(0)" class="view-link" style="color:#B45309; margin-left:10px;" onclick="confirmArchive({{ $patient->id }}, '{{ addslashes($patient->last_name . ', ' . $patient->first_name) }}')">Archive (Eligible)</a>
-                        @endif
                         </td>
                     </tr>
                     @empty
@@ -501,26 +498,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (viewPatientId) {
         openPatientModal(viewPatientId, tab);
-
-    function confirmArchive(patientId, patientName) {
-        Swal.fire({
-            title: 'Archive Patient?',
-            html: `<b>${patientName}</b> has had no recorded activity for 5+ years.<br>Their complete record and history will be preserved and can be restored later.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Archive',
-            confirmButtonColor: '#B45309'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/patients/${patientId}/archive`;
-                form.innerHTML = `@csrf`;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
 
         @if (session('success'))
             Swal.fire({

@@ -171,7 +171,7 @@
 
             <a class="nav-item {{ Request::is("$roleLower/forecast*") ? 'active' : '' }}"
                href="/{{ $roleLower }}/forecast">
-                <img src="/icons/AI-forecast.png" class="nav-icon">
+                <img src="/icons/AI-Forecast.png" class="nav-icon">
                 AI Forecast
             </a>
 

@@ -217,6 +217,13 @@ class ConsultationController extends Controller
 
         $role = strtolower(auth()->user()->role);
 
+        \App\Services\ActivityLogger::log(
+            'Consultation created',
+            'Medical Records',
+            (auth()->user()->name ?? 'Staff') . ' recorded a consultation for patient: ' . $patient->first_name . ' ' . $patient->last_name . '.',
+            'CREATE'
+        );
+
         return redirect()
             ->route($role . '.patient-records', [
                 'view_patient' => $patient->id,

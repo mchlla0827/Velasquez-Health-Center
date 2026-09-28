@@ -291,8 +291,8 @@ input[type="file"].custom-file-input::file-selector-button:hover {
                     <span class="error-msg">Address is required.</span>
                 </div>
             <div class="req-field">
-                <label>Proof of Residency / Residency ID <span class="required">*</span></label>
-                <input type="file" name="residency_proof" id="residency_proof" class="custom-file-input" accept="image/jpeg,image/jpg,image/png" required>
+                <label>Proof of Residency / Residency ID</label>
+                <input type="file" name="residency_proof" id="residency_proof" class="custom-file-input" accept="image/jpeg,image/jpg,image/png">
                 <span style="display:block; font-size: 11px; color: #9CA3AF; margin-top: 5px;">Accepted formats: JPG, JPEG, PNG</span>
                 @error('residency_proof')
                     <span class="error-msg" style="display:block;">{{ $message }}</span>
@@ -312,7 +312,7 @@ input[type="file"].custom-file-input::file-selector-button:hover {
                 </div>
                 <div class="opt-field">
                     <label>Family #</label>
-                    <input type="text" name="family_number" value="{{ $nextFamilyId }}" readonly style="background: #f4f6f9; color: #2b2d42; font-weight: bold; border: 1px solid #ced4da;">
+                    <input type="text" name="family_number" value="" style="background: #f4f6f9; color: #2b2d42; font-weight: bold; border: 1px solid #ced4da;">    
                 </div>
                 <div class="req-field">
                     <label>Contact No <span class="required">*</span></label>

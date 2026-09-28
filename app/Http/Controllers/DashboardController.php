@@ -20,7 +20,16 @@ public function index()
     $patientsToday = Patient::whereDate('created_at', today())->latest()->get();
     $patientsTodayCount = $patientsToday->count();
 
-    $lowStockMedicines = Medicine::whereColumn('stock', '<=', 'threshold')->select('id', 'name', 'stock')->get();
+    // Matches the EXACT same definition Medicine Inventory itself uses
+    // for its own Critical/Low Stock counts (total_stock accessor,
+    // <=20 = Critical, 21-100 = Low), so the two pages can never
+    // disagree. The old whereColumn('stock', '<=', 'threshold') used a
+    // completely different, unrelated static column.
+    $lowStockMedicines = Medicine::all()->filter(function ($med) {
+        return $med->total_stock <= 50; // Matches Medicine Inventory's actual per-row Status badge logic: <=50 = Critical, 51-100 = Low, >100 = Normal
+    })->map(function ($med) {
+        return (object) ['id' => $med->id, 'name' => $med->name, 'stock' => $med->total_stock];
+    })->values();
     $recentPatients = Patient::latest()->take(4)->get();
     $totalRegisteredPatients = Patient::count();
 

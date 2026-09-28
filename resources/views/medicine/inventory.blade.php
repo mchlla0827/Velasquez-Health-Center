@@ -1390,7 +1390,6 @@ $canDelete = ($role === 'admin');
         const modal = document.getElementById("stockCardModal");
         const medicineModal = document.getElementById("medicineModal");
 
-        // Detach the stock card from the medicine modal so it can open independently.
         if (modal && modal.parentElement !== document.body) {
             document.body.appendChild(modal);
         }
@@ -1410,15 +1409,26 @@ $canDelete = ($role === 'admin');
         document.getElementById("sc-batchnum").innerText = batch.batch_number;
         document.querySelector('#stockCardModal .mode-val').innerText = batch.remarks || "Not Specified";
 
-        document.getElementById("sc-table-body").innerHTML = `
-            <tr>
-                <td>${new Date(batch.created_at).toLocaleDateString()}</td>
-                <td class="received-value">${batch.quantity}</td>
-                <td class="issued-value">0</td>
-                <td class="balance-value">${batch.quantity}</td>
-                <td>${batch.remarks || 'Initial Stock Entry'}</td>
-            </tr>
-        `;
+        document.getElementById("sc-table-body").innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#9CA3AF;">Loading...</td></tr>`;
+
+        if (!batch.id) return;
+
+        fetch(`/batches/${batch.id}/stock-card`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("sc-table-body").innerHTML = data.rows.map(r => `
+                    <tr>
+                        <td>${r.date}</td>
+                        <td class="received-value">${r.received || ''}</td>
+                        <td class="issued-value">${r.issued || ''}</td>
+                        <td class="balance-value">${r.balance}</td>
+                        <td>${r.remarks}</td>
+                    </tr>
+                `).join('');
+            })
+            .catch(() => {
+                document.getElementById("sc-table-body").innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#9CA3AF;">Unable to load stock card history.</td></tr>`;
+            });
     }
 
     function closeStockCard() {
@@ -1494,9 +1504,9 @@ function closeEditStockModal() {
             let show = true;
 
             if (type === "low") {
-                show = stock <= 100 && stock > 20;
+                show = stock > 50 && stock <= 100;
             } else if (type === "critical") {
-                show = stock <= 20;
+                show = stock <= 50;
             } else if (type === "expiry") {
                 if (!expiry) {
                     show = false;
@@ -1526,9 +1536,9 @@ function closeEditStockModal() {
             let matchesFilter = true;
 
             if (filterType === "low") {
-                matchesFilter = stock <= 100 && stock > 20;
+                matchesFilter = stock > 50 && stock <= 100;
             } else if (filterType === "critical") {
-                matchesFilter = stock <= 20;
+                matchesFilter = stock <= 50;
             } else if (filterType === "expiry") {
                 if (!expiry) {
                     matchesFilter = false;
@@ -1562,30 +1572,7 @@ function closeEditStockModal() {
             });
         }
 
-        const addForm = document.querySelector('#addMedicineModal form');
-        if(addForm){
-            addForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const form = this;
-                const nameInput = document.getElementById('new_med_name');
-                const errorMsg = document.getElementById('med_name_error');
-
-                fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(async response => {
-                    if (response.status === 422) {
-                        if(nameInput) nameInput.style.border = "2px solid #EF4444";
-                        if(nameInput) nameInput.style.backgroundColor = "#FFF5F5";
-                        if(errorMsg) errorMsg.style.display = "block";
-                    } else {
-                        window.location.href = window.location.pathname + "?success_med=1";
-                    }
-                });
-            });
-        }
+        // Duplicate handler removed - addMedicineForm submit is handled once, later in this file.
     });
 </script>
 <body>
@@ -1665,10 +1652,10 @@ foreach ($medicines as $medicine) {
 
     $stock = $medicine->total_stock ?? 0;
 
-    // Low: 21-100, Critical: <=20
-    if ($stock <= 100 && $stock > 20) {
+    // Low: 51-100, Critical: <=50 (matches the per-row Status badge logic used further down this same page)
+    if ($stock <= 100 && $stock > 50) {
         $lowStock++;
-    } elseif ($stock <= 20) {
+    } elseif ($stock <= 50) {
         $criticalStock++;
     }
 
@@ -2387,7 +2374,19 @@ function openModal(id, name, brand, strength, stock, batches) {
     if (batches.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">No stock available yet.</td></tr>`;
     } else {
-        batches.forEach((batch) => {
+        // Out-of-stock batches (quantity <= 0) are grouped into their own
+        // "Stock Out" section below the active/available batches, instead
+        // of being interleaved with them - so a depleted batch is no
+        // longer presented as an available batch. Expired-but-still-
+        // in-stock batches stay in the active list with their own
+        // "EXPIRED" label further below; this only regroups by quantity,
+        // it never changes what counts as expired.
+        const activeBatches = batches.filter(b => !(b.quantity <= 0));
+        const outOfStockBatches = batches.filter(b => b.quantity <= 0);
+        const orderedBatches = activeBatches.concat(outOfStockBatches);
+        let outOfStockHeaderInserted = false;
+
+        orderedBatches.forEach((batch) => {
             let status = "ACTIVE";
             let statusClass = "status-ok"; // or "status-normal"
             
@@ -2400,6 +2399,14 @@ function openModal(id, name, brand, strength, stock, batches) {
             if (batch.quantity <= 0) {
                 status = "OUT OF STOCK";
                 statusClass = "status-critical";
+
+                if (!outOfStockHeaderInserted) {
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td colspan="5" style="background:#FEF2F2; color:#991B1B; font-weight:700; font-size:12px; text-transform:uppercase; padding:8px 12px;">Out of Stock</td>
+                        </tr>`;
+                    outOfStockHeaderInserted = true;
+                }
             } 
             // 2. Check expiration status
             else if (diffDays < 0) { 
@@ -2654,5 +2661,67 @@ document.querySelectorAll('.delete-medicine-form').forEach(form => {
 </script>
 
 
+<script>
+    // ========== HIDE EXPIRED BATCHES FROM DISPLAY (moved to Stock-Out) ==========
+    // Works regardless of whether batch rows come from Blade or AJAX,
+    // since it scans the actually-rendered table for "EXPIRED" status
+    // text and hides those rows. Does not touch FEFO/dispensing logic.
+    function hideExpiredBatchRows(container) {
+        const rows = (container || document).querySelectorAll('tr');
+        rows.forEach(row => {
+            const text = row.textContent || '';
+            if (/\bEXPIRED\b/.test(text) && !/EXPIRING/.test(text)) {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        hideExpiredBatchRows(document);
+
+        // Re-apply whenever a modal opens or content changes dynamically
+        // (covers AJAX-loaded "View Details" batch tables).
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(m => {
+                if (m.addedNodes && m.addedNodes.length) {
+                    hideExpiredBatchRows(document);
+                }
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+</script>
+<script>
+    // ========== AUTO-OPEN a medicine's View Details from ?view_medicine=NAME ==========
+    // Used by the Expired Batches "View Details" link on the Stock-Out page.
+    // Finds the row/link matching the medicine name and clicks it
+    // programmatically, reusing whatever existing click handler already
+    // opens that modal - no need to know its internal function name.
+    function autoOpenMedicineFromQueryParam() {
+        const params = new URLSearchParams(window.location.search);
+        const targetName = params.get('view_medicine');
+        if (!targetName) return;
+
+        const decoded = decodeURIComponent(targetName).trim().toLowerCase();
+
+        const candidates = document.querySelectorAll('a, button, tr, [onclick]');
+        for (const el of candidates) {
+            const text = (el.textContent || '').trim().toLowerCase();
+            if (text.includes(decoded) || decoded.includes(text)) {
+                // Prefer clicking a "View Details" link/button within the same row
+                const row = el.closest('tr') || el;
+                const viewLink = row.querySelector('a, button') || el;
+                if (viewLink && typeof viewLink.click === 'function') {
+                    viewLink.click();
+                    return;
+                }
+            }
+        }
+    }
+
+    window.addEventListener('load', function () {
+        setTimeout(autoOpenMedicineFromQueryParam, 300);
+    });
+</script>
 </body>
 </html>

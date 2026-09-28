@@ -34,7 +34,8 @@ class MedicineController extends Controller
     $medicines = Medicine::with([
         'batches' => function ($query) {
             $query
-                ->orderBy('expiry_date')
+                ->where('expiry_date', '>=', now()->toDateString())
+                    ->orderBy('expiry_date')
                 ->orderBy('id');
         }
     ])
@@ -237,7 +238,7 @@ class MedicineController extends Controller
         ]);
 
         try {
-            $resultMessage = DB::transaction(function () use ($validated) {
+            $resultMessage = DB::transaction(function () use ($validated, $role) {
                 $medicine = Medicine::query()
                     ->lockForUpdate()
                     ->findOrFail($validated['medicine_id']);
@@ -318,6 +319,16 @@ class MedicineController extends Controller
                     $remaining -= $deducted;
                 }
 
+                if ($dispenseQty > 0) {
+                    $batchNumbers = $batches->filter(fn($b) => $b->quantity < $b->getOriginal('quantity'))->pluck('batch_number')->implode(', ');
+                    \App\Services\ActivityLogger::log(
+                        'Medicine dispensed',
+                        'Inventory',
+                        ucfirst($role) . ' ' . (Auth::user()->name ?? 'Staff') . ' dispensed ' . $dispenseQty . ' ' . $medicine->name . ($batchNumbers ? ' from Batch ' . $batchNumbers : '') . ' to patient ' . $validated['patient_name'] . '.',
+                        'DISPENSE'
+                    );
+                }
+
                 $totalDispensedForRx = $prescription->quantity_dispensed + $dispenseQty;
                 $prescription->quantity_dispensed = $totalDispensedForRx;
                 $prescription->unfulfilled_quantity = max(0, $prescription->quantity - $totalDispensedForRx);
@@ -365,7 +376,7 @@ class MedicineController extends Controller
 
             return back()
                 ->withInput()
-                ->with('error', 'Unable to dispense medicine. Please try again.');
+                ->with('error', 'DEBUG: ' . $exception->getMessage() . ' | FILE: ' . $exception->getFile() . ' LINE: ' . $exception->getLine());
         }
     }
 
@@ -561,6 +572,13 @@ class MedicineController extends Controller
 
         Medicine::create($validated);
 
+        \App\Services\ActivityLogger::log(
+            'Medicine added',
+            'Inventory',
+            (Auth::user()->name ?? 'Staff') . ' added new medicine to inventory: ' . $validated['name'] . ' ' . $validated['dosage_strength'] . '.',
+            'CREATE'
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Medicine saved successfully.',
@@ -579,5 +597,82 @@ class MedicineController extends Controller
             ?? Auth::user()?->role
             ?? 'bhw'
         );
+    }
+
+    /**
+     * Full Stock Card data for one medicine - ALL its batches (including
+     * expired, unlike the main Inventory list), for use by any modal
+     * that needs to show a specific medicine/batch, such as the
+     * Expired Batches "View Details" action on the Stock-Out page.
+     */
+    public function stockCard($id)
+    {
+        $medicine = \App\Models\Medicine::findOrFail($id);
+        return response()->json(['medicine_name' => $medicine->name]);
+    }
+
+    /**
+     * Full Stock Card history for ONE SPECIFIC BATCH.
+     *
+     * StockTransaction OUT records are matched to this exact batch via
+     * (medicine_id, batch_number) - StockTransaction doesn't have a
+     * batch_id column, but batch_number is written on every dispense
+     * (see dispenseSave()), so this is a reliable, exact match to this
+     * one batch - not the medicine in general.
+     *
+     * batches.quantity is the CURRENT remaining amount (decremented on
+     * every dispense), so the original "Received" amount is
+     * reconstructed as current quantity + everything already
+     * dispensed from this batch - real data, not fabricated.
+     */
+    public function batchStockCard($batchId)
+    {
+        $batch = \App\Models\Batch::findOrFail($batchId);
+        $medicine = \App\Models\Medicine::find($batch->medicine_id);
+
+        $outTransactions = \App\Models\StockTransaction::where('medicine_id', $batch->medicine_id)
+            ->where('batch_number', $batch->batch_number)
+            ->where('type', 'OUT')
+            ->orderBy('created_at')
+            ->get();
+
+        $totalIssued = (int) $outTransactions->sum('quantity');
+        $originalReceived = (int) $batch->quantity + $totalIssued;
+
+        $dailyIssued = $outTransactions->groupBy(fn ($t) => $t->created_at->format('Y-m-d'));
+
+        $rows = [];
+        $runningBalance = $originalReceived;
+
+        $rows[] = [
+            'date' => $batch->created_at->format('M d, Y'),
+            'received' => $originalReceived,
+            'issued' => 0,
+            'balance' => $runningBalance,
+            'remarks' => $batch->remarks ?: 'Initial Stock Entry',
+        ];
+
+        foreach ($dailyIssued->keys()->sort() as $dateKey) {
+            $dayTransactions = $dailyIssued[$dateKey];
+            $dayTotal = (int) $dayTransactions->sum('quantity');
+            $runningBalance -= $dayTotal;
+
+            $rows[] = [
+                'date' => \Carbon\Carbon::parse($dateKey)->format('M d, Y'),
+                'received' => 0,
+                'issued' => $dayTotal,
+                'balance' => $runningBalance,
+                'remarks' => 'Dispensed',
+            ];
+        }
+
+        return response()->json([
+            'medicine_name' => $medicine->name ?? 'Unknown',
+            'dosage' => $medicine->dosage_strength ?? '',
+            'batch_number' => $batch->batch_number,
+            'expiry_date' => \Carbon\Carbon::parse($batch->expiry_date)->format('M d, Y'),
+            'remarks' => $batch->remarks ?: 'Not Specified',
+            'rows' => $rows,
+        ]);
     }
 }

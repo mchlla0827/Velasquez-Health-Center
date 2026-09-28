@@ -139,6 +139,7 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
         
         Route::delete('/medicine/delete/{id}', [MedicineController::class, 'destroy'])->name('medicine.delete');
+    Route::delete('/users/delete/{id}', [RegisteredUserController::class, 'destroy'])->name('users.destroy');
     });
 
 
@@ -244,6 +245,9 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
     Route::put('/patients/{id}', [PatientController::class, 'update'])->name('patients.update');
     Route::put('/dispense/{id}', [MedicineController::class, 'updateDispense'])->name('dispense.update');
     Route::get('/stockout/{id}/details', [StockController::class, 'stockoutDetails'])->name('stockout.details');
+    Route::get('/stockout/expired-batches', [StockController::class, 'expiredBatches'])->name('stockout.expired-batches');
+    Route::get('/batches/{id}/stock-card', [MedicineController::class, 'batchStockCard'])->name('batch.stock-card');
+    Route::get('/patients/{id}/residency-proof', [PatientController::class, 'serveResidencyProof'])->name('patients.residency-proof');
     Route::get('/reports/export/patient', [ReportsController::class, 'exportPatient'])->name('reports.export.patient');
     Route::get('/reports/export/risk', [ReportsController::class, 'exportRisk'])->name('reports.export.risk');
     Route::get('/reports/export/medicine', [ReportsController::class, 'exportMedicine'])->name('reports.export.medicine');

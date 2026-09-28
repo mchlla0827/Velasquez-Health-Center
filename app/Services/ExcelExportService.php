@@ -78,6 +78,12 @@ class ExcelExportService
         ?string $statusColumn = null,
         string $filename = 'report'
     ): StreamedResponse {
+        \App\Services\ActivityLogger::log(
+            'Report exported',
+            'Reports',
+            (auth()->user()->name ?? 'Staff') . ' exported the "' . $reportTitle . '" as an Excel file.',
+            'EXPORT'
+        );
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Report');

@@ -556,6 +556,14 @@ document.getElementById('editRole').addEventListener('change', function() {
     updateRoleInfo(this.value);
 });
 
+// ========== SESSION MESSAGES (success/error from redirects, e.g. Delete User) ==========
+@if(session('success'))
+    Swal.fire({ icon: 'success', title: 'Success', text: {!! json_encode(session('success')) !!} });
+@endif
+@if(session('error'))
+    Swal.fire({ icon: 'error', title: 'Error', text: {!! json_encode(session('error')) !!} });
+@endif
+
 // ========== ACTIONS ==========
 function sendResetEmail() {
     Swal.fire({
@@ -579,7 +587,12 @@ function confirmDelete(userId) {
         confirmButtonText: 'Yes, Delete User'
     }).then(result => {
         if (result.isConfirmed) {
-            window.location.href = `/admin/users/delete/${userId}`;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin/users/delete/${userId}`;
+            form.innerHTML = `@csrf @method('DELETE')`;
+            document.body.appendChild(form);
+            form.submit();
         }
     });
 }

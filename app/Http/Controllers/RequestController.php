@@ -123,6 +123,13 @@ class RequestController extends Controller
             ]);
         }
 
+        \App\Services\ActivityLogger::log(
+            'Restock request created',
+            'Restock Requests',
+            $user->name . ' submitted a restock request for ' . count($validated['medicine_id']) . ' medicine(s).',
+            'CREATE'
+        );
+
         return redirect()->route('nurse.request')->with('success', 'Request submitted successfully.');
     }
 
@@ -142,6 +149,15 @@ class RequestController extends Controller
         $req->approved_by = Auth::id();
         $req->physician_notes = $request->physician_notes ?? null;
         $req->save();
+
+        $medicineName = optional(\App\Models\Medicine::find($req->medicine_id))->name ?? 'medicine';
+        $remarksPart = $req->physician_notes ? (' Remarks: ' . $req->physician_notes) : '';
+        \App\Services\ActivityLogger::log(
+            'Restock request ' . strtolower($request->status),
+            'Restock Requests',
+            $user->name . ' ' . strtolower($request->status) . ' the restock request for ' . $medicineName . '.' . $remarksPart,
+            strtoupper($request->status) === 'REJECTED' ? 'REJECT' : 'APPROVE'
+        );
 
         $redirectRoute = strtolower($user->role) === 'admin' ? 'admin.request' : 'doctor.request';
         return redirect()->route($redirectRoute)->with('success', 'Status updated successfully.');

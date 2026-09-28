@@ -57,10 +57,10 @@
         /* Filter card - matches Dispense Medicine exactly */
         .filter-card {
             background: white; border: 1px solid #E5E7EB; border-radius: 12px;
-            padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            padding: 15px; margin-bottom: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);
         }
-        .filter-grid { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
-        .filter-grid > div { flex: 1 1 200px; }
+        .filter-grid { display: flex; align-items: flex-end; gap: 30px; flex-wrap: wrap; }
+        .filter-grid > div { flex: 1 1 300px; max-width: 780px; }
         label { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
         input, select {
             width: 100%; padding: 10px 14px; border: 1px solid #D1D5DB; border-radius: 8px;
@@ -138,8 +138,8 @@
 
 <style>
     #aiForecastFlexRow { display: flex; align-items: flex-start; gap: 20px; }
-    #aiForecastFlexRow > .ai-metrics-col { flex: 0 0 66%; max-width: 66%; }
-    #aiForecastFlexRow > .ai-insights-col { flex: 1; min-width: 0; }
+    #aiForecastFlexRow > .ai-metrics-col { flex: 1; min-width: 0; }
+    #aiForecastFlexRow > .ai-insights-col { flex: 0 0 34%; max-width: 34%; }
     @media (max-width: 900px) {
         #aiForecastFlexRow { flex-direction: column; }
         #aiForecastFlexRow > .ai-metrics-col, #aiForecastFlexRow > .ai-insights-col { flex: 1 1 100%; max-width: 100%; }
@@ -147,7 +147,7 @@
 
     .ai-insights-panel { background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; height: 100%; display: flex; flex-direction: column; }
     .ai-insights-panel-header { padding: 16px 18px 12px; border-bottom: 1px solid #F1F5F9; }
-    .ai-insights-panel-title { font-size: 15px; font-weight: 700; color: #111827; margin: 0; }
+    .ai-insights-panel-title { font-size: 18px; font-weight: 700; color: #111827; margin: 0; }
     .ai-insights-panel-subtitle { font-size: 11px; color: #6B7280; margin-top: 3px; line-height: 1.4; }
     .ai-filter-tabs { display: flex; gap: 6px; padding: 12px 16px; flex-wrap: wrap; border-bottom: 1px solid #F1F5F9; }
     .ai-filter-tab { padding: 5px 11px; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; color: #4B5563; font-size: 11px; font-weight: 600; cursor: pointer; }
@@ -172,8 +172,7 @@
 <div id="aiInsightsPanelTemplate" style="display:none;">
     <div class="ai-insights-panel">
         <div class="ai-insights-panel-header">
-            <h2 class="ai-insights-panel-title">AI Insights</h2>
-            <div class="ai-insights-panel-subtitle">Automatically generated from existing forecast &amp; inventory data. Decision-support only.</div>
+            <h1 class="ai-insights-panel-title">AI Insights</h1>
         </div>
         <div class="ai-filter-tabs" id="aiFilterTabs">
             <button type="button" class="ai-filter-tab active" data-filter="all">All</button>
@@ -183,7 +182,6 @@
             <button type="button" class="ai-filter-tab" data-filter="positive">Positive</button>
         </div>
         <div class="ai-insights-panel-body" id="aiInsightsList"></div>
-        <div class="ai-insights-panel-footnote">Based on the same 3-month moving-average forecast used elsewhere. Verify before ordering.</div>
     </div>
 </div>
 
@@ -233,12 +231,23 @@
             if (!headingEl) return; // fail safe - don't break the page if not found
 
             // Walk up to find a reasonably-sized block-level container to treat as "the metrics section"
-            let metricsSection = headingEl;
-            let parent = headingEl.parentElement;
-            while (parent && parent.tagName !== 'BODY') {
-                const rect = parent.getBoundingClientRect();
-                if (rect.width > 400) { metricsSection = parent; break; }
-                parent = parent.parentElement;
+            let tableCard = headingEl.closest('.table-card');
+            let filterCard = (tableCard && tableCard.previousElementSibling && tableCard.previousElementSibling.classList.contains('filter-card'))
+                ? tableCard.previousElementSibling
+                : null;
+
+            // Wrap the filter card + metrics table together in one group,
+            // so they stack with no gap and sit as a single column beside
+            // AI Insights - not split across two separate rows.
+            let metricsSection;
+            if (filterCard && tableCard) {
+                const group = document.createElement('div');
+                filterCard.parentNode.insertBefore(group, filterCard);
+                group.appendChild(filterCard);
+                group.appendChild(tableCard);
+                metricsSection = group;
+            } else {
+                metricsSection = tableCard || headingEl;
             }
 
             const flexRow = document.createElement('div');

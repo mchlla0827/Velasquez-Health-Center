@@ -1066,7 +1066,7 @@ clearFiltersBtn.addEventListener('click', function() {
     @endif
 
     @if(session('error'))
-        Swal.fire({ icon: 'error', title: 'Error!', text: "{{ session('error') }}" });
+        Swal.fire({ icon: 'error', title: 'Error!', text: {!! json_encode(session('error')) !!} });
     @endif
 
 });

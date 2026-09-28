@@ -51,7 +51,7 @@ class Patient extends Model
     }
 
     // Append 'age' dynamically when model is serialized
-    protected $appends = ['age'];
+    protected $appends = ['age', 'age_display'];
 
     public function getAgeAttribute()
     {
@@ -60,6 +60,37 @@ class Patient extends Model
         }
 
         return Carbon::parse($this->dob)->age;
+    }
+
+    /**
+     * Human-readable age for DISPLAY only - shows months for infants
+     * under 1 year old instead of "0 years old", matching real-world
+     * clinical convention. The raw numeric age above is left
+     * untouched, since other parts of the system (age-group reports,
+     * risk scoring, etc.) depend on it being a plain integer.
+     */
+    public function getAgeDisplayAttribute()
+    {
+        if (!$this->dob) {
+            return 'N/A';
+        }
+
+        $dob = Carbon::parse($this->dob)->startOfDay();
+        $today = Carbon::now()->startOfDay();
+
+        $years = (int) $dob->diffInYears($today);
+        $months = (int) $dob->diffInMonths($today);
+        $days = (int) $dob->diffInDays($today);
+
+        if ($years >= 1) {
+            return $years . ' year' . ($years === 1 ? '' : 's') . ' old';
+        }
+
+        if ($months >= 1) {
+            return $months . ' month' . ($months === 1 ? '' : 's') . ' old';
+        }
+
+        return $days . ' day' . ($days === 1 ? '' : 's') . ' old';
     }
 
     public function dispensingRecords()
@@ -111,5 +142,40 @@ class Patient extends Model
         }
 
         return $this->latestActivityDate() <= now()->subYears(5);
+    }
+
+    /**
+     * Sweep every currently-active patient and automatically archive
+     * anyone who has hit 5+ years of real inactivity. This is what
+     * makes archiving automatic instead of a manual per-patient click:
+     * it's called by the scheduled console command (patients:archive-
+     * inactive) AND, as a self-healing safety net, from the Patients
+     * and Archived Patients pages themselves (throttled - see
+     * PatientController) so it still works correctly even in a local
+     * environment where the task scheduler isn't running.
+     *
+     * Nothing is deleted. This only flips patient_status/archived_at,
+     * exactly like the existing manual archivePatient() action did.
+     *
+     * Returns how many patients were archived by this sweep.
+     */
+    public static function runAutoArchiveSweep(): int
+    {
+        $archivedCount = 0;
+
+        static::where('patient_status', self::STATUS_ACTIVE)
+            ->chunkById(200, function ($patients) use (&$archivedCount) {
+                foreach ($patients as $patient) {
+                    if ($patient->isArchiveEligible()) {
+                        $patient->update([
+                            'patient_status' => self::STATUS_ARCHIVED,
+                            'archived_at' => now(),
+                        ]);
+                        $archivedCount++;
+                    }
+                }
+            });
+
+        return $archivedCount;
     }
 }

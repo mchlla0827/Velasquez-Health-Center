@@ -151,6 +151,13 @@ class PatientController extends Controller
             ], $immunizationFields, $maternalFields));
         });
 
+        \App\Services\ActivityLogger::log(
+            'Patient registered',
+            'Patients',
+            (auth()->user()->name ?? 'Staff') . ' registered new patient: ' . $validated['first_name'] . ' ' . $validated['last_name'] . '.',
+            'CREATE'
+        );
+
         return redirect()
             ->route($role . '.patient-registration')
             ->with('success', 'Patient registered successfully.');
@@ -412,7 +419,7 @@ class PatientController extends Controller
         $data = $patient->toArray();
         $data['latest_ncd_assessment'] = $latestAssessment;
         $data['has_active_triage_today'] = $hasActiveTriageToday;
-        $data['residency_proof_url'] = $patient->residency_proof_path ? asset('storage/' . $patient->residency_proof_path) : null;
+        $data['residency_proof_url'] = $patient->residency_proof_path ? route('patients.residency-proof', $patient->id) : null;
 
         return response()->json($data);
     }
@@ -660,6 +667,13 @@ class PatientController extends Controller
 
         $role = strtolower(auth()->user()->role);
 
+        \App\Services\ActivityLogger::log(
+            'NCD assessment created',
+            'Medical Records',
+            (auth()->user()->name ?? 'Staff') . ' completed an NCD Risk Assessment for patient: ' . $patient->first_name . ' ' . $patient->last_name . '.',
+            'CREATE'
+        );
+
         return redirect()
             ->route($role . '.patient-records', [
                 'view_patient' => $patient->id,
@@ -784,5 +798,26 @@ class PatientController extends Controller
             ->exists();
 
         return response()->json(['in_queue' => $inQueue]);
+    }
+
+    /**
+     * Serve a patient's residency proof image directly from storage,
+     * without relying on the public/storage symlink. Many shared
+     * hosting environments (e.g. Hostinger without terminal access)
+     * can't run `php artisan storage:link`, so this route reads the
+     * file from storage/app/public and streams it as a normal image
+     * response instead - works regardless of symlink availability.
+     */
+    public function serveResidencyProof($id)
+    {
+        $patient = Patient::findOrFail($id);
+
+        abort_if(!$patient->residency_proof_path, 404);
+
+        $fullPath = storage_path('app/public/' . $patient->residency_proof_path);
+
+        abort_unless(file_exists($fullPath), 404);
+
+        return response()->file($fullPath);
     }
 }
