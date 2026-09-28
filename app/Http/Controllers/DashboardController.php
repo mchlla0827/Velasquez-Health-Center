@@ -58,27 +58,98 @@ public function index()
     $mediumRiskCount = TriageRecord::where('risk_level', 'Medium')->count();
     $lowRiskCount = TriageRecord::where('risk_level', 'Low')->count();
 
-    // AI Forecast Summary - now uses the SAME centralized service as the
-    // main Forecast page, so the two screens can never show different
-    // numbers for the same medicine.
-    $forecastService = new \App\Services\MedicineForecastService(
-        new \App\Services\InventoryStockService()
-    );
+// AI Forecast Summary
+// Uses the same centralized forecasting service as the
+// main AI Forecast page.
+$forecastService = new \App\Services\MedicineForecastService(
+    new \App\Services\InventoryStockService()
+);
 
-    $forecastData = [];
-    foreach (\App\Models\Medicine::all() as $med) {
-        $result = $forecastService->evaluate($med);
+$forecastData = [];
 
-        if ($result['is_shortage'] || $result['is_low']) {
-            $forecastData[] = [
-                'name' => $med->name,
-                'predicted_shortage' => $result['status'],
-                'high_demand' => 'Est. demand: ' . $result['estimated_demand'] . ' / mo',
-                'recommended_restock' => $result['recommendation'],
-            ];
+foreach (\App\Models\Medicine::all() as $med) {
+
+    $result = $forecastService->evaluate($med);
+
+    $forecastData[] = [
+        'name' => $med->name,
+
+        'dosage_strength' =>
+            $med->dosage_strength ?? '',
+
+        'forecast_available' =>
+            $result['forecast_available'],
+
+        'estimated_demand' =>
+            (int) ($result['estimated_demand'] ?? 0),
+
+        'usable_stock' =>
+            (int) ($result['usable_stock'] ?? 0),
+
+        'status' =>
+            $result['status'],
+
+        'recommendation' =>
+            $result['recommendation'],
+
+        'suggested_reorder_qty' =>
+            (int) ($result['suggested_reorder_qty'] ?? 0),
+
+        'confidence' =>
+            $result['confidence'] ?? 'None',
+
+        'range_low' =>
+            $result['range_low'] ?? null,
+
+        'range_high' =>
+            $result['range_high'] ?? null,
+    ];
+}
+
+
+/*
+ * Show higher-attention medicines first,
+ * followed by the remaining forecasted medicines.
+ */
+$statusPriority = [
+    'Critical' => 1,
+    'Possible Shortage' => 2,
+    'Low Stock Alert' => 3,
+    'Insufficient Data' => 4,
+    'Stable Inventory' => 5,
+];
+
+usort(
+    $forecastData,
+    function ($a, $b) use ($statusPriority) {
+
+        $aPriority =
+            $statusPriority[$a['status']] ?? 99;
+
+        $bPriority =
+            $statusPriority[$b['status']] ?? 99;
+
+        if ($aPriority !== $bPriority) {
+            return $aPriority <=> $bPriority;
         }
+
+        return strcasecmp(
+            $a['name'],
+            $b['name']
+        );
     }
-    $forecastData = array_slice($forecastData, 0, 5);
+);
+
+
+/*
+ * Keep the Dashboard concise.
+ * The full list remains available on the AI Forecast page.
+ */
+$forecastData = array_slice(
+    $forecastData,
+    0,
+    5
+);
 
     return view('dashboard', compact(
         'patientsToday',        // ✅ PARA SA CARD (Patients Registered Today)

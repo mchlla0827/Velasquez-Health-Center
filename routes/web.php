@@ -140,6 +140,20 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         
         Route::delete('/medicine/delete/{id}', [MedicineController::class, 'destroy'])->name('medicine.delete');
     Route::delete('/users/delete/{id}', [RegisteredUserController::class, 'destroy'])->name('users.destroy');
+    Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
+    Route::get(
+    '/forecast/accuracy',
+    [ForecastController::class, 'accuracy']
+)->name('forecast.accuracy');
+
+Route::get(
+    '/forecast/history',
+    [ForecastController::class, 'history']
+)->name('forecast.history');
+Route::post(
+    '/forecast/review/{medicineId}/{decision}',
+    [ForecastController::class, 'review']
+)->name('forecast.review');
     });
 
 
@@ -152,6 +166,26 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
         Route::get('/dispense', [MedicineController::class, 'dispenseForm'])->name('dispense');
         Route::post('/dispense/save', [MedicineController::class, 'dispenseSave'])->name('dispense.save');
         Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
+
+        Route::get(
+    '/forecast/accuracy',
+    [ForecastController::class, 'accuracy']
+)->name('forecast.accuracy');
+
+Route::get(
+    '/forecast/accuracy',
+    [ForecastController::class, 'accuracy']
+)->name('forecast.accuracy');
+
+Route::get(
+    '/forecast/history',
+    [ForecastController::class, 'history']
+)->name('forecast.history');
+
+Route::post(
+    '/forecast/review/{medicineId}/{decision}',
+    [ForecastController::class, 'review']
+)->name('forecast.review');
         Route::get('/stockout', [StockController::class, 'stockout'])->name('stockout');
         Route::get('/triage', [PatientController::class, 'triage'])->name('triage');
         Route::get('/reports', fn() => view('reports.landing'))->name('reports');

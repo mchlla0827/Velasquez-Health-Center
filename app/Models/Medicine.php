@@ -74,4 +74,9 @@ class Medicine extends Model
     {
         return $this->batches->sum('quantity');
     }
+
+    public function forecastSnapshots(): HasMany
+{
+    return $this->hasMany(ForecastSnapshot::class);
+}
 }

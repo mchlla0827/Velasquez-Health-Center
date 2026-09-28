@@ -54,6 +54,9 @@ class ForecastController extends Controller
         $lowStockCount = 0;
         $expiringSoonCount = 0;
         $insufficientDataCount = 0;
+        $trendAppliedCount = 0;
+        $seasonalReadyCount = 0;
+        $lowConfidenceCount = 0;
         $criticalItemGlobal = null;
 
         // ==================================================
@@ -61,6 +64,10 @@ class ForecastController extends Controller
         // ==================================================
         foreach ($medicines as $med) {
             $result = $forecastService->evaluate($med);
+            $forecastService->saveForecastSnapshot(
+    $med,
+    $result
+);
             $expiringSoon = $stockService->expiringSoon($med, 180);
             $stockOutContext = $forecastService->getStockOutContext($med);
             $requestContext = $forecastService->getRequestContext($med);
@@ -68,7 +75,7 @@ class ForecastController extends Controller
             $forecastChart[] = [
                 'medicine' => $med->name,
                 'medicine_id' => $med->id,
-                'historical' => [$result['period3'], $result['period2'], $result['period1']],
+                'historical' => $result['monthly_history'],
                 'forecast' => $result['forecast_available'] ? $result['estimated_demand'] : null,
             ];
 
@@ -85,6 +92,15 @@ class ForecastController extends Controller
             if (!$result['forecast_available']) {
                 $insufficientDataCount++;
             }
+            if ($result['trend_applied']) {
+                $trendAppliedCount++;
+            }
+            if ($result['confidence'] === 'Low') {
+                $lowConfidenceCount++;
+            }
+            if ($result['seasonal']['ready']) {
+                $seasonalReadyCount++;
+            }
 
             $forecastData[] = array_merge($result, [
                 'expiring_soon_qty' => $expiringSoon,
@@ -99,7 +115,7 @@ class ForecastController extends Controller
         if ($shortageCount > 0) {
             $medicineName = $criticalItemGlobal ? $criticalItemGlobal->name : 'one or more medicines';
             $aiTitle = 'Potential Stock Shortage Detected';
-            $aiMessage = "The 3-month moving average forecast predicts that {$medicineName} may fall below usable stock within the next 30 days.";
+            $aiMessage = "The trend-adjusted moving average forecast predicts that {$medicineName} may fall below usable stock within the next 30 days.";
             $aiAction = "Review recommended restock quantities and prioritize replenishment.";
             $aiStatus = 'warning';
         } elseif ($lowStockCount > 0) {
@@ -109,7 +125,7 @@ class ForecastController extends Controller
             $aiStatus = 'warning';
         } else {
             $aiTitle = 'Inventory Status is Healthy';
-            $aiMessage = "Based on the 3-month moving average forecast, no medicine is expected to experience a stock shortage within the next 30 days.";
+            $aiMessage = "Based on the trend-adjusted moving average forecast, no medicine is expected to experience a stock shortage within the next 30 days.";
             $aiAction = "Maintain current inventory levels and continue routine monitoring.";
             $aiStatus = 'success';
         }
@@ -125,6 +141,9 @@ class ForecastController extends Controller
             'lowStockCount',
             'expiringSoonCount',
             'insufficientDataCount',
+            'trendAppliedCount',
+            'seasonalReadyCount',
+            'lowConfidenceCount',
             'criticalItemGlobal',
             'aiTitle',
             'aiMessage',
@@ -132,6 +151,387 @@ class ForecastController extends Controller
             'aiStatus'
         ));
     }
+
+    /**
+ * Forecast accuracy tracking using rolling-origin backtesting.
+ */
+public function accuracy(
+    MedicineForecastService $forecastService
+) {
+    $role = strtolower(
+        session('admin_role')
+        ?? Auth::user()->role
+        ?? 'bhw'
+    );
+
+    if (!in_array($role, ['admin', 'nurse'])) {
+        return redirect()
+            ->route('bhw.inventory')
+            ->with(
+                'error',
+                'Access Denied: You are not allowed to view Forecast Accuracy.'
+            );
+    }
+
+    $userName =
+        Auth::user()->name
+        ?? session('admin_name')
+        ?? session('user_name')
+        ?? ucfirst($role);
+
+    $medicines =
+        Medicine::orderBy('name')->get();
+
+    $medicineResults = [];
+    $allObservations = [];
+
+    foreach ($medicines as $medicine) {
+
+        $result =
+            $forecastService
+                ->backtestMedicine(
+                    $medicine,
+                    12
+                );
+
+        $medicineResults[] = [
+            'medicine' =>
+                $medicine,
+
+            'observations' =>
+                $result['observations'],
+
+            'metrics' =>
+                $result['metrics'],
+        ];
+
+        foreach (
+            $result['observations']
+            as $observation
+        ) {
+            $observation['medicine_name'] =
+                $medicine->name;
+
+            $allObservations[] =
+                $observation;
+        }
+    }
+
+    $overallMetrics =
+        MedicineForecastService::computeAccuracyMetrics(
+            $allObservations
+        );
+
+    usort(
+        $medicineResults,
+        function ($a, $b) {
+
+            $aWape =
+                $a['metrics']['wape'] ?? INF;
+
+            $bWape =
+                $b['metrics']['wape'] ?? INF;
+
+            return $aWape <=> $bWape;
+        }
+    );
+
+    $recentObservations =
+        collect($allObservations)
+            ->sortByDesc('target_start')
+            ->take(20)
+            ->values()
+            ->all();
+
+    return view(
+        'admin.forecast-accuracy',
+        compact(
+            'role',
+            'userName',
+            'medicineResults',
+            'overallMetrics',
+            'recentObservations'
+        )
+    );
+}
+
+/**
+ * Saved forecast history and completed forecast evaluations.
+ */
+public function history(
+    MedicineForecastService $forecastService
+) {
+    $role = strtolower(
+        session('admin_role') ?? Auth::user()->role ?? 'bhw'
+    );
+
+    if (!in_array($role, ['admin', 'nurse'], true)) {
+        return redirect()
+            ->route('bhw.inventory')
+            ->with(
+                'error',
+                'Access Denied: You are not allowed to view Forecast History.'
+            );
+    }
+
+    $userName = Auth::user()->name
+        ?? session('admin_name')
+        ?? session('user_name')
+        ?? ucfirst($role);
+
+    $snapshots = \App\Models\ForecastSnapshot::with('medicine')
+        ->orderByDesc('forecast_date')
+        ->orderBy('medicine_id')
+        ->get();
+
+    /*
+     * Evaluate only completed forecast periods.
+     */
+    foreach ($snapshots as $snapshot) {
+
+        if (
+            $snapshot->target_end->lt(today())
+            && $snapshot->evaluated_at === null
+        ) {
+            $forecastService->evaluateSnapshotAccuracy(
+                $snapshot
+            );
+        }
+    }
+
+    $snapshots = \App\Models\ForecastSnapshot::with('medicine')
+        ->orderByDesc('forecast_date')
+        ->orderBy('medicine_id')
+        ->get();
+
+    $completed = $snapshots->filter(
+        fn ($snapshot) => $snapshot->actual_demand !== null
+    );
+
+    $evaluationCount = $completed->count();
+
+    $totalActual = (int) $completed->sum('actual_demand');
+
+    $totalAbsoluteError =
+        (int) $completed->sum('absolute_error');
+
+    $mae = $evaluationCount > 0
+        ? $totalAbsoluteError / $evaluationCount
+        : null;
+
+    $wape = $totalActual > 0
+        ? ($totalAbsoluteError / $totalActual) * 100
+        : null;
+
+    $accuracy = $wape !== null
+        ? max(0, 100 - $wape)
+        : null;
+
+    return view(
+        'admin.forecast-history',
+        compact(
+            'role',
+            'userName',
+            'snapshots',
+            'evaluationCount',
+            'mae',
+            'wape',
+            'accuracy'
+        )
+    );
+}
+
+/**
+ * Review a forecast recommendation.
+ *
+ * Decisions:
+ * - accept: accept the system suggested reorder quantity
+ * - edit: change the reorder quantity
+ * - dismiss: reject the recommendation
+ *
+ * Every decision is recorded using the existing ActivityLogger.
+ */
+public function review(
+    Request $request,
+    int $medicineId,
+    string $decision,
+    MedicineForecastService $forecastService
+) {
+    $role = strtolower(
+        session('admin_role') ?? Auth::user()->role ?? 'bhw'
+    );
+
+    if (!in_array($role, ['admin', 'nurse'], true)) {
+        return redirect()
+            ->route('bhw.inventory')
+            ->with(
+                'error',
+                'Access Denied: You are not allowed to review Forecast recommendations.'
+            );
+    }
+
+    $allowedDecisions = ['accept', 'edit', 'dismiss'];
+
+    if (!in_array($decision, $allowedDecisions, true)) {
+        return back()->with(
+            'error',
+            'Invalid forecast review action.'
+        );
+    }
+
+    $medicine = Medicine::findOrFail($medicineId);
+
+    /*
+     * Recalculate the forecast on the server.
+     * This prevents the browser from changing the suggested
+     * quantity before the audit record is created.
+     */
+    $evaluation = $forecastService->evaluate($medicine);
+
+    if (!$evaluation['forecast_available']) {
+        return back()->with(
+            'error',
+            'This medicine does not have enough historical data for a reliable forecast.'
+        );
+    }
+
+    $suggestedQty = (int) ($evaluation['suggested_reorder_qty'] ?? 0);
+
+    $finalQty = $suggestedQty;
+
+    $reason = trim(
+        (string) $request->input('reason', '')
+    );
+
+    /*
+     * EDIT
+     */
+    if ($decision === 'edit') {
+
+        $validated = $request->validate([
+            'quantity' => [
+                'required',
+                'integer',
+                'min:0',
+                'max:100000',
+            ],
+            'reason' => [
+                'required',
+                'string',
+                'min:3',
+                'max:500',
+            ],
+        ]);
+
+        $finalQty = (int) $validated['quantity'];
+        $reason = trim($validated['reason']);
+    }
+
+    /*
+     * DISMISS
+     */
+    if ($decision === 'dismiss') {
+
+        $validated = $request->validate([
+            'reason' => [
+                'required',
+                'string',
+                'min:3',
+                'max:500',
+            ],
+        ]);
+
+        $reason = trim($validated['reason']);
+        $finalQty = 0;
+    }
+
+    /*
+     * ACCEPT
+     */
+    if ($decision === 'accept') {
+
+        $validated = $request->validate([
+            'reason' => [
+                'nullable',
+                'string',
+                'max:500',
+            ],
+        ]);
+
+        $reason = trim(
+            (string) ($validated['reason'] ?? '')
+        );
+    }
+
+    $decisionLabel = match ($decision) {
+        'accept' => 'ACCEPTED',
+        'edit' => 'EDITED',
+        'dismiss' => 'DISMISSED',
+        default => strtoupper($decision),
+    };
+
+    $details =
+        'Medicine: ' . $medicine->name
+        . ' | Decision: ' . $decisionLabel
+        . ' | Forecast Demand: ' . $evaluation['estimated_demand'] . ' units'
+        . ' | Suggested Reorder: ' . $suggestedQty . ' units'
+        . ' | Final Reviewed Quantity: ' . $finalQty . ' units'
+        . ' | Usable Stock: ' . $evaluation['usable_stock'] . ' units'
+        . ' | Status: ' . $evaluation['status']
+        . ' | Forecast Method: ' . $evaluation['forecast_method'];
+
+    if ($reason !== '') {
+        $details .= ' | Reason: ' . $reason;
+    }
+    /*
+ * Attach the staff review to today's saved forecast snapshot.
+ */
+$snapshot = \App\Models\ForecastSnapshot::where(
+    'medicine_id',
+    $medicineId
+)
+    ->whereDate('forecast_date', today())
+    ->first();
+
+if ($snapshot) {
+    $snapshot->update([
+        'review_decision' => $decision,
+        'reviewed_quantity' => $finalQty,
+        'review_reason' => $reason !== '' ? $reason : null,
+        'reviewed_by' => Auth::user()->name
+            ?? session('admin_name')
+            ?? session('user_name')
+            ?? 'System',
+        'reviewed_at' => now(),
+    ]);
+}
+
+    \App\Services\ActivityLogger::log(
+        'Forecast Recommendation ' . $decisionLabel,
+        'Medicine Forecasting',
+        $details,
+        'FORECAST_REVIEW'
+    );
+
+    $message = match ($decision) {
+        'accept' =>
+            "Forecast recommendation for {$medicine->name} was accepted. Suggested reorder quantity: {$finalQty} units.",
+
+        'edit' =>
+            "Forecast recommendation for {$medicine->name} was edited to {$finalQty} units.",
+
+        'dismiss' =>
+            "Forecast recommendation for {$medicine->name} was dismissed.",
+
+        default =>
+            'Forecast review recorded.',
+    };
+
+    return back()->with(
+        'success',
+        $message
+    );
+}
 
     /**
      * AI Insights - JSON feed of decision-support insights, generated

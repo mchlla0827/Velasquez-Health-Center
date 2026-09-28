@@ -107,6 +107,66 @@
         .summary-item { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 16px; text-align: center; }
         .summary-item .num { font-size: 26px; font-weight: 700; line-height: 1; }
         .summary-item .lbl { font-size: 12px; font-weight: 600; color: #6B7280; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .forecast-status-stable {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: 999px;
+
+    background: #DCFCE7;
+    color: #166534;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.forecast-status-shortage {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: 999px;
+
+    background: #FEE2E2;
+    color: #991B1B;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.forecast-status-critical {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: 999px;
+
+    background: #FECACA;
+    color: #7F1D1D;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.forecast-status-low {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: 999px;
+
+    background: #FEF3C7;
+    color: #92400E;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.forecast-status-insufficient {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: 999px;
+
+    background: #F3F4F6;
+    color: #6B7280;
+
+    font-size: 10px;
+    font-weight: 700;
+}
     </style>
 </head>
 <body>
@@ -322,45 +382,256 @@
     </div>
 
     <!-- SECOND SECTION: AI-Forecast Summary (Structured Table View) -->
-    @if($canViewForecast)
-    <div class="row-1col">
-        <div class="data-card">
-            <div class="data-header">
-                <span class="data-header-title">AI-Forecast Summary</span>
-                <a href="{{ route($routePrefix . 'forecast') }}" class="link-more">View Full Forecast →</a>
-            </div>
-            
-            <table class="forecast-table">
-                <thead>
-                    <tr>
-                        <th>Medicine</th>
-                        <th>Predicted Shortage</th>
-                        <th>Recommended Restock</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($forecastData as $item)
-                        <tr>
-                            <td style="font-weight: 500;">{{ $item['name'] ?? '—' }}</td>
-                            <td class="text-danger">{{ $item['predicted_shortage'] ?? '—' }}</td>
-                            <td class="text-success">{{ $item['recommended_restock'] ?? '—' }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="3" style="text-align: center; color: #6B7280; font-style: italic; padding: 16px;">
-                                No forecast data available yet
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+<!-- SECOND SECTION: AI-Forecast Summary -->
+@if($canViewForecast)
 
-            <div class="forecast-note">
-                *Forecast based on usage trends from the last 30 days.
-            </div>
+<div class="row-1col">
+
+    <div class="data-card">
+
+        <div class="data-header">
+
+            <span class="data-header-title">
+                AI-Forecast Summary
+            </span>
+
+            <a
+                href="{{ route($routePrefix . 'forecast') }}"
+                class="link-more"
+            >
+                View Full Forecast →
+            </a>
+
         </div>
+
+
+        <table class="forecast-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>Medicine</th>
+
+                    <th>Forecast Demand</th>
+
+                    <th>Usable Stock</th>
+
+                    <th>Status</th>
+
+                    <th>Recommendation</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                @forelse($forecastData as $item)
+
+                    @php
+
+                        $status = $item['status'] ?? 'Unknown';
+
+                        $statusClass = match($status) {
+
+                            'Critical'
+                                => 'forecast-status-critical',
+
+                            'Possible Shortage'
+                                => 'forecast-status-shortage',
+
+                            'Low Stock Alert'
+                                => 'forecast-status-low',
+
+                            'Insufficient Data'
+                                => 'forecast-status-insufficient',
+
+                            default
+                                => 'forecast-status-stable',
+
+                        };
+
+                    @endphp
+
+
+                    <tr>
+
+                        <!-- Medicine -->
+                        <td>
+
+                            <div
+                                style="
+                                    font-weight:600;
+                                    color:#111827;
+                                "
+                            >
+                                {{ $item['name'] ?? '—' }}
+                            </div>
+
+                            @if(!empty($item['dosage_strength']))
+
+                                <div
+                                    style="
+                                        font-size:11px;
+                                        color:#9CA3AF;
+                                        margin-top:2px;
+                                    "
+                                >
+                                    {{ $item['dosage_strength'] }}
+                                </div>
+
+                            @endif
+
+                        </td>
+
+
+                        <!-- Forecast -->
+                        <td>
+
+                            @if($item['forecast_available'])
+
+                                <strong>
+                                    {{ number_format($item['estimated_demand']) }}
+                                </strong>
+
+                                <span
+                                    style="
+                                        display:block;
+                                        font-size:10px;
+                                        color:#9CA3AF;
+                                    "
+                                >
+                                    next 30 days
+                                </span>
+
+                            @else
+
+                                <span
+                                    style="
+                                        color:#9CA3AF;
+                                    "
+                                >
+                                    N/A
+                                </span>
+
+                            @endif
+
+                        </td>
+
+
+                        <!-- Usable Stock -->
+                        <td>
+
+                            {{ number_format($item['usable_stock']) }}
+
+                            <span
+                                style="
+                                    display:block;
+                                    font-size:10px;
+                                    color:#9CA3AF;
+                                "
+                            >
+                                units
+                            </span>
+
+                        </td>
+
+
+                        <!-- Status -->
+                        <td>
+
+                            <span
+                                class="{{ $statusClass }}"
+                            >
+                                {{ $status }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- Recommendation -->
+                        <td>
+
+                            <div
+                                style="
+                                    font-size:12px;
+                                    color:#374151;
+                                    line-height:1.4;
+                                "
+                            >
+                                {{ $item['recommendation'] ?? '—' }}
+                            </div>
+
+                            @if(
+                                $item['suggested_reorder_qty'] > 0
+                            )
+
+                                <div
+                                    style="
+                                        margin-top:3px;
+                                        font-size:10px;
+                                        color:#2563EB;
+                                        font-weight:600;
+                                    "
+                                >
+                                    Suggested:
+                                    {{
+                                        number_format(
+                                            $item[
+                                                'suggested_reorder_qty'
+                                            ]
+                                        )
+                                    }}
+                                    units
+                                </div>
+
+                            @endif
+
+                        </td>
+
+                    </tr>
+
+                @empty
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            style="
+                                text-align:center;
+                                color:#6B7280;
+                                font-style:italic;
+                                padding:16px;
+                            "
+                        >
+                            No medicines available for forecasting.
+                        </td>
+
+                    </tr>
+
+                @endforelse
+
+            </tbody>
+
+        </table>
+
+
+        <div class="forecast-note">
+
+            Forecast demand is generated from the system's
+            historical medicine usage data. For the full
+            forecast details, confidence, expected range,
+            and review actions, open the AI Forecast module.
+
+        </div>
+
     </div>
-    @endif
+
+</div>
+
+@endif
 
     <!-- THIRD SECTION: Patient Risk Summary (Clean Equal Stat Cards) -->
     <div class="row-1col">
