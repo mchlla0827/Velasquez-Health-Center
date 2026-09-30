@@ -8,6 +8,8 @@ use App\Services\InventoryStockService;
 use App\Services\MedicineForecastService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\ForecastHistoryExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ForecastController extends Controller
 {
@@ -279,7 +281,13 @@ public function history(
         ?? session('user_name')
         ?? ucfirst($role);
 
-    $snapshots = \App\Models\ForecastSnapshot::with('medicine')
+    /*
+     * Load all snapshots first.
+     * This collection is used for:
+     * - Completing pending evaluations
+     * - Computing KPI metrics
+     */
+    $allSnapshots = \App\Models\ForecastSnapshot::with('medicine')
         ->orderByDesc('forecast_date')
         ->orderBy('medicine_id')
         ->get();
@@ -287,7 +295,7 @@ public function history(
     /*
      * Evaluate only completed forecast periods.
      */
-    foreach ($snapshots as $snapshot) {
+    foreach ($allSnapshots as $snapshot) {
 
         if (
             $snapshot->target_end->lt(today())
@@ -299,12 +307,19 @@ public function history(
         }
     }
 
-    $snapshots = \App\Models\ForecastSnapshot::with('medicine')
+    /*
+     * Reload all snapshots after evaluation so that
+     * the latest actual demand and error values are used.
+     */
+    $allSnapshots = \App\Models\ForecastSnapshot::with('medicine')
         ->orderByDesc('forecast_date')
         ->orderBy('medicine_id')
         ->get();
 
-    $completed = $snapshots->filter(
+    /*
+     * Calculate completed evaluations.
+     */
+    $completed = $allSnapshots->filter(
         fn ($snapshot) => $snapshot->actual_demand !== null
     );
 
@@ -326,6 +341,16 @@ public function history(
     $accuracy = $wape !== null
         ? max(0, 100 - $wape)
         : null;
+
+    /*
+     * Paginate ONLY the records displayed in the table.
+     * This prevents the page from becoming one long list.
+     */
+    $snapshots = \App\Models\ForecastSnapshot::with('medicine')
+        ->orderByDesc('forecast_date')
+        ->orderBy('medicine_id')
+        ->paginate(10)
+        ->withQueryString();
 
     return view(
         'admin.forecast-history',
@@ -544,4 +569,28 @@ if ($snapshot) {
             'insights' => $forecastService->generateInsights(),
         ]);
     }
+
+    public function exportHistory()
+{
+    $role = strtolower(
+        session('admin_role') ?? Auth::user()->role ?? 'bhw'
+    );
+
+    if (!in_array($role, ['admin', 'nurse'], true)) {
+        return redirect()
+            ->route('bhw.inventory')
+            ->with(
+                'error',
+                'Access Denied: You are not allowed to export Forecast History.'
+            );
+    }
+
+    $fileName = 'forecast-history-' . now()->format('Y-m-d') . '.xlsx';
+
+    return Excel::download(
+        new ForecastHistoryExport(),
+        $fileName
+    );
 }
+}
+

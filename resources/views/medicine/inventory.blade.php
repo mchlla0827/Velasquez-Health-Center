@@ -1658,21 +1658,12 @@ foreach ($medicines as $medicine) {
     } elseif ($stock <= 50) {
         $criticalStock++;
     }
-
-    // ✅ FIX: Loop through ALL batches of this medicine instead of just the first one
-    if ($medicine->batches) {
-        foreach ($medicine->batches as $batch) {
-            if ($batch->expiry_date) {
-                $daysLeft = Carbon::now()->diffInDays(Carbon::parse($batch->expiry_date), false);
-
-                // Counts every batch expiring within 180 days (and not yet expired)
-                if ($daysLeft <= 180 && $daysLeft > 0) {
-                    $nearExpiry++;
-                }
-            }
-        }
-    }
 }
+
+// Near Expiry uses the SAME list as the "Expiring Stock Batches" popup
+// (batches with stock left, not expired, expiring within 180 days),
+// so the card number always matches what the popup shows.
+$nearExpiry = $expiringBatches->count();
 @endphp
 
 
@@ -1824,7 +1815,7 @@ $criticalItem = $medicines
         $stock = $medicine->total_stock;
 
         $nearestExpiry = optional(
-            $medicine->batches->sortBy('expiry_date')->first()
+            $medicine->batches->where('quantity', '>', 0)->sortBy('expiry_date')->first()
         )->expiry_date;
 
         // STOCK CONDITION
@@ -1906,7 +1897,7 @@ $criticalItem = $medicines
                         @endphp
 
                         <tr data-stock="{{ $medicine->total_stock }}" 
-                            data-expiry="{{ optional($medicine->batches->sortBy('expiry_date')->first())->expiry_date }}">
+                            data-expiry="{{ optional($medicine->batches->where('quantity', '>', 0)->sortBy('expiry_date')->first())->expiry_date }}">
                             
                             <td>
                                 <div class="medicine-name">{{ $medicine->name }} {{ $medicine->dosage_strength }}</div>
@@ -2121,7 +2112,7 @@ $criticalItem = $medicines
                         <label style="font-weight:600; font-size:14px; color:#374151;">Batch Number</label>
                     </div>
                     <!-- Added readonly so auto-generated batch isn't accidentally modified, remove 'readonly' if manual edit is needed -->
-                    <input type="text" name="batch_number" id="batch_number_input" required placeholder="Auto-generating..." readonly
+                    <input type="text" id="batch_number_input" placeholder="Auto-generated" readonly disabled
                         style="width:100%; padding:10px 12px; border:1px solid #D1D5DB; border-radius:6px; color:#1F2937; background-color: #F9FAFB; box-sizing: border-box;">
                     
                     <span id="batch_error_text" class="error-feedback" style="display: none; color: #EF4444; font-size: 12px; font-weight: bold; margin-top:4px;">
@@ -2199,10 +2190,10 @@ $criticalItem = $medicines
 
                 <div class="modal-label" style="margin-top:15px;">
                     <label style="font-weight:600; font-size:14px; color:#374151; margin-bottom:6px; display:block;">Batch Number</label>
-                    <input type="text" 
-                        name="batch_number" 
+                        <input type="text" 
                         id="edit_batch_number" 
-                        required
+                        readonly
+                        disabled
                         style="width:100%; padding:10px 12px; border:1px solid #D1D5DB; border-radius:6px; color:#1F2937; box-sizing: border-box;">
                 </div>
 
@@ -2450,21 +2441,17 @@ function closeModal() {
 // ✅ OPEN STOCK IN: ID LANG ANG KAILANGAN
 // ==================================================
 // Function to generate unique Batch Number automatically (e.g. BATCH-20260727-8A3F)
+// Shows a PREVIEW of the next sequential batch number (BATCH-YYYY-NNNN).
+// The real number is issued by the server when the stock-in is saved.
 function generateAutoBatch() {
-    const today = new Date();
-    const dateStr = today.getFullYear().toString() +
-                    String(today.getMonth() + 1).padStart(2, '0') +
-                    String(today.getDate()).padStart(2, '0');
-    
-    // Generates 4 random alphanumeric characters
-    const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    
-    const generatedBatch = `BATCH-${dateStr}-${randomCode}`;
-    
-    let batchInput = document.getElementById('batch_number_input');
-    if (batchInput) {
-        batchInput.value = generatedBatch;
-    }
+    const batchInput = document.getElementById('batch_number_input');
+    if (!batchInput) return;
+    batchInput.value = '';
+    batchInput.placeholder = 'Loading...';
+    fetch("{{ route('next.batch') }}", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+        .then(res => res.json())
+        .then(data => { batchInput.value = data.batch_number; })
+        .catch(() => { batchInput.placeholder = 'Assigned automatically on save'; });
 }
 
 function openStockInModal(medicineId) {
@@ -2539,23 +2526,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const batchInput = document.getElementById('batch_number_input');
     const form = document.getElementById('stockInForm');
 
-    // LIVE CHECK BATCH
-    if(batchInput){
-        batchInput.addEventListener('blur', function () {
-            let batchVal = this.value.trim();
-            if (batchVal === '') {
-                document.getElementById('batch_error_text').style.display = 'none';
-                this.style.border = "1px solid #D1D5DB";
-                return;
-            }
-            fetch("{{ route('check.batch') }}?batch_number=" + encodeURIComponent(batchVal))
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('batch_error_text').style.display = data.exists ? 'block' : 'none';
-                    this.style.border = data.exists ? "2px solid #EF4444" : "1px solid #10B981";
-                });
-        });
-    }
 
     // SAVE TO DATABASE (STOCK CONTROLLER)
     if(form){

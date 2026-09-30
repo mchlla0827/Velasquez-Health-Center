@@ -60,9 +60,10 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('patient.medicine.history');
 Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, 'getPatientMedicineHistory'])->name('nurse.patient.medicine.history');
 
-    Route::get('/check-batch', function(Request $request) {
-        return response()->json(['exists' => \App\Models\Batch::where('batch_number', $request->batch_number)->exists()]);
-    })->name('check.batch');
+        // Preview of the next sequential batch number (nothing is reserved until the stock-in is saved).
+    Route::get('/next-batch-number', function () {
+        return response()->json(['batch_number' => app(\App\Services\BatchNumberService::class)->peek()]);
+    })->name('next.batch');
 
     Route::post('/stock-in', [StockController::class, 'storeIn'])->name('stock.in.store');
     Route::post('/stock-update', [StockController::class, 'updateStock'])->name('stock.update');
@@ -120,20 +121,35 @@ Route::get('/nurse/patient/{ptn}/medicine-history', [PatientController::class, '
 
         Route::get('/logs', function (Request $request) {
             $query = ActivityLog::query();
+
             if ($request->filled('search')) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('user_name', 'like', '%'.$request->search.'%')
-                      ->orWhere('action', 'like', '%'.$request->search.'%')
-                      ->orWhere('details', 'like', '%'.$request->search.'%');
+                $s = $request->search;
+                $query->where(function ($q) use ($s) {
+                    $q->where('user_name', 'like', "%{$s}%")
+                      ->orWhere('action', 'like', "%{$s}%")
+                      ->orWhere('module', 'like', "%{$s}%")
+                      ->orWhere('details', 'like', "%{$s}%");
                 });
             }
-            if ($request->filled('date')) $query->whereDate('created_at', $request->date);
+
+            foreach (['type', 'role', 'module'] as $field) {
+                if ($request->filled($field)) {
+                    $query->where($field, $request->input($field));
+                }
+            }
+
+            if ($request->filled('from')) $query->whereDate('created_at', '>=', $request->from);
+            if ($request->filled('to'))   $query->whereDate('created_at', '<=', $request->to);
+
             return view('admin.logs', [
-                'logs' => $query->latest()->paginate(10),
-                'totalToday' => ActivityLog::whereDate('created_at', today())->count(),
-                'dispensedToday' => ActivityLog::whereDate('created_at', today())->where('type','DISPENSE')->count(),
-                'createdToday' => ActivityLog::whereDate('created_at', today())->where('type','CREATE')->count(),
-                'activeUsers' => ActivityLog::whereDate('created_at', today())->distinct('user_name')->count()
+                'logs'           => $query->latest()->orderByDesc('id')->paginate(15)->withQueryString(),
+                'totalToday'     => ActivityLog::whereDate('created_at', today())->count(),
+                'dispensedToday' => ActivityLog::whereDate('created_at', today())->where('type', 'DISPENSE')->count(),
+                'createdToday'   => ActivityLog::whereDate('created_at', today())->where('type', 'CREATE')->count(),
+                'activeUsers'    => ActivityLog::whereDate('created_at', today())->distinct('user_name')->count(),
+                'types'          => ActivityLog::whereNotNull('type')->distinct()->orderBy('type')->pluck('type'),
+                'roles'          => ActivityLog::whereNotNull('role')->distinct()->orderBy('role')->pluck('role'),
+                'modules'        => ActivityLog::whereNotNull('module')->distinct()->orderBy('module')->pluck('module'),
             ]);
         });
 

@@ -863,16 +863,15 @@
     color: #94A3B8;
 }
 
-#dp-chart {
-    display: block;
-
-    width: 100% !important;
-
-    height: 230px !important;
-
-    margin: 0;
+.chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 230px;
 }
 
+#dp-chart {
+    display: block;
+}
 
 /* -----------------------------------------
    CONTEXT BOXES
@@ -1100,6 +1099,11 @@
         .trend-up { color: #B45309; font-weight: 600; }
         .trend-down { color: #047857; font-weight: 600; }
         .trend-none { color: #9CA3AF; }
+        .trend-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .trend-chip.up   { background: #FEF3C7; color: #B45309; }  /* demand rising  - amber */
+        .trend-chip.down { background: #DBEAFE; color: #1D4ED8; }  /* demand falling - blue  */
+        .trend-chip.flat { background: #E5E7EB; color: #374151; }  /* no change      - grey  */
+        .trend-chip.none { background: #F3F4F6; color: #9CA3AF; font-weight: 600; }  /* not applied / no forecast */
         .calc-box code { background: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 700; }
 
         .detail-cols { display: grid; flex-direction: column; gap: 20px; }
@@ -1889,15 +1893,17 @@
 
                             </td>
 
-                            <td
-                                class="trend-{{ $data['trend_direction'] }}"
-                            >
+                            <td>
+                                @php
+                                    $trendClass = $data['forecast_available']
+                                        && in_array($data['trend_direction'], ['up', 'down', 'flat'], true)
+                                            ? $data['trend_direction']
+                                            : 'none';
+                                @endphp
 
-                                {!! $data['forecast_available']
-                                    ? $trendLabel
-                                    : '-'
-                                !!}
-
+                                <span class="trend-chip {{ $trendClass }}">
+                                    {!! $data['forecast_available'] ? $trendLabel : '-' !!}
+                                </span>
                             </td>
 
                             <td>
@@ -2109,10 +2115,9 @@
                     <div class="chart-section-subtitle">
                         Historical demand compared with the 30-day forecast
                     </div>
-                    <canvas
-                        id="dp-chart"
-                        height="220"
-                    ></canvas>
+                                        <div class="chart-wrap">
+                        <canvas id="dp-chart"></canvas>
+                    </div>
                 </div>
                 <div>
                     <div class="context-box" id="dp-stockout-box"></div>
@@ -2445,30 +2450,69 @@ document.getElementById(
             ? '<b>Medicine Requests (90d):</b> ' + rq.request_count + ' request(s) totaling ' + rq.total_requested + ' units requested. <i>(Requested is not the same as dispensed - context only)</i>'
             : '<b>Medicine Requests (90d):</b> No requests recorded.';
 
+        // Open the drawer FIRST so the chart can measure a real size.
+        document.getElementById('detailPanel').classList.add('open');
+        document.getElementById('drawerBackdrop').classList.add('open');
+        document.body.style.overflow = 'hidden';
+
         if (detailChart) detailChart.destroy();
-        const ctx = document.getElementById('dp-chart').getContext('2d');
-        detailChart = new Chart(ctx, {
+
+        const forecastOk = !!data.forecast_available;
+        const chartLabels = labels6.slice(shownFrom)
+            .map(l => l.replace(' months ago', 'mo ago').replace('Last month', 'Last mo'))
+            .concat([forecastOk ? 'Forecast' : 'Forecast (N/A)']);
+        const chartValues = hist.slice(shownFrom).concat([forecastOk ? data.estimated_demand : 0]);
+        const lastIdx = chartValues.length - 1;
+
+        // Draws the value above each bar so numbers are always visible.
+        const valueLabels = {
+            id: 'valueLabels',
+            afterDatasetsDraw(chart) {
+                const c = chart.ctx;
+                c.save();
+                c.font = '600 11px Arial';
+                c.fillStyle = '#374151';
+                c.textAlign = 'center';
+                c.textBaseline = 'bottom';
+                chart.getDatasetMeta(0).data.forEach((bar, i) => {
+                    const text = (i === lastIdx && !forecastOk) ? 'N/A' : chartValues[i];
+                    c.fillText(text, bar.x, bar.y - 4);
+                });
+                c.restore();
+            }
+        };
+
+        detailChart = new Chart(document.getElementById('dp-chart').getContext('2d'), {
             type: 'bar',
             data: {
-                labels: labels6.slice(shownFrom).map(l => l.replace(' months ago', 'mo ago').replace('Last month', 'Last mo')).concat([data.forecast_available ? 'Forecast' : 'Forecast (N/A)']),
+                labels: chartLabels,
                 datasets: [{
                     label: 'Units',
-                    data: hist.slice(shownFrom).concat([data.forecast_available ? data.estimated_demand : 0]),
+                    data: chartValues,
                     backgroundColor: hist.slice(shownFrom).map(() => '#93C5FD').concat(['#2563EB']),
+                    borderRadius: 4,
+                    maxBarThickness: 48
                 }]
             },
+            plugins: [valueLabels],
             options: {
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                layout: { padding: { top: 18 } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => (ctx.dataIndex === lastIdx
+                                ? (forecastOk ? 'Forecast (next 30 days): ' + ctx.parsed.y + ' units' : 'Forecast not available')
+                                : 'Demand: ' + ctx.parsed.y + ' units')
+                        }
+                    }
+                },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
             }
         });
-
-        document.getElementById('detailPanel').classList.add('open');
-        document
-    .getElementById('drawerBackdrop')
-    .classList.add('open');
-
-document.body.style.overflow = 'hidden';
     }
 
     function showReview(decision) {

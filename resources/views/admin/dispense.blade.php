@@ -951,13 +951,12 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('change', checkReady);
     form.addEventListener('keyup', checkReady);
 
-    clearBtn.addEventListener('click', function(e) {
+        clearBtn.addEventListener('click', function(e) {
         e.preventDefault();
         patientSelect.value = '';
-        medicineSelect.value = '';
         clearPatientFields();
         clearMedicineFields();
-        document.getElementById('diagnosis').value = '';
+        document.getElementById('date').value = new Date().toISOString().slice(0, 10);
         checkReady();
     });
 

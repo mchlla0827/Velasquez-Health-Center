@@ -9,6 +9,7 @@ use App\Models\Batch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
+use App\Services\BatchNumberService;
 
 class StockController extends Controller
 {
@@ -29,7 +30,6 @@ class StockController extends Controller
         $validated = $request->validate([
             'medicine_id' => 'required|exists:medicines,id',
             'batch_id' => 'required|exists:batches,id',
-            'batch_number' => 'required|string|max:255',
             'expiry' => 'required|date',
             'quantity' => 'required|integer|min:0',
             'remarks' => 'nullable|string|max:255',
@@ -45,8 +45,8 @@ class StockController extends Controller
             $newQuantity = (int) $validated['quantity'];
             $diff = $newQuantity - $oldQuantity;
 
+            // Batch numbers are system-assigned and never edited.
             $batch->update([
-                'batch_number' => $validated['batch_number'],
                 'expiry_date' => $validated['expiry'],
                 'quantity' => $newQuantity,
                 'remarks' => $validated['remarks'] ?? $batch->remarks,
@@ -55,7 +55,7 @@ class StockController extends Controller
             if ($diff !== 0) {
                 StockTransaction::create([
                     'medicine_id' => $validated['medicine_id'],
-                    'batch_number' => $validated['batch_number'],
+                    'batch_number' => $batch->batch_number,
                     'expiry' => $validated['expiry'],
                     'quantity' => abs($diff),
                     'type' => $diff > 0 ? 'IN' : 'OUT',
@@ -74,7 +74,7 @@ class StockController extends Controller
     /**
      * Store new incoming stock (Stock-In) and sync batches/inventory totals.
      */
-    public function storeIn(Request $request)
+        public function storeIn(Request $request)
     {
         // ROLE CHECK: Admin & Nurse only
         $role = strtolower(session('admin_role') ?? auth()->user()->role ?? 'bhw');
@@ -84,7 +84,6 @@ class StockController extends Controller
 
         $request->validate([
             'medicine_id'  => 'required|exists:medicines,id',
-            'batch_number' => 'required',
             'expiry'       => 'required|date',
             'quantity'     => 'required|numeric|min:1',
             'remarks'      => 'nullable|string',
@@ -101,47 +100,40 @@ class StockController extends Controller
 
         try {
             return DB::transaction(function () use ($request, $medicine) {
-                
+                // Server-issued sequential number (BATCH-YYYY-NNNN). Any value sent by the
+                // browser is ignored. Every stock-in is a new batch.
+                $batchNumber = app(BatchNumberService::class)->next();
+
                 StockTransaction::create([
                     'medicine_id'  => $medicine->id,
-                    'batch_number' => $request->batch_number,
+                    'batch_number' => $batchNumber,
                     'expiry'       => $request->expiry,
                     'quantity'     => $request->quantity,
                     'type'         => 'IN',
                     'remarks'      => $request->remarks,
                 ]);
 
-                $existingBatch = Batch::where('medicine_id', $medicine->id)
-                    ->where('batch_number', $request->batch_number)
-                    ->first();
-
-                if ($existingBatch) {
-                    $existingBatch->increment('quantity', $request->quantity);
-                    $existingBatch->expiry_date = $request->expiry;
-                    $existingBatch->remarks = $request->remarks;
-                    $existingBatch->save();
-                } else {
-                    Batch::create([
-                        'medicine_id'  => $medicine->id,
-                        'batch_number' => $request->batch_number,
-                        'expiry_date'  => $request->expiry,
-                        'quantity'     => $request->quantity,
-                        'remarks'      => $request->remarks,
-                    ]);
-                }
+                Batch::create([
+                    'medicine_id'  => $medicine->id,
+                    'batch_number' => $batchNumber,
+                    'expiry_date'  => $request->expiry,
+                    'quantity'     => $request->quantity,
+                    'remarks'      => $request->remarks,
+                ]);
 
                 app(\App\Services\InventoryStockService::class)->syncLegacyColumns($medicine);
 
                 \App\Services\ActivityLogger::log(
                     'Medicine/batch updated',
                     'Inventory',
-                    (auth()->user()->name ?? 'Staff') . ' added ' . $request->quantity . ' units to ' . $medicine->name . ', Batch ' . $request->batch_number . '.',
+                    (auth()->user()->name ?? 'Staff') . ' added ' . $request->quantity . ' units to ' . $medicine->name . ', Batch ' . $batchNumber . '.',
                     'UPDATE'
                 );
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Stock added successfully! Inventory updated.'
+                    'message' => 'Stock added successfully! Inventory updated.',
+                    'batch_number' => $batchNumber,
                 ]);
             });
 
@@ -149,7 +141,7 @@ class StockController extends Controller
             if ($e->errorInfo[1] == 1062) {
                 return response()->json(['errors' => ['batch_number' => ['This batch number already exists.']]], 422);
             }
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Database Error: ' . $e->getMessage()
